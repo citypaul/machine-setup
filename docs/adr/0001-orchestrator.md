@@ -342,6 +342,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   tap publishes no API JSON (brew.md); only `steipete/tap/codexbar` (a cask)
   remains tap-qualified, in the desktop role.
 
+- **E-20** Slice 2 on Ubuntu VM 2 (arm64, already bootstrapped): the full
+  personal bootstrap with the 63 base formulae, the 9 desktop font casks
+  (mise pours font casks on Linux), apt, dotfiles, node, terraform and the
+  settings merge finished with exit 0 in 255 s (`20261006T210547-slice2-
+  bootstrap.log`). All 63 formulae came as bottles; llvm 23 was pulled in as
+  a dependency. No source builds.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

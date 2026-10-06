@@ -142,8 +142,8 @@ sync_dirs() {
   done
 }
 
-# Lazy-load NVM (only initialize when needed)
-source "$HOME/.nvm_setup"
+# Runtimes (node, terraform, rust, …) are managed by mise, activated in .zshrc; .nvmrc files still
+# switch node per directory (idiomatic version files are enabled in the mise dotfile group).
 
 # PNPM
 if [[ -z "$PNPM_HOME" ]]; then

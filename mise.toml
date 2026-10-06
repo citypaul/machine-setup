@@ -9,8 +9,16 @@ root = "zsh"
 [dotfile_groups.ghostty]
 root = "ghostty"
 
+# Global mise config fragment (runtimes, settings), default npm packages, environment.d for GUI apps.
+[dotfile_groups.mise]
+root = "mise"
+
 [bootstrap]
-dotfile_groups = ["zsh"]
+dotfile_groups = ["zsh", "mise"]
+
+# nvm is retired (slice 3): remove the lazy-loader an older setup linked into the home directory.
+[dotfiles]
+"~/.nvm_setup" = { mode = "absent" }
 
 # CLI tools for every machine, Homebrew bottles poured by mise on both OSes (plan D4).
 # Ported from mac-dev-machine-setup/Brewfile.cli. Not here on purpose: agent-browser, gemini-cli
@@ -82,10 +90,6 @@ dotfile_groups = ["zsh"]
 "brew:zoxide" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
 
-[tools]
-node = "24"
-terraform = "latest"
-
 # Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
 # The base lists are the legacy "remove if installed" lists from mac-dev-machine-setup/defaults.yaml.
 [vars]
@@ -108,9 +112,13 @@ run = '''tasks/remove-packages \
 description = "Merge claude/settings.json into ~/.claude/settings.json, keeping other hooks (plan §4.7)"
 run = "tasks/merge-claude-settings"
 
+[tasks.install-browsers]
+description = "Install the Chromium that agent-browser drives, once"
+run = "tasks/install-browsers"
+
 [tasks.bootstrap]
 description = "Imperative setup that runs after tools on every bootstrap"
-depends = ["merge-claude-settings"]
+depends = ["merge-claude-settings", "install-browsers"]
 run = "true"
 
 [bootstrap.hooks]

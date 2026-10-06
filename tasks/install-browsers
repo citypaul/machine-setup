@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Install the Chromium that agent-browser drives (Playwright's browser cache), once. Runs on every
+# bootstrap and does nothing when the browser is already there.
+set -euo pipefail
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+if ! command -v agent-browser >/dev/null 2>&1; then
+  echo "install-browsers: agent-browser is not on PATH; nothing to do"
+  exit 0
+fi
+cache="${PLAYWRIGHT_BROWSERS_PATH:-}"
+if [ -z "$cache" ]; then
+  if [ "$(uname -s)" = Darwin ]; then cache="$HOME/Library/Caches/ms-playwright"; else cache="$HOME/.cache/ms-playwright"; fi
+fi
+if ls -d "$cache"/chromium* >/dev/null 2>&1; then
+  echo "install-browsers: Chromium already present in $cache"
+  exit 0
+fi
+echo "install-browsers: installing Chromium for agent-browser"
+agent-browser install

@@ -1,0 +1,16 @@
+# Machine-wide runtimes and mise settings, deployed to ~/.config/mise/conf.d by the `mise` dotfile
+# group (plan.md §4.5, ADR 0001 F-19). It lives in conf.d so bootstrap's own writes to
+# ~/.config/mise/config.toml (trusted paths) never touch a tracked file.
+
+[tools]
+node = "24"
+terraform = "latest"
+rust = "stable"
+# CLIs that used to pull Homebrew's node formula; the npm backend gives them mise's node instead.
+"npm:agent-browser" = "latest"
+"npm:@google/gemini-cli" = "latest"
+
+[settings]
+# .nvmrc and .node-version switch node per directory, as nvm did; a missing version is installed
+# on first use by mise's command-not-found handler (not_found_auto_install is on by default).
+idiomatic_version_file_enable_tools = ["node"]
