@@ -3,8 +3,8 @@
 # Non-mutating: everything runs with --select-only against a private copy of the checkout.
 load helpers
 
-# The desktop role has a macOS overlay (mise.desktop-macos.toml: Dock, iTerm2 profile) and no Linux one yet.
-desktop_envs() { if is_macos; then echo "desktop,desktop-macos"; else echo "desktop"; fi; }
+# The desktop role has an overlay per OS (mise.desktop-macos.toml: Dock, iTerm2 profile; mise.desktop-linux.toml: the GUI set).
+desktop_envs() { if is_macos; then echo "desktop,desktop-macos"; else echo "desktop,desktop-linux"; fi; }
 
 setup() {
   fresh_home
