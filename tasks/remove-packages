@@ -63,13 +63,14 @@ if [ "$os" = Darwin ]; then
     [ -n "$prefix" ] || break
     caskroom="$prefix/Caskroom/$c"
     [ -d "$caskroom" ] || continue
-    if [ -n "$brew_bin" ] && "$brew_bin" list --cask 2>/dev/null | grep -qx "$c"; then
+    # Ownership comes from the Caskroom metadata, not from `brew list --cask`: Homebrew lists every
+    # Caskroom directory, mise-poured ones included, but can only uninstall casks it has `.metadata`
+    # for (ADR 0001 F-04, F-17). mise records its pour in <version>/.mise-cask.toml.
+    if [ -d "$caskroom/.metadata" ] && [ -n "$brew_bin" ]; then
       plan cask "$c" "Homebrew-owned, brew uninstall --cask"
       [ "$dry" = 1 ] || "$brew_bin" uninstall --cask --quiet "$c" >/dev/null
-    elif [ -f "$caskroom/.mise-cask.toml" ]; then
-      # mise poured it (ADR 0001 F-04): remove the app bundles its versioned Caskroom entries point at,
-      # then the Caskroom entry itself.
-      plan cask "$c" "mise-owned, removing recorded app bundles"
+    elif [ -n "$(find "$caskroom" -mindepth 2 -maxdepth 2 -name .mise-cask.toml -print -quit)" ]; then
+      plan cask "$c" "mise-owned, removing the app bundles its receipt links to"
       if [ "$dry" = 0 ]; then
         find "$caskroom" -mindepth 2 -maxdepth 2 -name '*.app' -type l | while read -r link; do
           target=$(readlink "$link")

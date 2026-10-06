@@ -260,6 +260,8 @@ write_selection
 [ "$select_only" = 0 ] || exit 0
 
 cd "$checkout"   # .miserc files are read from the real cwd before -C applies (ADR 0001 F-07)
+# Hooks and tasks run `mise …` by name; a bare container or fresh account has no ~/.local/bin on PATH yet.
+PATH="$HOME/.local/bin:$PATH"; export PATH
 export MISE_YES=1
 "$MISE" trust --quiet >/dev/null 2>&1 || "$MISE" trust >/dev/null
 if [ "$dry_run" = 1 ]; then
