@@ -1,0 +1,22 @@
+{
+  "model": "sonnet",
+  "customKey": "keep-me",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "^(startup|resume|clear|compact|fork)$",
+        "hooks": [
+          { "type": "command", "command": "bash '/home/someone/.claude/hooks/herdr-agent-state.sh' session" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          { "type": "command", "command": "echo unrelated-hook" }
+        ]
+      }
+    ]
+  }
+}

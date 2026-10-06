@@ -1,0 +1,7 @@
+#!/bin/sh
+# Fake `op` for tests: signed in; every `op read` returns a recognisable canary value.
+case "$1" in
+  whoami) printf 'URL: https://my.1password.com\nEmail: paul@example.test\n'; exit 0 ;;
+  read)   printf 'CANARY-op-secret-7f3a9c\n'; exit 0 ;;
+  *) echo "fake op: unsupported $*" >&2; exit 2 ;;
+esac

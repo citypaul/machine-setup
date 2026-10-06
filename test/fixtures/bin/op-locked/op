@@ -1,0 +1,7 @@
+#!/bin/sh
+# Fake `op` for tests: behaves like a signed-out 1Password CLI.
+case "$1" in
+  whoami) echo "[ERROR] account is not signed in" >&2; exit 1 ;;
+  read)   echo "[ERROR] account is not signed in" >&2; exit 1 ;;
+  *) echo "fake op: unsupported $*" >&2; exit 2 ;;
+esac

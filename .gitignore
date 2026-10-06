@@ -6,3 +6,10 @@ mise.local.toml
 
 # macOS
 .DS_Store
+
+# Per-checkout environment selection written by bootstrap.sh; never tracked
+.miserc.local.toml
+mise.*.local.toml
+
+# Test harness cache (bats-core clone) and scratch
+.cache/

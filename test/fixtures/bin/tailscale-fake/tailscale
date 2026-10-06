@@ -1,0 +1,5 @@
+#!/bin/sh
+# Fake `tailscale` for tests: records argv to $FAKE_TAILSCALE_LOG instead of joining a network.
+: "${FAKE_TAILSCALE_LOG:?set FAKE_TAILSCALE_LOG}"
+printf '%s\n' "$*" >> "$FAKE_TAILSCALE_LOG"
+exit 0

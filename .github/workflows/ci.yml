@@ -1,0 +1,24 @@
+name: ci
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  linux:
+    name: ubuntu 24.04 container (clean, root)
+    runs-on: ubuntu-24.04
+    container: ubuntu:24.04
+    steps:
+      # Only the test harness is pre-installed; bootstrap.sh must bring its own prerequisites.
+      - run: apt-get update && apt-get install -y --no-install-recommends bats
+      - uses: actions/checkout@v5
+      - run: MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh
+  macos:
+    name: macos-15 runner (Homebrew present)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v5
+      - run: brew install bats-core
+      - run: MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh
