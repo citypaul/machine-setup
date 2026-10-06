@@ -1,0 +1,8 @@
+# Per-machine selection written by bootstrap.sh; never tracked (plan.md §4.2)
+mise.local.toml
+
+# Local tool state
+.mise/
+
+# macOS
+.DS_Store
