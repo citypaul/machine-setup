@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# Install herdr's agent-state integrations for Claude Code and Codex (mac-dev-machine-setup/herdr.yaml).
+# Best effort, as before: an integration needs the agent's config directory to exist, so a missing
+# one is reported and bootstrap continues; re-running converges it.
+set -uo pipefail
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+if ! command -v herdr >/dev/null 2>&1; then
+  echo "herdr-integrations: herdr is not on PATH; skipping"
+  exit 0
+fi
+rc=0
+for agent in claude codex; do
+  if herdr integration install "$agent"; then
+    echo "herdr-integrations: $agent integration ensured"
+  else
+    echo "herdr-integrations: could not install the $agent integration yet (exit $?); run 'mise run herdr-integrations' after the agent has been started once"
+    rc=0
+  fi
+done
+exit $rc

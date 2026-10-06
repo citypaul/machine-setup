@@ -373,6 +373,25 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   defaults to zsh. The old setup relied on the Oh My Zsh installer's `chsh`.
 - Chrome for Testing has no Linux arm64 build (`agent-browser install`
   says so); the Chromium task is advisory and the test skips there.
+### 2026-10-06 — slice 3 and slice 5 decisions
+
+- **D-09 Machine-wide runtimes live in a global conf.d fragment** deployed
+  by the `mise` dotfile group (`~/.config/mise/conf.d/machine-setup.toml`),
+  not in `~/.config/mise/config.toml`, which bootstrap writes to for
+  `trusted_config_paths`; a tracked file must never receive machine-local
+  writes. The checkout declares no `[tools]` any more (F-19).
+- **D-10 Agent CLIs come from the npm backend on both OSes**
+  (`@anthropic-ai/claude-code`, `@openai/codex`, `@google/gemini-cli`,
+  `agent-browser`); the `claude-code@latest` cask leaves the desktop role.
+  The `codex` cask (the desktop app) stays.
+- **D-11 The skills installer is pinned.** `tasks/claude-skills` downloads
+  `install-claude.sh` from `citypaul/.dotfiles` at `claude_skills_version`
+  (an exact tag, enforced) and runs it with `--version <tag> --agent codex
+  --with-opencode`, the options the Ansible playbook used; a marker file
+  makes converge a no-op until the pin changes. herdr's integrations are
+  best effort, as before.
+- CI runs on pull requests and on pushes to `main` only; branch pushes no
+  longer trigger a second run.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 

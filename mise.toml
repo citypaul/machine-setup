@@ -53,6 +53,7 @@ dotfile_groups = ["zsh", "mise"]
 "brew:glow" = "latest"
 "brew:gnupg" = "latest"
 "brew:go" = "latest"
+"brew:herdr" = "latest"
 "brew:gource" = "latest"
 "brew:graphicsmagick" = "latest"
 "brew:graphviz" = "latest"
@@ -93,6 +94,8 @@ dotfile_groups = ["zsh", "mise"]
 # Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
 # The base lists are the legacy "remove if installed" lists from mac-dev-machine-setup/defaults.yaml.
 [vars]
+# Exact reviewed release of citypaul/.dotfiles for CLAUDE.md, skills and agents (plan §4.7).
+claude_skills_version = "v4.18.0"
 remove_brew_base = "neofetch exa"
 remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero"
 remove_cask_zap_base = "karabiner-elements"
@@ -116,9 +119,18 @@ run = "tasks/merge-claude-settings"
 description = "Install the Chromium that agent-browser drives, once"
 run = "tasks/install-browsers"
 
+[tasks.claude-skills]
+description = "Install CLAUDE.md, skills and agents from citypaul/.dotfiles at the pinned release"
+run = 'tasks/claude-skills --version "{{ vars.claude_skills_version }}"'
+
+[tasks.herdr-integrations]
+description = "Install herdr's Claude Code and Codex integrations (best effort)"
+depends = ["merge-claude-settings", "claude-skills"]
+run = "tasks/herdr-integrations"
+
 [tasks.bootstrap]
 description = "Imperative setup that runs after tools on every bootstrap"
-depends = ["merge-claude-settings", "install-browsers"]
+depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations"]
 run = "true"
 
 [tasks.fix-brew-certs]
