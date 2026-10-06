@@ -18,8 +18,14 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --role "$test_roles" --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *",conquer,"* ]]
-  run zsh -lc 'tailscale version'
-  [ "$status" -eq 0 ]
+  if is_macos; then
+    # The app's CLI blocks on every command, `version` included, until the app has been opened once
+    # and its VPN configuration approved (ADR 0001 F-38); read the installed version from the bundle.
+    [ -n "$(defaults read /Applications/Tailscale.app/Contents/Info CFBundleShortVersionString)" ]
+  else
+    run zsh -lc 'tailscale version'
+    [ "$status" -eq 0 ]
+  fi
 }
 
 @test "the Tailscale daemon is running (Linux)" {

@@ -477,7 +477,10 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   its VPN configuration was never approved), and a whole converge hung with
   it. Every CLI call in `tasks/tailscale-join` is now bounded by an alarm;
   on macOS a silent daemon gets the instruction to open the app once. A
-  fake whose daemon never answers covers it in `60-conquer`.
+  fake whose daemon never answers covers it in `60-conquer`. The block covers
+  every command, `version` included: the Conquer test sat 50 minutes in
+  `tailscale version` on the macOS VM, so the test reads the app bundle's
+  version instead and nothing runs the CLI unbounded.
 - **D-32 CI runners take the Conquer role, not the desktop role.** With
   `60-conquer` adding `desktop,conquer`, every macOS job would install the
   whole GUI set (fifty casks, MacTeX: about 50 minutes on the macOS VM,
