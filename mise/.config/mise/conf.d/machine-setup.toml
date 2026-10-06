@@ -9,6 +9,9 @@ rust = "stable"
 # CLIs that used to pull Homebrew's node formula; the npm backend gives them mise's node instead.
 "npm:agent-browser" = "latest"
 "npm:@google/gemini-cli" = "latest"
+# The old pnpm globals, as declared tools so a converge installs them too (ADR 0001 F-25).
+"npm:task-master-ai" = "latest"
+"npm:@earendil-works/pi-coding-agent" = "latest"
 
 [settings]
 # .nvmrc and .node-version switch node per directory, as nvm did; a missing version is installed

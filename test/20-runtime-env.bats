@@ -62,10 +62,25 @@ shims="$HOME/.local/share/mise/shims"
   [[ "$output" == cargo* ]]
 }
 
-@test "the default npm packages are installed alongside node" {
-  run zsh -lc 'npm ls -g --depth=0 --json'
+@test "the old pnpm globals are installed as mise tools" {
+  run bash -c "cd && '$HOME/.local/bin/mise' ls --installed --json"
   [ "$status" -eq 0 ]
-  echo "$output" | jq -e '.dependencies | has("task-master-ai") and has("@earendil-works/pi-coding-agent")'
+  echo "$output" | jq -e 'has("npm:task-master-ai") and has("npm:@earendil-works/pi-coding-agent")'
+}
+
+@test "the login shell is zsh, so ssh and cron shells read .zshenv and .zprofile" {
+  local shell
+  if is_macos; then shell=$(dscl . -read "/Users/$USER" UserShell | awk '{print $2}'); else shell=$(getent passwd "$USER" | cut -d: -f7); fi
+  [[ "$shell" == */zsh ]]
+}
+
+@test "a mise-poured curl in the Homebrew prefix can verify TLS certificates" {
+  local prefix
+  if is_macos; then prefix=/opt/homebrew; else prefix=/home/linuxbrew/.linuxbrew; fi
+  [ -x "$prefix/bin/curl" ] || skip "no brewed curl here"
+  run "$prefix/bin/curl" -fsS -o /dev/null -w '%{http_code}' https://github.com
+  [ "$status" -eq 0 ]
+  [ "$output" = "200" ]
 }
 
 @test "node resolves over ssh to localhost" {
@@ -106,9 +121,9 @@ arrange_sshd() {
   else
     [ -f "$HOME/.config/environment.d/mise.conf" ]
     grep -q 'mise/shims' "$HOME/.config/environment.d/mise.conf"
-    systemctl --user is-system-running >/dev/null 2>&1 || skip "no user systemd session here (container)"
-    run systemd-run --user --pipe --quiet --wait sh -c 'echo "$PATH"'
-    [ "$status" -eq 0 ]
+    systemctl --user show-environment >/dev/null 2>&1 || skip "no user systemd session here (container)"
+    # environment.d applies at the next login; the session-path hook covers the running session.
+    run systemctl --user show-environment
     [[ "$output" == *"mise/shims"* ]]
   fi
 }

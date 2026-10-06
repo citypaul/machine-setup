@@ -121,5 +121,9 @@ description = "Imperative setup that runs after tools on every bootstrap"
 depends = ["merge-claude-settings", "install-browsers"]
 run = "true"
 
+[tasks.fix-brew-certs]
+description = "Give mise-poured Homebrew TLS clients the CA bundle their post-install step would have made"
+run = "tasks/fix-brew-certs"
+
 [bootstrap.hooks]
-post-packages = "mise run remove-packages"
+post-packages = ["mise run fix-brew-certs", "mise run remove-packages"]

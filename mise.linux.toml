@@ -9,3 +9,14 @@
 "apt:tree" = "latest"
 # A C toolchain: rust (via mise) and some npm packages need a linker; macOS gets it from the CLT.
 "apt:build-essential" = "latest"
+
+# Login shell: zsh, so ssh and cron get .zshenv/.zprofile (plan.md §4.5); mise elevates for chsh.
+[bootstrap.user]
+login_shell = "zsh"
+
+[tasks.session-path]
+description = "Push mise's PATH into the running systemd user session for GUI apps"
+run = "tasks/session-path"
+
+[bootstrap.hooks]
+post-dotfiles = "mise run session-path"

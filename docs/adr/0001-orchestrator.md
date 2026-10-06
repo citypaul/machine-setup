@@ -349,6 +349,31 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   bootstrap.log`). All 63 formulae came as bottles; llvm 23 was pulled in as
   a dependency. No source builds.
 
+### 2026-10-06 — slice 3 on the Ubuntu VM: four findings
+
+- **F-23 mise runs no post-install steps.** `brew.md` lists fetch, extract,
+  relocate, re-sign, receipt, link; nothing else. Homebrew's `ca-certificates`
+  and `openssl@3` create and link `cert.pem` in post-install, so on the VM
+  `/home/linuxbrew/.linuxbrew/bin/curl https://github.com` returned no
+  response (exit 60, "unable to get local issuer certificate") while
+  `/usr/bin/curl` worked, and the pinned skills task failed on it.
+  `tasks/fix-brew-certs` replicates both post-installs and runs as the first
+  `post-packages` hook; a test checks a brewed curl gets HTTP 200.
+- **F-24 `environment.d` is read when the user manager starts.**
+  `systemctl --user daemon-reload` did not pick the file up; GUI apps see it
+  after the next login. `tasks/session-path` also runs `systemctl --user
+  set-environment` for the running session (the Linux counterpart of the
+  LaunchAgent).
+- **F-25 node default packages install only with a fresh node.** On the
+  reused VM node 24 pre-dated `~/.default-npm-packages`, so nothing
+  installed; the old pnpm globals are now `npm:` tools, which converge.
+- **F-26 Login shell.** Over ssh the VM ran bash (Ubuntu's default), so
+  `.zshenv`/`.zprofile` never ran and the VM's pre-existing apt node 22
+  answered. `[bootstrap.user] login_shell = "zsh"` on Linux; macOS already
+  defaults to zsh. The old setup relied on the Oh My Zsh installer's `chsh`.
+- Chrome for Testing has no Linux arm64 build (`agent-browser install`
+  says so); the Chromium task is advisory and the test skips there.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
