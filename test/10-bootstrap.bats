@@ -18,6 +18,7 @@ mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
     as_root apt-get install -y sl >/dev/null
     dpkg -s sl >/dev/null
   fi
+  : > "$BATS_FILE_TMPDIR/arranged"
 }
 
 @test "bootstrap sets up a fresh machine: mise installed, groups linked, packages present, state converged" {
@@ -49,12 +50,10 @@ mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
 }
 
 @test "undeclared software survives bootstrap" {
-  if is_macos; then
-    command -v brew >/dev/null 2>&1 || skip "no pre-existing Homebrew state on this machine"
-    brew list hello >/dev/null
-  else
-    dpkg -s sl >/dev/null
-  fi
+  # Bootstrap installs Homebrew on a clean Mac, so "brew exists now" says nothing about whether
+  # the arrange step ran; the marker does.
+  [ -f "$BATS_FILE_TMPDIR/arranged" ] || skip "no pre-existing state was arranged on this machine"
+  if is_macos; then brew list hello >/dev/null; else dpkg -s sl >/dev/null; fi
 }
 
 @test "the personal-only app is installed" {

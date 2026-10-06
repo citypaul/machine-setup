@@ -4,6 +4,7 @@
 load helpers
 
 setup() {
+  require_jq
   fresh_home
   mkdir -p "$HOME/.claude"
   TARGET="$HOME/.claude/settings.json"
