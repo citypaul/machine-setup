@@ -400,8 +400,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   annotated tag, which the raw host cannot serve. `tasks/claude-skills` now
   peels the tag (`refs/tags/<tag>^{}`) and passes the commit. The installer
   fix belongs with the other installer work in slice 10.
-- `[bootstrap.user].login_shell` must be an absolute path; a bare `zsh` is
-  ignored with a warning (`mise bootstrap user status` shows it).
+- **F-28 `[bootstrap.user].login_shell` cannot run unattended on Linux.**
+  A bare `zsh` is ignored with a warning (absolute path required), and with
+  `/usr/bin/zsh` mise ran plain `chsh -s`, which asked PAM for a password
+  ("Authentication failure") and the failure aborted the whole bootstrap
+  before tools and tasks. Replaced by `tasks/login-shell`: `sudo -n usermod`
+  on Linux, `sudo -n chsh` on macOS, a message when sudo is unavailable, and
+  never a failed run.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
