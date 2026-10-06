@@ -1,0 +1,12 @@
+# Role: joins the Conquer network (Tailscale client against a Headscale server, plan §4.6, D6).
+# Needs 1Password at run time; bootstrap.sh drops this env from a run when op is not signed in.
+[vars]
+headscale_url = "https://headscale.conquer.example"               # D6: real URL pending
+headscale_authkey_ref = "op://Private/Conquer Headscale/pre-auth key"   # D6: real item pending
+
+[tasks.tailscale-join]
+description = "Join the Conquer network; the pre-auth key is read from 1Password only at execution time"
+run = '''tasks/tailscale-join --login-server "{{ vars.headscale_url }}" --authkey-ref "{{ vars.headscale_authkey_ref }}"'''
+
+[bootstrap.hooks]
+final = "mise run tailscale-join"

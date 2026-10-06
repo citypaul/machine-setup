@@ -1,0 +1,44 @@
+# Base layer, loaded on every machine. Load order, later wins per key (plan.md §4.9):
+#   mise.toml < mise.<os>.toml < mise.<profile>.toml < mise.<role>.toml … < mise.machine-<id>.toml
+# Group lists replace rather than union, so every role and machine file states its complete list.
+# The per-machine selection lives in .miserc.local.toml and mise.local.toml, written by bootstrap.sh.
+
+[dotfile_groups.zsh]
+root = "zsh"
+
+[dotfile_groups.ghostty]
+root = "ghostty"
+
+[bootstrap]
+dotfile_groups = ["zsh"]
+
+[bootstrap.packages]
+"brew:jq" = "latest"
+"brew:ripgrep" = "latest"
+"brew:fzf" = "latest"
+"brew:bat" = "latest"
+"brew:eza" = "latest"
+
+[tools]
+node = "24"
+
+# Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
+# Extra arguments to `mise run remove-packages` (for example --dry-run) are appended by mise.
+[tasks.remove-packages]
+description = "Remove packages on this machine's removal allowlist; never prunes"
+run = '''tasks/remove-packages \
+  --brew "{{ vars.remove_brew_base | default(value='') }} {{ vars.remove_brew_profile | default(value='') }} {{ vars.remove_brew_machine | default(value='') }}" \
+  --cask "{{ vars.remove_cask_base | default(value='') }} {{ vars.remove_cask_profile | default(value='') }} {{ vars.remove_cask_machine | default(value='') }}" \
+  --apt "{{ vars.remove_apt_base | default(value='') }} {{ vars.remove_apt_profile | default(value='') }} {{ vars.remove_apt_machine | default(value='') }}"'''
+
+[tasks.merge-claude-settings]
+description = "Merge claude/settings.json into ~/.claude/settings.json, keeping other hooks (plan §4.7)"
+run = "tasks/merge-claude-settings"
+
+[tasks.bootstrap]
+description = "Imperative setup that runs after tools on every bootstrap"
+depends = ["merge-claude-settings"]
+run = "true"
+
+[bootstrap.hooks]
+post-packages = "mise run remove-packages"

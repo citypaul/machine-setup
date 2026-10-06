@@ -1,0 +1,9 @@
+# macOS layer (selected automatically by auto_env).
+[bootstrap.brew]
+adopt = true   # keep an existing app bundle in place instead of replacing it (protects TCC grants)
+
+[bootstrap.packages]
+"brew:tree" = "latest"
+"brew-cask:1password" = "latest"
+"brew-cask:ghostty" = "latest"
+"brew-cask:visual-studio-code" = "latest"

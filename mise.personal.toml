@@ -1,0 +1,5 @@
+# Personal profile: apps that never appear on a work machine.
+[bootstrap.packages]
+"brew-cask:spotify" = { os = "macos" }
+# Spike stand-in for the personal Linux desktop set (plan D7, slice 8).
+"apt:cmatrix" = { os = "linux" }

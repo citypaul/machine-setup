@@ -1,0 +1,4 @@
+# Work profile: nothing personal is declared, and personal apps found on the machine are removed.
+[vars]
+remove_cask_profile = "spotify discord jellyfin"
+remove_apt_profile = "cmatrix"

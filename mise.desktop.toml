@@ -1,0 +1,3 @@
+# Role: a machine with a GUI terminal. Roles state the complete group list (lists replace).
+[bootstrap]
+dotfile_groups = ["zsh", "ghostty"]

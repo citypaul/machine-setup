@@ -1,0 +1,3 @@
+# Early-init settings, read before mise.toml and only from the real working directory (ADR 0001 F-07).
+# auto_env selects mise.<os>.toml and mise.<os>-<arch>.toml for the current platform.
+auto_env = true

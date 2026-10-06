@@ -1,0 +1,9 @@
+# Linux layer (selected automatically by auto_env). System packages come from apt; CLI tools from
+# Homebrew bottles poured by mise into /home/linuxbrew/.linuxbrew (plan D4).
+[bootstrap.packages]
+"apt:zsh" = "latest"
+"apt:git" = "latest"
+"apt:curl" = "latest"
+"apt:ca-certificates" = "latest"
+"apt:jq" = "latest"
+"apt:tree" = "latest"
