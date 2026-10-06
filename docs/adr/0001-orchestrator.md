@@ -463,6 +463,20 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   **D-15:** App Store apps are their own opt-in `appstore` role, selected
   once a Mac is signed in; the desktop role never carries them.
 
+- **E-23** Slice 4 on Ubuntu VM 2 (`20261006T215713-slice4c.log`):
+  `60-conquer` 5 pass (1 macOS-only skip). Adding `--role conquer` selected
+  `conquer,conquer-linux`, wrote the keyring and list (codename `resolute`),
+  refreshed apt, installed `tailscale` and left `tailscaled` active; the join
+  task reported "already connected" against the connected fake and printed
+  the login URL against the needs-login fake.
+- **E-24** Slice 2 desktop role on the clean macOS VM
+  (`20261006T130647-slice2-bootstrap.log`): the 63 formulae, all 42 casks of
+  the desktop role, the 9 fonts and Spotify installed in about 50 minutes,
+  MacTeX's 5.7 GB download included; mise asked for sudo only for pkg
+  installers. The run then hung in `mas install` (F-30) until stopped; with
+  App Store apps moved to the `appstore` role the remaining phases run on
+  the next converge (E-25 to follow).
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
