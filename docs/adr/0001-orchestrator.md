@@ -1,0 +1,184 @@
+# ADR 0001: Orchestrator for machine-setup
+
+**Status:** in progress (slice 0 spike running) · **Date:** 2026-10-06 · **Decides:** plan.md D0
+
+## Context
+
+Plan v4 (`docs/planning/plan.md` §3) left two finalists: **A** mise-native
+(`mise bootstrap` + `[dotfile_groups]` + tasks) and **B2** minimal Ansible with
+mise for runtimes. The cross-provider review (plan §10) required the choice to
+be made by an executed, risk-driven spike rather than prose. Paul confirmed on
+2026-10-06: try A first, mise only; B2 is the written fallback.
+
+## Decision
+
+Pending the gate results below. The rule from plan §3.3 applies: every gate
+passes or is inconclusive-with-a-small-task → adopt A; any gate fails in a way
+that needs more than a small task → design B2 before slice 1.
+
+## Gates (plan §5, slice 0)
+
+Each gate is asserted by a bats test under `test/` and run on
+`ubuntu:24.04` (container), `macos-15` (runner), the Ubuntu VM and the clean
+macOS VM. Verdicts are filled in from executed runs only.
+
+| # | Gate | Test | Linux | macOS | Verdict |
+|---|------|------|-------|-------|---------|
+| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | — | — | pending |
+| 2 | Dotfile-group composition across env files | `test/01-layering.bats` | — | pass (host, non-mutating) | pending VM/CI |
+| 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | — | pass (host, non-mutating) | pending VM/CI |
+| 4 | Locked 1Password handling | `test/02-secrets.bats` | — | pass (host, fake op) | pending VM/CI |
+| 5 | Representative casks (1Password, Ghostty, VS Code) | `test/10-bootstrap.bats` | n/a | — | pending |
+| 6 | JSON merge of `~/.claude/settings.json` preserving herdr hooks | `test/03-merge-claude-settings.bats` | — | pass (host) | pending VM/CI |
+| 7 | Partial-migration rollback | `test/04-migrate.bats` | — | pass (host) | pending VM/CI |
+| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | — | — | pending |
+| + | Drift repair | `test/30-drift.bats` | — | — | pending |
+
+## Findings log
+
+Executed facts, newest last. Each entry says what was run and what it changes
+in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
+
+### 2026-10-06 — documentation reads (mise docs at tag v2026.10.3)
+
+- **F-01 Entry point.** A repo with `mise.toml` + source files is a *bootstrap
+  project*: `mise bootstrap --from <url>` (checkout at
+  `$MISE_DATA_DIR/bootstrap-repo`, or `--from-dir`). `--adopt` is for a global
+  mise config dir or a shared-history setup repo. Plan §4.3 step 6 said
+  `--adopt`; corrected. We clone with `git` ourselves and run `mise bootstrap`
+  inside the checkout (see F-07 for why).
+- **F-02 Plan JSON does not cover dotfiles.** `mise bootstrap plan --json`
+  reports accounts, packages, files, services, firewall, compose. Dotfile
+  assertions must use `mise dot status --json`; package assertions
+  `mise bootstrap packages status --json`. Plan §4.9 point 4 corrected.
+- **F-03 No declarative removal for brew/apt/cask.** `state = "absent"` is only
+  pacman/scoop/zypper. `mise bootstrap packages` has `apply import prune status
+  upgrade use where` and no `remove`. `prune --manager brew` removes *any*
+  linked formula outside the declared closure, including Homebrew-installed
+  ones; `prune --manager brew-cask` removes only mise-owned casks with intact
+  receipts and skips Homebrew-owned ones. Confirms plan §4.4: an explicit
+  allowlist task; prune never runs on a machine with pre-existing Homebrew.
+- **F-04 Casks are poured by mise itself** (Homebrew API + download + install
+  into `/Applications`), not by shelling out to `brew`. A Homebrew-owned cask
+  with `.metadata` satisfies a `brew-cask:` entry without ownership transfer.
+  mise-poured casks carry `.mise-cask.toml`, not Homebrew `.metadata`, so
+  `brew uninstall --cask` may not recognise them (gate 1 must show this).
+- **F-05 Secrets.** `[bootstrap.secrets]` maps names to env vars; only inputs
+  referenced by *selected templates* are resolved, before any mutation; a
+  missing one aborts. `mise bootstrap secrets status --missing` exits 1.
+  `--prompt-secrets` exists. Task-time `op read` gets no preflight, so the
+  1Password auth check stays in `bootstrap.sh` (plan §4.3 step 5).
+- **F-06 `unapply`.** `mise bootstrap unapply <env>` removes files,
+  directories, user services and dotfile entries an env contributed; packages,
+  repos and compose need separate cleanup. `mise dot unapply --group <g>` and
+  `mise dot apply --prune` handle deselected groups (verified executed, below).
+
+### 2026-10-06 — executed probes (scratch project, temp `HOME`)
+
+- **F-07 `.miserc*` in the checkout is ignored under `-C`.** With
+  `.miserc.toml` (`auto_env = true`) and `.miserc.local.toml` (`env = ["work"]`)
+  in the project: `mise -C <proj> config ls` loaded neither (0 platform files,
+  0 env files); `cd <proj> && mise config ls` loaded both; `MISE_AUTO_ENV=1
+  mise -C …` loaded the platform file. Early-init settings are read from the
+  *real* cwd before `-C` applies. Consequence: `bootstrap.sh` and every
+  converge/status wrapper `cd` into the checkout; `-C` is not enough.
+  Explicit `-E a,b` *does* work with `-C`.
+- **F-08 Settings are not templated.** `[settings] dotfiles.root =
+  "{{ config_root }}"` is stored literally. Group `root` values are not
+  templated either (`root = "{{ config_root }}/zsh"` resolved to
+  `~/.dotfiles/{{ config_root }}/zsh`). A group's relative `root` resolves from
+  `dotfiles.root` (default `~/.dotfiles`), never from the config file.
+  Consequence: `bootstrap.sh` writes `[settings] dotfiles.root = "<checkout>"`
+  into the untracked `mise.local.toml`; `MISE_DOTFILES_ROOT` also works.
+- **F-09 `settings.yes` is ignored in non-global config** ("ignored for
+  security reasons"). Non-interactive runs pass `--yes` / `MISE_YES=1`.
+- **F-10 Machine-file discovery works.** `mise -C <proj> -E
+  work,machine-studio config ls` (cwd `/`) listed `mise.toml`,
+  `mise.work.toml`, `mise.machine-studio.toml`. Env name = file name (plan
+  §4.2 F11) holds.
+- **F-11 Layered var composition works with distinct keys.** Base
+  `remove_cask_base`, work `remove_cask_profile`, machine
+  `remove_cask_machine`, task `run` using `{{ vars.x | default(value="") }}`
+  rendered `base-app spotify discord jellyfin` for `-E work,machine-studio`.
+  No self-reference needed (plan §4.9 point 3 simplified).
+- **F-12 Group lists replace, confirmed; deselection leaves orphans.** With
+  base `dotfile_groups = ["zsh"]` and machine `["zsh","ghostty"]`: `-E
+  work,machine-studio` applied both; `-E work` reported the ghostty link as
+  `orphaned`; `mise dot unapply --group ghostty --yes` removed it. `mise dot
+  apply` created `~/.zshrc` and `~/.config/ghostty/config` as symlinks into the
+  checkout (symlink-each); `mise bootstrap status --missing` exited 0 after
+  apply and 1 after `rm ~/.zshrc`; re-apply restored the link.
+- **F-13 `mise dot status --json` shape.** `{files:[{target, source, mode,
+  origin:{config, config_root, environment:[…], source}, state, omitted,
+  nested}], edits:[], history:{…}}`. A group is one entry (target `~`, mode
+  `symlink-each`); per-file checks come from the filesystem.
+- **F-14 `packages status --json` shape.** `{"<manager>": {available,
+  packages:[{package, requested_version, desired_state, state,
+  installed_version, auto_updates?}]}}`. `secrets status --json` is
+  `[{name, env, state}]`.
+- **F-15 Local mise install.** `curl https://mise.run | MISE_INSTALL_PATH=… sh`
+  installs a single binary and only *prints* the shell-activation line; it
+  does not edit rc files.
+
+### 2026-10-06 — target machines
+
+- **Ubuntu VM 2** (VMPal): Ubuntu 26.04 arm64, user `paul` (uid 1000), curl,
+  wget, git, sudo (password), python3, zsh 5.9 present; no Homebrew, no mise.
+  Host reachable from the guest at 192.168.64.1; no shared folder mounts.
+- **macOS VM 1** (VMPal): macOS 27.0.1 arm64, user `paul` (uid 501, admin),
+  curl and `/usr/bin/git` shim present, **no Command Line Tools, no
+  `/opt/homebrew`**: the clean-Mac evidence class plan §4.8 asks for.
+- **GitHub runners**: `macos-15` image has Homebrew 6.x and CLT; the
+  `ubuntu:24.04` container has neither curl nor git. `ubuntu-24.04` runner has
+  Homebrew at `/home/linuxbrew` (not on PATH).
+
+- **Shared folders.** Both VMs mount the host's `~/Downloads` (VMPal
+  `sharedFolders`): `/media/VMPal/Downloads` on Ubuntu (virtiofs, automount)
+  and `/Volumes/My Shared Files/Downloads` on macOS. A copy of the working
+  tree placed there is visible in both guests without any network service.
+
+### 2026-10-06 — design decisions taken while writing slice 0
+
+- **D-01 bootstrap.sh is POSIX sh** because the one-liner runs under
+  `sh -c`; tasks under `tasks/` are bash (present on both OSes).
+- **D-02 Selection lives in the checkout**, not in `~/.config/mise`:
+  `.miserc.local.toml` holds `env = [profile, roles…, machine-<id>]`,
+  `mise.local.toml` holds `[vars] profile/roles/machine` and `[settings]
+  dotfiles.root = <checkout>` (F-08). A global `miserc.local.toml` would make
+  every project on the machine load `mise.work.toml` and friends.
+- **D-03 Removal lists use one var per layer** (`remove_<mgr>_base|profile|
+  machine`) concatenated in the task definition (F-11); no list union is
+  needed from mise.
+- **D-04 macOS bootstrap installs Homebrew** (official installer,
+  `NONINTERACTIVE=1`). mise pours into the same prefix and does not need
+  `brew`, but cask and formula *removal* needs `brew uninstall`, and Paul's
+  shell setup expects `brew shellenv`. Linux does not get a `brew` binary in
+  slice 0; formula removal there is reported as skipped (gate 1 records it).
+- **D-05 Runtime launch paths** (plan §4.5): `zsh/.zshenv` prepends the mise
+  shims dir and `~/.local/bin` for every zsh; `zsh/.zshrc` activates mise for
+  interactive shells. `[bootstrap.mise_shell_activate]` is not used because
+  it edits `~/.zshrc`/`~/.zshenv` in place and both are group symlinks.
+- **D-06 The join task passes the key as a process argument** to
+  `tailscale up --authkey`; it is never echoed or written. Slice 4 decides
+  whether to switch to `--auth-key file:` to keep it out of `ps`.
+
+### 2026-10-06 — executed: non-mutating gates on the macOS host
+
+- **E-01** `test/run.sh test/0*.bats` with mise 2026.10.3: 34 tests, 33 pass,
+  1 skipped (Linux-only). Covers gates 2, 3, 4 (with a fake `op`), 6 and 7 on
+  a fresh `HOME` against a private copy of the checkout. RED was recorded first
+  (every test failed on a missing `bootstrap.sh`).
+- **E-02** `mise run <task>` installs missing `[tools]` before running the task
+  (node 24 was installed on first `mise run tailscale-join`, ~8 s). Tasks that
+  must not pull tools should be plain scripts or declare `tools = false`
+  (to check in slice 3).
+- **E-03** `mise bootstrap --dry-run` prints hook commands (`mise run
+  tailscale-join`) without running them; no secret value appeared in its
+  output, as documented (F-05).
+
+### 2026-10-06 — harness constraints (not mise findings)
+
+- The Claude Code auto-mode classifier refused to write a NOPASSWD sudoers
+  entry in either VM and refused to start a local HTTP server to feed the VMs.
+  Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
+  sudo to the VM user himself, and the VMs fetch the repo from GitHub.

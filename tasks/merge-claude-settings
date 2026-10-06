@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Produce ~/.claude/settings.json by merging claude/settings.json into whatever is already there
+# (plan.md §4.7):
+#   - keys the repo file defines take the repo value; keys it does not define are kept as they are
+#   - hooks merge per event and matcher: existing hook commands (herdr's included) are kept and ours
+#     are added once, so repeated runs change nothing
+#   - the file is replaced atomically (temp file + rename); a malformed existing file aborts untouched
+#
+#   merge-claude-settings [--source <repo settings.json>] [--target <~/.claude/settings.json>]
+set -euo pipefail
+
+here=$(cd "$(dirname "$0")/.." && pwd)
+source="$here/claude/settings.json"
+target="$HOME/.claude/settings.json"
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --source) source=$2; shift 2 ;;
+    --target) target=$2; shift 2 ;;
+    *) echo "merge-claude-settings: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+# jq may live in a Homebrew prefix that is not on a non-interactive PATH yet.
+export PATH="$PATH:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
+command -v jq >/dev/null 2>&1 || { echo "merge-claude-settings: jq is required" >&2; exit 1; }
+[ -f "$source" ] || { echo "merge-claude-settings: source $source not found" >&2; exit 1; }
+
+existing_json='{}'
+if [ -e "$target" ]; then
+  if ! jq -e 'type == "object"' "$target" >/dev/null 2>&1; then
+    echo "merge-claude-settings: $target is not a JSON object; leaving settings.json untouched" >&2
+    exit 1
+  fi
+  existing_json=$(cat "$target")
+fi
+
+mkdir -p "$(dirname "$target")"
+tmp=$(mktemp "$(dirname "$target")/.settings.merge.XXXXXX")
+trap 'rm -f "$tmp"' EXIT
+
+jq --slurpfile ours "$source" '
+  # Add one matcher group to a list of groups: new matcher -> append; known matcher -> add only
+  # the hook commands that are not already present.
+  def add_group(groups; g):
+    (groups | map(.matcher // "") | index(g.matcher // "")) as $i
+    | if $i == null then groups + [g]
+      else (groups | .[$i].hooks // []) as $have
+        | groups | .[$i].hooks = ($have + [ g.hooks[] | select(.command as $c | ($have | map(.command) | index($c)) == null) ])
+      end;
+  def merge_hooks(existing; ours):
+    reduce (ours | to_entries[]) as $ev (existing;
+      .[$ev.key] = (reduce $ev.value[] as $g ((.[$ev.key] // []); add_group(.; $g))));
+  . as $existing | $ours[0] as $o
+  | ($existing * ($o | del(.hooks)))
+  | .hooks = merge_hooks(($existing.hooks // {}); ($o.hooks // {}))
+' <<<"$existing_json" > "$tmp"
+
+chmod 600 "$tmp"
+mv -f "$tmp" "$target"
+trap - EXIT
+echo "merge-claude-settings: merged $(basename "$source") into $target"

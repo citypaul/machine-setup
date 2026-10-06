@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# Journaled migration from a GNU Stow layout to this checkout's mise dotfile groups (plan.md §4.11).
+#
+#   migrate --checkout <dir> [--stow-dir ~/.dotfiles] [--skip-prerequisites] [--force] [--yes] [--dry-run]
+#
+# Every write is journaled under ~/.local/state/machine-setup/migration/<timestamp>/ and any failure,
+# including one during verification, rolls the home directory back to the recorded state: links we
+# created are removed, originals (links and files) are restored, directories we created are removed.
+# Test hooks: MACHINE_SETUP_MIGRATE_FAIL_AFTER_WRITES=<n>, MACHINE_SETUP_MIGRATE_FAIL_AT=verify.
+set -euo pipefail
+
+checkout='' stow_dir="$HOME/.dotfiles" skip_prereqs=0 force=0 dry=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --checkout) checkout=$2; shift 2 ;;
+    --stow-dir) stow_dir=$2; shift 2 ;;
+    --skip-prerequisites) skip_prereqs=1; shift ;;
+    --force) force=1; shift ;;
+    --yes|-y) shift ;;
+    --dry-run) dry=1; shift ;;
+    *) echo "migrate: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+say() { printf 'migrate: %s\n' "$*"; }
+die() { local code=$1; shift; printf 'migrate: error: %s\n' "$*" >&2; exit "$code"; }
+
+[ -n "$checkout" ] || die 2 "--checkout <dir> is required"
+checkout=$(cd "$checkout" 2>/dev/null && pwd) || die 2 "checkout $checkout does not exist"
+mise_bin=${MISE_BIN:-$(command -v mise 2>/dev/null || echo "$HOME/.local/bin/mise")}
+export MISE_YES=1
+export PATH="$PATH:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
+
+# 1. Plan: every file the selected groups deploy, from mise's effective configuration.
+roots=()
+while IFS= read -r r; do [ -n "$r" ] && roots+=("$r"); done < <(cd "$checkout" && "$mise_bin" dot status --json 2>/dev/null | jq -r '.files[] | select(.mode=="symlink-each") | .source')
+[ ${#roots[@]} -gt 0 ] || die 1 "no dotfile groups are selected in $checkout (run bootstrap.sh --select-only first)"
+targets=() sources=()
+for root in "${roots[@]}"; do
+  while IFS= read -r -d '' f; do
+    targets+=("$HOME/${f#"$root"/}")
+    sources+=("$f")
+  done < <(find "$root" -type f -print0 | sort -z)
+done
+say "stow dir: $stow_dir; ${#targets[@]} targets from ${#roots[@]} groups"
+
+# 2. Conflicts: a real file or directory where a link will go stops the migration unless --force.
+conflicts=()
+for t in "${targets[@]}"; do
+  if [ -e "$t" ] && [ ! -L "$t" ]; then conflicts+=("$t"); fi
+done
+if [ ${#conflicts[@]} -gt 0 ] && [ "$force" = 0 ]; then
+  say "these targets are real files, not links; re-run with --force to save them in the journal and replace them:"
+  printf '  %s\n' "${conflicts[@]}"
+  exit 3
+fi
+
+# 3. Journal: the pre-migration state of every target, then one line per write.
+journal="$HOME/.local/state/machine-setup/migration/$(date +%Y%m%dT%H%M%S)"
+mkdir -p "$journal/saved"
+describe() {
+  local p=$1
+  if [ -L "$p" ]; then printf 'link %s\n' "$(readlink "$p")"
+  elif [ -d "$p" ]; then echo dir
+  elif [ -e "$p" ]; then printf 'file %s %s\n' "$(cksum < "$p" | cut -d' ' -f1)" "$(stat -f %Lp "$p" 2>/dev/null || stat -c %a "$p")"
+  else echo absent; fi
+}
+for t in "${targets[@]}"; do printf '%s\t%s\n' "$t" "$(describe "$t")"; done > "$journal/manifest.before"
+: > "$journal/journal.log"
+record() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$journal/journal.log"; }
+say "journal: $journal"
+if [ "$dry" = 1 ]; then say "dry run: nothing written"; exit 0; fi
+
+# 4. Prerequisites while every old link is still in place (plan §4.11 step 2).
+if [ "$skip_prereqs" = 0 ]; then
+  (cd "$checkout" && "$mise_bin" bootstrap --only files,packages,tools --yes)
+fi
+
+# 5. Swap, one target at a time, rolling back everything on any failure.
+reverse_lines() { if command -v tac >/dev/null 2>&1; then tac "$1"; else tail -r "$1"; fi; }
+rollback() {
+  trap - ERR
+  set +e
+  say "failure detected; rolling back from $journal"
+  reverse_lines "$journal/journal.log" | while IFS=$'\t' read -r op path detail; do
+    case "$op" in
+      link) [ -L "$path" ] && rm -f "$path" ;;
+      saved-link) ln -sfn "$detail" "$path" ;;
+      saved-file) cp -p "$journal/saved/$detail" "$path" ;;
+      mkdir) rmdir "$path" 2>/dev/null ;;
+    esac
+  done
+  say "rolled back: nothing from this migration remains"
+}
+on_error() { rollback; exit 1; }
+trap on_error ERR
+fail_injected() { say "injected failure $1"; return 1; }
+
+writes=0
+for i in "${!targets[@]}"; do
+  t=${targets[$i]}; s=${sources[$i]}
+  d=$(dirname "$t"); missing=()
+  while [ ! -d "$d" ]; do missing+=("$d"); d=$(dirname "$d"); done
+  for (( k=${#missing[@]}-1; k>=0; k-- )); do mkdir "${missing[$k]}"; record mkdir "${missing[$k]}"; done
+  if [ -L "$t" ]; then
+    record saved-link "$t" "$(readlink "$t")"; rm "$t"
+  elif [ -e "$t" ]; then
+    name=$(printf '%s' "${t#"$HOME"/}" | tr '/' '%')
+    cp -p "$t" "$journal/saved/$name"; record saved-file "$t" "$name"; rm "$t"
+  fi
+  ln -s "$s" "$t"; record link "$t" "$s"
+  writes=$((writes + 1))
+  if [ "${MACHINE_SETUP_MIGRATE_FAIL_AFTER_WRITES:-0}" -gt 0 ] && [ "$writes" -ge "${MACHINE_SETUP_MIGRATE_FAIL_AFTER_WRITES}" ]; then
+    fail_injected "after $writes writes"
+  fi
+done
+
+# 6. Let mise record the result; the links already match, so this registers state without rewriting.
+(cd "$checkout" && "$mise_bin" dot apply --yes >/dev/null)
+
+# 7. Verify: everything mise manages is in place and an interactive shell still starts.
+if [ "${MACHINE_SETUP_MIGRATE_FAIL_AT:-}" = verify ]; then fail_injected "during verification"; fi
+(cd "$checkout" && "$mise_bin" dot status --missing >/dev/null)
+if command -v zsh >/dev/null 2>&1; then zsh -ic 'exit 0' >/dev/null 2>&1; fi
+
+trap - ERR
+say "migrated ${#targets[@]} targets into $checkout; originals are kept in $journal/saved"
+say "the old Stow dir $stow_dir was not touched; remove it yourself once you are happy"

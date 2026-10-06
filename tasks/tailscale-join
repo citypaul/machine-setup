@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Join the Conquer network (plan.md §4.6, D6). The pre-auth key is read from 1Password at execution
+# time and reaches only the tailscale process: it is never printed, logged, or written to disk.
+#
+#   tailscale-join --login-server <url> --authkey-ref <op://vault/item/field>
+set -euo pipefail
+
+login_server='' authkey_ref=''
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --login-server) login_server=$2; shift 2 ;;
+    --authkey-ref) authkey_ref=$2; shift 2 ;;
+    *) echo "tailscale-join: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+[ -n "$login_server" ] && [ -n "$authkey_ref" ] || { echo "tailscale-join: --login-server and --authkey-ref are required" >&2; exit 2; }
+
+fail() { printf 'tailscale-join: %s\n' "$1" >&2; exit 1; }
+
+command -v op >/dev/null 2>&1 || fail "the 1Password CLI (op) is not installed; cannot read the pre-auth key"
+op whoami >/dev/null 2>&1 || fail "1Password is not signed in; run 'op signin' and then 'mise run tailscale-join'"
+command -v tailscale >/dev/null 2>&1 || fail "tailscale is not installed yet (slice 4 installs it)"
+
+if tailscale status --json 2>/dev/null | grep -q '"BackendState": *"Running"'; then
+  echo "tailscale-join: already connected"
+  exit 0
+fi
+
+key=$(op read "$authkey_ref") || fail "could not read '$authkey_ref' from 1Password"
+[ -n "$key" ] || fail "the pre-auth key stored at '$authkey_ref' is empty"
+set +x
+tailscale up --login-server "$login_server" --authkey "$key" >/dev/null
+unset key
+echo "tailscale-join: joined $login_server"

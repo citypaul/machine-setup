@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# Explicit removal allowlist (plan.md §4.4). Removes only the packages named on the command line, only
+# when they are installed, with the manager that owns them. It never prunes and never touches anything
+# that is not listed, so software the user installed by hand survives a converge.
+#
+#   remove-packages [--brew "a b"] [--cask "a b"] [--apt "a b"] [--dry-run]
+set -euo pipefail
+
+brew_list='' cask_list='' apt_list='' dry=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --brew) brew_list=$2; shift 2 ;;
+    --cask) cask_list=$2; shift 2 ;;
+    --apt) apt_list=$2; shift 2 ;;
+    --dry-run) dry=1; shift ;;
+    *) echo "remove-packages: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+
+os=$(uname -s)
+as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
+brew_prefix() {
+  if [ -x /opt/homebrew/bin/brew ]; then echo /opt/homebrew
+  elif [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then echo /home/linuxbrew/.linuxbrew
+  elif [ -d /opt/homebrew ] && [ "$os" = Darwin ]; then echo /opt/homebrew
+  elif [ -d /home/linuxbrew/.linuxbrew ]; then echo /home/linuxbrew/.linuxbrew
+  fi
+}
+prefix=$(brew_prefix || true)
+brew_bin=''
+[ -n "$prefix" ] && [ -x "$prefix/bin/brew" ] && brew_bin="$prefix/bin/brew"
+
+say() { printf 'remove-packages: %s\n' "$*"; }
+plan() { if [ "$dry" = 1 ]; then say "would remove $1 $2 ($3)"; else say "removing $1 $2 ($3)"; fi; }
+
+say "allowlist (apt): ${apt_list:-<none>}"
+say "allowlist (brew): ${brew_list:-<none>}"
+say "allowlist (cask): ${cask_list:-<none>}"
+
+if [ "$os" = Linux ]; then
+  for p in $apt_list; do
+    if dpkg -s "$p" >/dev/null 2>&1; then
+      plan apt "$p" "dpkg says installed"
+      [ "$dry" = 1 ] || DEBIAN_FRONTEND=noninteractive as_root apt-get remove -y -qq "$p" >/dev/null
+    fi
+  done
+fi
+
+for f in $brew_list; do
+  [ -n "$prefix" ] || break
+  if [ -e "$prefix/opt/$f" ] || [ -d "$prefix/Cellar/$f" ]; then
+    if [ -n "$brew_bin" ]; then
+      plan formula "$f" "brew uninstall"
+      [ "$dry" = 1 ] || "$brew_bin" uninstall --quiet "$f" >/dev/null
+    else
+      say "skipping formula $f: installed under $prefix but no brew binary to uninstall it (ADR 0001)"
+    fi
+  fi
+done
+
+if [ "$os" = Darwin ]; then
+  for c in $cask_list; do
+    [ -n "$prefix" ] || break
+    caskroom="$prefix/Caskroom/$c"
+    [ -d "$caskroom" ] || continue
+    if [ -n "$brew_bin" ] && "$brew_bin" list --cask 2>/dev/null | grep -qx "$c"; then
+      plan cask "$c" "Homebrew-owned, brew uninstall --cask"
+      [ "$dry" = 1 ] || "$brew_bin" uninstall --cask --quiet "$c" >/dev/null
+    elif [ -f "$caskroom/.mise-cask.toml" ]; then
+      # mise poured it (ADR 0001 F-04): remove the app bundles its versioned Caskroom entries point at,
+      # then the Caskroom entry itself.
+      plan cask "$c" "mise-owned, removing recorded app bundles"
+      if [ "$dry" = 0 ]; then
+        find "$caskroom" -mindepth 2 -maxdepth 2 -name '*.app' -type l | while read -r link; do
+          target=$(readlink "$link")
+          case "$target" in /Applications/*.app) rm -rf "$target" ;; esac
+        done
+        rm -rf "$caskroom"
+      fi
+    else
+      say "skipping cask $c: Caskroom entry exists but neither Homebrew nor mise claims it"
+    fi
+  done
+fi
