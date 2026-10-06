@@ -14,11 +14,17 @@ setup() {
 }
 
 @test "1Password, VS Code and Brave come from their vendors' apt repositories" {
-  run zsh -lc 'command -v 1password code brave-browser'
+  run zsh -lc 'command -v code brave-browser op'
   [ "$status" -eq 0 ]
   apt-cache policy code | grep -q 'packages.microsoft.com'
-  apt-cache policy 1password | grep -q 'downloads.1password.com'
+  apt-cache policy 1password-cli | grep -q 'downloads.1password.com'
   apt-cache policy brave-browser | grep -q 'brave-browser-apt-release'
+  if [ "$(uname -m)" = x86_64 ]; then
+    run zsh -lc 'command -v 1password'
+    [ "$status" -eq 0 ]
+  else
+    ! dpkg -s 1password >/dev/null 2>&1   # no arm64 build of the desktop app (D-30)
+  fi
 }
 
 @test "Alacritty is installed from Ubuntu and Ghostty from the ghostty-ubuntu build for this release" {

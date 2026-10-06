@@ -244,8 +244,9 @@ to come:
   permission and the Notification Center banner time (Full Disk Access)
   are not managed;
 - on a Linux desktop: Cursor (no supported Linux arm64 channel) and Firefox
-  (Ubuntu's own snap) are not declared, and the 1Password SSH agent is
-  switched on in the app's settings by hand;
+  (Ubuntu's own snap) are not declared; 1Password's desktop app exists for
+  x86_64 only (arm64 gets the CLI), and its SSH agent is switched on in the
+  app's settings by hand;
 - per-machine files for the real machines, `doctor` and `update` (slice 9);
 - the rehearsed migration of the existing Macs, moving an existing
   `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public

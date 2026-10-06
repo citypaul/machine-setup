@@ -77,7 +77,10 @@ mode = "0644"
 phase = "pre-packages"
 
 [bootstrap.packages]
-"apt:1password" = "latest"
+# 1Password's arm64 repository ships the CLI only (checked: its Packages index lists 1password-cli alone),
+# so the desktop app is x86_64-only here and every Linux desktop gets the CLI (ADR 0001 D-30).
+"apt:1password" = { os = "linux/x64" }
+"apt:1password-cli" = "latest"
 "apt:code" = "latest"
 "apt:brave-browser" = "latest"
 "apt:alacritty" = "latest"

@@ -663,6 +663,9 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88`; Brave ships its
   keyring as a binary file, re-armored here, fingerprint
   `DBF1 A116 C220 B8C7 164F 9823 0686 B784 2003 8257` (its current key).
+  1Password's arm64 repository publishes `1password-cli` only (the first
+  Ubuntu VM converge failed with "Unable to locate package 1password"),
+  so the desktop app is declared for `linux/x64` and the CLI everywhere.
   Alacritty is Ubuntu's own package. Obsidian is a system Flatpak from
   Flathub (aarch64 and x86_64): mise installs neither flatpak nor the
   remote, so a `pre-packages` hook does. Docker's daemon is a declared
