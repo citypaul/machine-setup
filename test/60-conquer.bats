@@ -46,3 +46,12 @@ setup() {
   [[ "$output" == *"https://login.example/register/abc"* ]]
   [[ "$output" == *"--login-server https://"* ]]
 }
+
+@test "the join task returns within its timeouts and says so when the daemon never answers" {
+  export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
+  local started; started=$(date +%s)
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  [ "$status" -eq 0 ]
+  [ $(( $(date +%s) - started )) -lt 50 ]
+  [[ "$output" == *"did not answer"* ]]
+}

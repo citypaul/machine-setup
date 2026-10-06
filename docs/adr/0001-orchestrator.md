@@ -470,6 +470,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   passes `--skip services` when `/run/systemd/system` is absent on Linux
   and says so; the daemon test skips there too, so containers and WSL1
   converge everything else.
+- **F-38 The macOS Tailscale app's CLI blocks until the app is set up.** On
+  the clean macOS VM `tailscale status --json` through the app bundle hung
+  for 17 minutes inside the final hook (the app had never been opened, so
+  its VPN configuration was never approved), and a whole converge hung with
+  it. Every CLI call in `tasks/tailscale-join` is now bounded by an alarm;
+  on macOS a silent daemon gets the instruction to open the app once. A
+  fake whose daemon never answers covers it in `60-conquer`.
 - **E-23** Slice 4 on Ubuntu VM 2 (`20261006T215713-slice4c.log`):
   `60-conquer` 5 pass (1 macOS-only skip). Adding `--role conquer` selected
   `conquer,conquer-linux`, wrote the keyring and list (codename `resolute`),

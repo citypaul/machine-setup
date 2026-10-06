@@ -24,16 +24,26 @@ command -v tailscale >/dev/null 2>&1 || { echo "tailscale-join: tailscale is not
 up_prefix=()
 if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ]; then up_prefix=(sudo -n env "PATH=$PATH"); fi
 
-state=$(tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
+# Every call to the CLI is bounded (perl's alarm is portable; GNU timeout is not on macOS): the macOS
+# app's CLI blocks forever until the app has been opened once and its VPN configuration approved
+# (ADR 0001 F-38), and a converge must never hang on that.
+bounded() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+state=$(bounded 10 tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
 if [ "$state" = Running ]; then
   echo "tailscale-join: already connected"
   exit 0
 fi
+if [ -z "$state" ]; then
+  echo "tailscale-join: the Tailscale daemon did not answer within 10 s"
+  if [ "$(uname -s)" = Darwin ]; then
+    echo "tailscale-join: open /Applications/Tailscale.app once and approve its VPN configuration, then run 'mise run tailscale-join'"
+    exit 0
+  fi
+fi
 
 echo "tailscale-join: requesting a login from $login_server"
-# `tailscale up` blocks until the login completes; give it 20 s to print the URL (perl's alarm is
-# portable; GNU timeout is not on macOS).
-out=$(perl -e 'alarm shift; exec @ARGV' 20 ${up_prefix[@]+"${up_prefix[@]}"} tailscale up --login-server "$login_server" 2>&1 || true)
+# `tailscale up` blocks until the login completes; give it 20 s to print the URL.
+out=$(bounded 20 ${up_prefix[@]+"${up_prefix[@]}"} tailscale up --login-server "$login_server" 2>&1 || true)
 url=$(printf '%s\n' "$out" | grep -oE 'https://[^[:space:]]+' | head -1)
 if [ -n "$url" ]; then
   echo "tailscale-join: open this URL in a browser to finish joining (--login-server $login_server):"
