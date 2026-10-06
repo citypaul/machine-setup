@@ -14,11 +14,14 @@ for prefix in /opt/homebrew /home/linuxbrew/.linuxbrew; do
     cp "$src" "$dst"
     echo "fix-brew-certs: wrote $dst"
   fi
-  if [ -d "$prefix/opt/openssl@3" ]; then
-    mkdir -p "$prefix/etc/openssl@3"
-    if [ "$(readlink "$prefix/etc/openssl@3/cert.pem" 2>/dev/null)" != "../ca-certificates/cert.pem" ]; then
-      ln -sfn ../ca-certificates/cert.pem "$prefix/etc/openssl@3/cert.pem"
-      echo "fix-brew-certs: linked $prefix/etc/openssl@3/cert.pem"
+  # Every brewed OpenSSL keg (openssl@3, openssl@4, …) has its own OPENSSLDIR under etc/ (ADR 0001 F-33).
+  for keg in "$prefix"/opt/openssl@*; do
+    [ -d "$keg" ] || continue
+    name=$(basename "$keg")
+    mkdir -p "$prefix/etc/$name"
+    if [ "$(readlink "$prefix/etc/$name/cert.pem" 2>/dev/null)" != "../ca-certificates/cert.pem" ]; then
+      ln -sfn ../ca-certificates/cert.pem "$prefix/etc/$name/cert.pem"
+      echo "fix-brew-certs: linked $prefix/etc/$name/cert.pem"
     fi
-  fi
+  done
 done
