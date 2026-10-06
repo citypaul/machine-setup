@@ -125,5 +125,10 @@ run = "true"
 description = "Give mise-poured Homebrew TLS clients the CA bundle their post-install step would have made"
 run = "tasks/fix-brew-certs"
 
+[tasks.login-shell]
+description = "Make zsh the login shell (sudo, never fails the run)"
+run = "tasks/login-shell"
+
 [bootstrap.hooks]
 post-packages = ["mise run fix-brew-certs", "mise run remove-packages"]
+post-dotfiles = "mise run login-shell"
