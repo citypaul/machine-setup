@@ -24,8 +24,9 @@ process_type = "Background"
 
 # Finder, keyboard and panel preferences (mac-dev-machine-setup/ansible/tasks/osx.yaml): mise's friendly
 # sections where they exist, raw defaults for the rest. Defaults are not templated, so new Finder
-# windows open at "home" (PfHm) instead of a per-user file:// path (ADR 0001 D-24). The automatic
-# software-update check lives in /Library and needs admin rights, so it is not declared (D8).
+# windows open at "home" (PfHm) instead of a per-user file:// path (ADR 0001 D-24). Not declared: the
+# automatic software-update check (lives in /Library, needs admin rights, D8) and the Notification
+# Center banner time (a sandboxed app's container; writing it needs Full Disk Access, F-40).
 [bootstrap.macos.finder]
 show_all_files = true
 show_pathbar = true
@@ -42,7 +43,6 @@ automatic_spelling_correction = false
 "NSGlobalDomain" = { AppleShowAllExtensions = true, AppleKeyboardUIMode = 3 }
 "com.apple.LaunchServices" = { LSQuarantine = false }   # as before: no "are you sure you want to open" dialog
 "com.apple.spotlight" = { DictionaryLookupEnabled = false }
-"com.apple.notificationcenterui" = { bannerTime = 20 }
 "com.apple.Terminal" = { NewTabWorkingDirectoryBehavior = true }
 
 [bootstrap.hooks]

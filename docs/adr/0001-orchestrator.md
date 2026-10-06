@@ -642,6 +642,12 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   (`ref_is_current` in `src/system/repos.rs`), which failed six drift
   checks on the Ubuntu VM. `refs/heads/v2.0` names the branch and reads as
   `current`; a commit SHA does too (both tried on the VM).
+- **F-40 A sandboxed app's preferences need Full Disk Access.** Writing
+  `com.apple.notificationcenterui` (the banner time from `osx.yaml`) failed
+  with "failed to synchronize macOS preference domain … may require Full
+  Disk Access for your terminal" and stopped the whole converge on the
+  macOS VM (every later test failed with it). The banner time is not
+  declared; it joins the by-hand list with the software-update check.
 - The `tmux`, `zellij` and `herdr` groups join the base list, `alacritty`
   the desktop list; `neovim` joins the base formulae.
 

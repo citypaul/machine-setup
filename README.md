@@ -237,8 +237,10 @@ to come:
   details are settled (ADR 0001 D-23);
 - per-machine Dock lists: the desktop role pins one generic list, so Spotify,
   Brave, Slack and Talat are not pinned until machine ids are real (slice 9);
-- anything needing admin rights on a Mac: the automatic software-update
-  check and the terminal's App Management permission are not managed;
+- anything needing admin rights or extra permissions on a Mac: the
+  automatic software-update check, the terminal's App Management
+  permission and the Notification Center banner time (Full Disk Access)
+  are not managed;
 - the Linux desktop set, including native 1Password (slice 8);
 - per-machine files for the real machines, `doctor` and `update` (slice 9);
 - the rehearsed migration of the existing Macs, moving an existing

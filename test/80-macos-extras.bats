@@ -38,7 +38,8 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
 
 @test "the desktop role installs the iTerm2 dynamic profile and the Alacritty theme the config imports" {
   has_desktop_role || skip "desktop role not selected on this machine"
-  plutil -lint "$HOME/Library/Application Support/iTerm2/DynamicProfiles/machine-setup.json" >/dev/null
+  run zsh -lc 'jq empty "$HOME/Library/Application Support/iTerm2/DynamicProfiles/machine-setup.json"'   # plutil -lint reads plists, not JSON
+  [ "$status" -eq 0 ]
   [ "$(file_mode "$HOME/Library/Application Support/iTerm2/DynamicProfiles/machine-setup.json")" = "644" ]
   [ -f "$HOME/.config/alacritty/themes/themes/night_owl.toml" ]
   [ "$(readlink "$HOME/.alacritty.toml")" = "$REPO_ROOT/alacritty/.alacritty.toml" ]
