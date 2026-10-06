@@ -31,6 +31,7 @@ if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ]; then up_prefix=(sudo -n env
 # bounded <seconds> <command...>: runs the command in its own process group and kills the whole group on
 # timeout, so a child left behind (sudo's command, a wrapper's exec target) cannot keep the pipe open.
 # The script is a string so it can also run inside sudo: an unprivileged kill cannot reach root's child.
+# shellcheck disable=SC2016  # perl code, not shell expansion
 bounded_pl='my $t = shift; setpgrp(0, 0); my $pid = fork; if (!$pid) { exec @ARGV or exit 127 } $SIG{ALRM} = sub { kill "TERM", -$$; exit 124 }; alarm $t; waitpid $pid, 0; exit $? >> 8'
 bounded() { perl -e "$bounded_pl" "$@"; }
 state=$(bounded 10 tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)

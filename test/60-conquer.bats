@@ -10,8 +10,12 @@ setup() {
   [ -x "$HOME/.local/bin/mise" ] || skip "bootstrap has not run on this machine"
 }
 
+# The roles the test machines take from here on: the VMs add desktop too (80/90 need it); CI sets
+# MACHINE_SETUP_TEST_ROLES=conquer because the desktop set is VM evidence (ADR 0001 D-32).
+test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
+
 @test "adding the conquer role converges and installs the Tailscale client" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --role desktop,conquer --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --role "$test_roles" --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *",conquer,"* ]]
   run zsh -lc 'tailscale version'

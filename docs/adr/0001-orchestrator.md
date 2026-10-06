@@ -477,6 +477,15 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   it. Every CLI call in `tasks/tailscale-join` is now bounded by an alarm;
   on macOS a silent daemon gets the instruction to open the app once. A
   fake whose daemon never answers covers it in `60-conquer`.
+- **D-32 CI runners take the Conquer role, not the desktop role.** With
+  `60-conquer` adding `desktop,conquer`, every macOS job installed the whole
+  GUI set (fifty casks, MacTeX) and the first stack runs were still inside
+  the test step after 50 minutes against a 60-minute budget; the Linux
+  desktop set would add the vendors' repositories and a Flatpak runtime to
+  the container. The test reads `MACHINE_SETUP_TEST_ROLES` (default
+  `desktop,conquer`, what the VMs use) and CI sets it to `conquer`; `80`
+  and `90` skip on runners. The macOS budget is 90 minutes for the base
+  inventory.
 - **E-23** Slice 4 on Ubuntu VM 2 (`20261006T215713-slice4c.log`):
   `60-conquer` 5 pass (1 macOS-only skip). Adding `--role conquer` selected
   `conquer,conquer-linux`, wrote the keyring and list (codename `resolute`),
