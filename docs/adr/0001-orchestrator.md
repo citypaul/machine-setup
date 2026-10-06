@@ -315,6 +315,33 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   new `.zprofile` showed up as drift (`status --missing` exit 1) and the
   next converge linked it.
 
+### 2026-10-06 — slice 2: packages from data (decisions while porting the inventory)
+
+- **F-21 Package entries accept an `env` selector.** Probed:
+  `"brew:hello" = { env = ["desktop"] }` appears only when `desktop` is a
+  selected environment; `env = "desktop"` and a list both work, and `os`
+  combines with it. Used sparingly; ownership of a package normally comes
+  from the file it is declared in.
+- **D-07 Inventory placement.** `Brewfile.cli` → base layer for both OSes
+  (Homebrew bottles poured by mise, plan D4); macOS-only formulae
+  (`pinentry-mac`, `mas`, `colima`, `mole`) → macOS layer; `Brewfile.gui`,
+  the nine fonts and the App Store apps → the `desktop` role; `Brewfile.
+  personal` plus Spotify → personal; the legacy "remove if installed" lists
+  → base removal vars, `brave-browser`/`protonvpn` → work removal, Karabiner
+  → zap list, Yoink → App Store removal. CI and the test VMs do not select
+  `desktop`, so they install the representative apps only.
+- **D-08 Deferred, not dropped:** `terraform` is a mise tool (the
+  `hashicorp/tap` formula would be a source build under mise); `omp`
+  (`can1357/tap`) and `quien` (`retlehs/tap`) are obscure taps that mise
+  would also build from source: ask Paul whether they are still wanted;
+  `agent-browser`, `gemini-cli` and `herdr` pull Homebrew's `node` and move
+  to the npm backend in slices 3 and 5; Talat's download task, the gh-stack
+  extension, fzf shell integration and the stale-cask-receipt repair are
+  slice 7 tasks.
+- **F-22 Third-party tap formulae are source builds under mise** when the
+  tap publishes no API JSON (brew.md); only `steipete/tap/codexbar` (a cask)
+  remains tap-qualified, in the desktop role.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
