@@ -18,17 +18,23 @@ progress. Nothing here is ready to run on a real machine yet.
 
 ## Try it on a disposable machine
 
-Never run the mutating parts on a workstation: they install packages, link
-`~/.zshrc`, and on macOS put apps in `/Applications`. On a VM or CI runner:
+Never run this on a workstation yet: it installs packages, links `~/.zshrc`,
+and on macOS puts apps in `/Applications`. On a VM or CI runner with nothing
+on it (no git, no Homebrew, no Command Line Tools):
 
 ```bash
-git clone https://github.com/citypaul/machine-setup ~/machine-setup
-cd ~/machine-setup
-./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine studio --yes
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh)" -- --profile personal --role desktop --machine studio --yes
 ```
 
-Re-running `./bootstrap.sh --dir "$PWD" --yes` converges with the saved
-selection. `--profile work` switches profile and removes the personal apps.
+It installs its own prerequisites, puts the checkout in
+`~/.local/share/machine-setup`, and saves the selection there. Re-running the
+same command with no flags converges with the saved selection; `--profile
+work` switches profile and removes the personal apps. To run the test suite
+on that machine afterwards:
+
+```bash
+cd ~/.local/share/machine-setup && MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh
+```
 
 ## Tests
 

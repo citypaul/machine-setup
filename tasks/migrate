@@ -58,11 +58,13 @@ fi
 # 3. Journal: the pre-migration state of every target, then one line per write.
 journal="$HOME/.local/state/machine-setup/migration/$(date +%Y%m%dT%H%M%S)"
 mkdir -p "$journal/saved"
+# Octal permission bits; GNU `stat -f` is filesystem status, so choose the form by OS.
+file_mode() { if [ "$(uname -s)" = Darwin ]; then stat -f '%Lp' "$1"; else stat -c '%a' "$1"; fi; }
 describe() {
   local p=$1
   if [ -L "$p" ]; then printf 'link %s\n' "$(readlink "$p")"
   elif [ -d "$p" ]; then echo dir
-  elif [ -e "$p" ]; then printf 'file %s %s\n' "$(cksum < "$p" | cut -d' ' -f1)" "$(stat -f %Lp "$p" 2>/dev/null || stat -c %a "$p")"
+  elif [ -e "$p" ]; then printf 'file %s %s\n' "$(cksum < "$p" | cut -d' ' -f1)" "$(file_mode "$p")"
   else echo absent; fi
 }
 for t in "${targets[@]}"; do printf '%s\t%s\n' "$t" "$(describe "$t")"; done > "$journal/manifest.before"

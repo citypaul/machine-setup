@@ -24,15 +24,15 @@ macOS VM. Verdicts are filled in from executed runs only.
 
 | # | Gate | Test | Linux | macOS | Verdict |
 |---|------|------|-------|-------|---------|
-| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | — | — | pending |
-| 2 | Dotfile-group composition across env files | `test/01-layering.bats` | — | pass (host, non-mutating) | pending VM/CI |
-| 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | — | pass (host, non-mutating) | pending VM/CI |
-| 4 | Locked 1Password handling | `test/02-secrets.bats` | — | pass (host, fake op) | pending VM/CI |
+| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | pass (apt; brew formulae unexercised, no `brew` on Linux) | — | pending macOS |
+| 2 | Dotfile-group composition across env files | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
+| 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
+| 4 | Locked 1Password handling | `test/02-secrets.bats` | pass (VM, fake op) | pass (host, fake op) | pending macOS VM/CI |
 | 5 | Representative casks (1Password, Ghostty, VS Code) | `test/10-bootstrap.bats` | n/a | — | pending |
-| 6 | JSON merge of `~/.claude/settings.json` preserving herdr hooks | `test/03-merge-claude-settings.bats` | — | pass (host) | pending VM/CI |
-| 7 | Partial-migration rollback | `test/04-migrate.bats` | — | pass (host) | pending VM/CI |
-| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | — | — | pending |
-| + | Drift repair | `test/30-drift.bats` | — | — | pending |
+| 6 | JSON merge of `~/.claude/settings.json` preserving herdr hooks | `test/03-merge-claude-settings.bats` | pass (VM) | pass (host) | pending macOS VM/CI |
+| 7 | Partial-migration rollback | `test/04-migrate.bats` | pass (VM) | pass (host) | pending macOS VM/CI |
+| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | pass: interactive, login, empty-env zsh; ssh skipped (no sshd) | — | pending macOS |
+| + | Drift repair | `test/30-drift.bats` | pass (dotfile and apt package) | — | pending macOS |
 
 ## Findings log
 
@@ -175,6 +175,73 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
 - **E-03** `mise bootstrap --dry-run` prints hook commands (`mise run
   tailscale-join`) without running them; no secret value appeared in its
   output, as documented (F-05).
+
+### 2026-10-06 — executed: full suite on Ubuntu VM 2 (26.04 arm64, clean)
+
+- **E-04** `MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh`: 50 tests, 50 pass,
+  0 fail, 22 skip (19 non-mutating tests skipped because mise was not yet
+  installed when they ran; 2 macOS-only; 1 ssh path with no sshd). Log:
+  `.cache/runs/20261006T195736-full.log` in the VM.
+- **E-05** A clean-machine bootstrap (`--profile personal --role desktop
+  --machine studio --yes`) took 16.5 s on the VM: apt packages, five
+  Homebrew bottles poured by mise into `/home/linuxbrew/.linuxbrew`
+  (arm64 bottles, no source builds), node 24, both dotfile groups, the
+  settings merge and the removal hook. Second run: 0.4 s, no changes.
+- **E-06** Gate 1 on Linux: `cmatrix` (personal, declared removed by work)
+  was removed by the allowlist task; `sl` (installed by hand, undeclared)
+  survived; switching back to personal reinstalled `cmatrix`. Homebrew
+  formula removal on Linux is unexercised because no `brew` binary exists
+  there (D-04); the task reports it as skipped.
+- **E-07** Gate 8 on Linux: node 24 resolved in interactive, login and
+  `env -i … zsh -c` shells via `zsh/.zshenv` shims. The ssh path needs an
+  sshd on the VM (slice 3 adds one to the VM for the test).
+- **E-09** Non-mutating files re-run on the VM once mise existed
+  (`20261006T201133-nonmutating.log`): 34 pass, 0 fail, 1 skip (macOS-only).
+  The first attempt had three migration-rollback failures caused by GNU
+  `stat -f` in the test's tree snapshot (filesystem status, not file mode);
+  the rollback itself was correct.
+- **E-08** Drift: deleting `~/.zshrc` and removing apt `tree` were both
+  reported by `mise bootstrap status --missing` and repaired by re-running
+  `bootstrap.sh` with no flags.
+
+### 2026-10-06 — executed: clean macOS VM, first bootstrap attempt
+
+- **F-16 CLT label format changed.** On macOS 27 `softwareupdate -l` (with
+  the `installondemand.in-progress` marker) offers `* Label: Command Line
+  Tools for Xcode 27.0-27.0` (space, not dash, before the version); the
+  older `…for Xcode-15.x` pattern did not match, so bootstrap fell into the
+  `xcode-select --install` wait loop and slept for nine minutes waiting for a
+  GUI click. Matcher widened to `Command Line Tools for Xcode.*`.
+- `/usr/bin/python3` is also a CLT shim on a clean Mac; `/usr/bin/perl` is
+  real. Nothing in bootstrap.sh depends on either.
+
+### 2026-10-06 — executed: first GitHub Actions run (commit f391add)
+
+- **E-10** Both jobs hung in `test/01-layering.bats` and were cancelled after
+  20 minutes: the commit predates the `mise_bin` fix, so `command -v mise`
+  found the helper's own shell function and recursed. No gate evidence from
+  CI yet; the fix batch is the next push. Job timeouts (45/60 min) added.
+
+### 2026-10-06 — test-harness lessons (not mise findings)
+
+- On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
+  prints "requesting install", pops the CLT dialog and exits 1. The harness
+  must not call `git` before bootstrap has run: bats is fetched as a tarball
+  with `curl`, and the checkout copy only uses `git ls-files` when
+  `xcode-select -p` succeeds.
+- `command -v mise` returns the test helper's own `mise` shell function, so
+  "is mise installed" must use `type -P`. The first Linux VM run recursed for
+  100 s per test instead of skipping.
+- `pgrep -f pattern` run from `sh -c "... pattern ..."` matches its own shell;
+  use a `[p]attern` so the pattern never matches the command that carries it.
+- The macOS guest saw a stale copy of a changed file on the virtiofs share
+  for roughly a minute after the host wrote it; re-check the share before
+  relaunching.
+- A background job started from a VMPal exec call dies with the call unless
+  it leaves the call's process group: `setsid nohup …` on Linux, and on macOS
+  (no `setsid` binary) `python3 -c 'import os,sys; os.setsid();
+  os.execvp(...)'`. Long runs are launched that way and read back from
+  `.cache/runs/<timestamp>.log`.
 
 ### 2026-10-06 — harness constraints (not mise findings)
 

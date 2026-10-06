@@ -140,7 +140,9 @@ install_prerequisites() {
       log "installing the Xcode Command Line Tools"
       # Headless path first: ask softwareupdate for the CLT label (works with sudo and no GUI).
       touch /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
-      label=$(softwareupdate -l 2>/dev/null | grep -o 'Label: Command Line Tools for Xcode-[0-9.]*' | sed 's/^Label: //' | sort -t- -k2 -V 2>/dev/null | tail -1 || true)
+      # The label is "Command Line Tools for Xcode-15.3" on older releases and
+      # "Command Line Tools for Xcode 27.0-27.0" from macOS 27; match both, take the newest.
+      label=$(softwareupdate -l 2>/dev/null | sed -n 's/^\* Label: \(Command Line Tools for Xcode.*\)$/\1/p' | sort | tail -1 || true)
       if [ -n "$label" ]; then as_root softwareupdate -i "$label" --verbose || true; fi
       rm -f /tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress
       if ! xcode-select -p >/dev/null 2>&1; then
