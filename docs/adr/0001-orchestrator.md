@@ -428,6 +428,77 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `.zshenv`/`.zprofile`; herdr's `integration status` reports claude and
   codex current.
 
+### 2026-10-06 — slice 4 decisions (Conquer, D6 = OIDC)
+
+- **D-12 No bootstrap-time secret for Conquer.** With OIDC the join is
+  `tailscale up --login-server <url>`, which prints a login URL for a browser;
+  the task prints it and exits 0, converge confirms later. `bootstrap.sh`'s
+  1Password preflight stays, driven by a `secret_envs` var that is empty;
+  the gate-4 tests declare one in their private copy so the mechanism stays
+  proven. The old `op read` join path and its tests are gone.
+- **D-13 Client install.** Linux: Tailscale's apt repository as pre-packages
+  files (ASCII-armored signing key vendored in `files/tailscale.asc`,
+  identical for Ubuntu and Debian; list templated from `/etc/os-release`),
+  `apt:tailscale`, `tailscaled` as a system service, and bootstrap now passes
+  `--update` so a repository added in the same run has metadata (plan F14).
+  pkgs.tailscale.com serves `resolute` (Ubuntu 26.04), `noble`, `trixie`,
+  `bookworm`. macOS: the Tailscale app (its own daemon) with
+  `~/.local/bin/tailscale` linked to the app's CLI; mise cannot run a root
+  LaunchDaemon for the formula's `tailscaled`.
+- **F-29 `[bootstrap.files]` has no `os` field and sources must be UTF-8.**
+  The first attempt put `os = "linux"` on the files (ignored with "unknown
+  field") and vendored the binary `.gpg` keyring ("stream did not contain
+  valid UTF-8"). apt accepts an armored key under `/etc/apt/keyrings`.
+- **D-14 Role and profile overlays per OS.** Because files and services have
+  no OS selector, bootstrap.sh selects `mise.<env>-<os>.toml` right after
+  `<env>` when the checkout has it: `conquer` on Linux loads
+  `mise.conquer-linux.toml`. A CLI test pins the env list.
+- `timeout` cannot run a shell function, and `sudo` drops PATH; the join task
+  uses `perl -e 'alarm'` (portable, macOS has no GNU timeout) and
+  `sudo -n env PATH=…` so the same binary (or a test fake) is used.
+
+- **F-30 `mas install` blocks on a Mac not signed in to the App Store.** The
+  clean macOS VM's desktop bootstrap hung for minutes in `sudo mas install
+  --force …` after installing all 42 casks and 9 fonts; mise cannot skip it.
+  **D-15:** App Store apps are their own opt-in `appstore` role, selected
+  once a Mac is signed in; the desktop role never carries them.
+
+- **F-36 Services need systemd as PID 1.** In the ubuntu:24.04 CI
+  container `mise bootstrap` stops at "refusing unsafe change to bootstrap
+  service 'tailscaled'" (there is no init to talk to), so the Conquer
+  converge failed there while it passed on the VM (E-23). `bootstrap.sh`
+  passes `--skip services` when `/run/systemd/system` is absent on Linux
+  and says so; the daemon test skips there too, so containers and WSL1
+  converge everything else.
+- **F-38 The macOS Tailscale app's CLI blocks until the app is set up.** On
+  the clean macOS VM `tailscale status --json` through the app bundle hung
+  for 17 minutes inside the final hook (the app had never been opened, so
+  its VPN configuration was never approved), and a whole converge hung with
+  it. Every CLI call in `tasks/tailscale-join` is now bounded by an alarm;
+  on macOS a silent daemon gets the instruction to open the app once. A
+  fake whose daemon never answers covers it in `60-conquer`.
+- **D-32 CI runners take the Conquer role, not the desktop role.** With
+  `60-conquer` adding `desktop,conquer`, every macOS job would install the
+  whole GUI set (fifty casks, MacTeX: about 50 minutes on the macOS VM,
+  E-24) and the Linux job the vendors' repositories and a Flatpak runtime,
+  for software the VMs already prove. (The stalled stack runs that
+  prompted this were the daemon hang, F-41, not slowness.) The test reads `MACHINE_SETUP_TEST_ROLES` (default
+  `desktop,conquer`, what the VMs use) and CI sets it to `conquer`; `80`
+  and `90` skip on runners.
+- **E-23** Slice 4 on Ubuntu VM 2 (`20261006T215713-slice4c.log`):
+  `60-conquer` 5 pass (1 macOS-only skip). Adding `--role conquer` selected
+  `conquer,conquer-linux`, wrote the keyring and list (codename `resolute`),
+  refreshed apt, installed `tailscale` and left `tailscaled` active; the join
+  task reported "already connected" against the connected fake and printed
+  the login URL against the needs-login fake.
+- **E-24** Slice 2 desktop role on the clean macOS VM
+  (`20261006T130647-slice2-bootstrap.log`): the 63 formulae, all 42 casks of
+  the desktop role, the 9 fonts and Spotify installed in about 50 minutes,
+  MacTeX's 5.7 GB download included; mise asked for sudo only for pkg
+  installers. The run then hung in `mas install` (F-30) until stopped; with
+  App Store apps moved to the `appstore` role the remaining phases run on
+  the next converge (E-25 to follow).
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

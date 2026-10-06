@@ -13,8 +13,9 @@ set -eu
 MISE_PIN="${MISE_VERSION:-v2026.10.3}"
 REPO_URL_DEFAULT="https://github.com/citypaul/machine-setup.git"
 CHECKOUT_DEFAULT="${XDG_DATA_HOME:-$HOME/.local/share}/machine-setup"
-# Envs whose tasks read 1Password at run time. Dropped from a run when op is not signed in (plan §4.3 step 5).
-SECRET_ENVS="conquer"
+# Envs whose tasks read 1Password during bootstrap are listed in mise.toml as `secret_envs`; they are
+# dropped from a run when op is not signed in (plan §4.3 step 5). Empty since D6 chose OIDC for Conquer.
+SECRET_ENVS=''
 
 log() { printf 'machine-setup: %s\n' "$*"; }
 die() { printf 'machine-setup: error: %s\n' "$1" >&2; exit "${2:-1}"; }
@@ -226,6 +227,14 @@ compute_envs() {
     esac
   done
   envs="$envs,machine-$machine"
+  # Role and profile overlays per OS: mise.<env>-<os>.toml is selected right after <env> when the
+  # checkout has it (OS-specific files, services and packages that belong to a role).
+  expanded=''
+  for e in $(printf '%s' "$envs" | tr ',' ' '); do
+    expanded="$expanded,$e"
+    [ -f "$checkout/mise.$e-$os.toml" ] && expanded="$expanded,$e-$os"
+  done
+  envs=${expanded#,}
   if [ -n "$skipped" ]; then
     log "1Password is not signed in (op whoami failed); skipping env(s):$skipped. Run 'op signin' and re-run bootstrap to add them."
   fi
@@ -257,6 +266,7 @@ if [ "$select_only" = 0 ]; then
   install_mise
 fi
 resolve_checkout
+SECRET_ENVS=$(sed -n 's/^secret_envs = "\(.*\)"$/\1/p' "$checkout/mise.toml" 2>/dev/null | head -1)
 load_saved_selection
 complete_selection
 compute_envs
@@ -278,5 +288,13 @@ if [ "$dry_run" = 1 ]; then
   exit 0
 fi
 log "converging with mise bootstrap"
-stdio_only "$MISE" bootstrap --yes
+# --update refreshes apt metadata so a repository added in this run (pre-packages files) is usable.
+# Services need systemd as PID 1; in a container (CI, WSL1) mise refuses the change (ADR 0001 F-36).
+if [ "$os" = linux ] && [ ! -d /run/systemd/system ]; then
+  log "no systemd on this machine: declared services are installed but not enabled or started"
+  set -- --skip services
+else
+  set --
+fi
+stdio_only "$MISE" bootstrap --update --yes "$@"
 log "done. Open a new shell (exec zsh) to pick up the environment."

@@ -1,0 +1,30 @@
+# Conquer role, Linux overlay: Tailscale's apt repository (ASCII-armored signing key vendored in
+# files/, list templated from /etc/os-release) and the tailscale package, whose daemon runs as a
+# system service. Selected automatically with the conquer role on Linux (ADR 0001 D-14).
+[bootstrap.directories."/etc/apt/keyrings"]
+mode = "0755"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/keyrings/tailscale.asc"]
+source = "files/tailscale.asc"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/sources.list.d/tailscale.list"]
+content = '''# Tailscale packages (machine-setup, conquer role)
+deb [signed-by=/etc/apt/keyrings/tailscale.asc] https://pkgs.tailscale.com/stable/{{ exec(command="sh -c '. /etc/os-release && echo $ID'") }} {{ exec(command="sh -c '. /etc/os-release && echo $VERSION_CODENAME'") }} main
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.packages]
+"apt:tailscale" = "latest"
+
+[bootstrap.services.tailscaled]
+state = "running"
+enabled = true

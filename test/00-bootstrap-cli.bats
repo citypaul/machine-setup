@@ -48,8 +48,9 @@ setup() {
 @test "--select-only records profile, roles, machine, dotfiles.root and the env list without running mise" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,desktop,conquer,machine-studio"* ]]
-  [ "$(env_list_of "$CO")" = "personal,desktop,conquer,machine-studio" ]
+  local os; if is_macos; then os=macos; else os=linux; fi
+  [[ "$output" == *"envs=personal,desktop,conquer,conquer-$os,machine-studio"* ]]
+  [ "$(env_list_of "$CO")" = "personal,desktop,conquer,conquer-$os,machine-studio" ]
   grep -q '^profile = "personal"$' "$CO/mise.local.toml"
   grep -q '^roles = "desktop conquer"$' "$CO/mise.local.toml"
   grep -q '^machine = "studio"$' "$CO/mise.local.toml"
@@ -57,9 +58,10 @@ setup() {
 }
 
 @test "roles may also be given as one comma-separated list" {
+  local os; if is_macos; then os=macos; else os=linux; fi
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop,conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "personal,desktop,conquer,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,desktop,conquer,conquer-$os,machine-studio" ]
 }
 
 @test "the detected OS, family and architecture are printed" {
@@ -114,4 +116,11 @@ prerequisites_present() {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
   [ "$(cat "$FD_PROBE")" = "open: none" ]
+}
+
+@test "a role's per-OS overlay file is selected right after the role when the checkout has one" {
+  local os; if is_macos; then os=macos; else os=linux; fi
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  [ "$status" -eq 0 ]
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
 }
