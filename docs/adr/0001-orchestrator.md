@@ -24,7 +24,7 @@ macOS VM. Verdicts are filled in from executed runs only.
 
 | # | Gate | Test | Linux | macOS | Verdict |
 |---|------|------|-------|-------|---------|
-| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | pass (apt; brew formulae unexercised, no `brew` on Linux) | — | pending macOS |
+| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | pass (apt; brew formulae unexercised, no `brew` on Linux) | pass on the clean VM for mise-owned casks (Spotify removed, re-poured on switch back; declared apps kept); Homebrew-owned case pending CI | pending CI |
 | 2 | Dotfile-group composition across env files | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
 | 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
 | 4 | Locked 1Password handling | `test/02-secrets.bats` | pass (VM, fake op) | pass (host, fake op) | pending macOS VM/CI |
@@ -250,6 +250,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   deleting the linked bundles and the Caskroom entry. There is no
   `mise bootstrap packages remove`; this is the small task plan §3.3
   budgeted for.
+
+- **E-15** Gate 1 on the clean Mac after the ownership fix: `bootstrap.sh
+  --profile work` ran the allowlist hook, which removed the mise-poured
+  Spotify (bundle and Caskroom entry) and left 1Password, Ghostty and VS Code
+  in place; `--profile personal` re-poured Spotify in 17 s. The
+  Homebrew-owned cask and undeclared-formula cases run on the `macos-15` CI
+  runner, which has pre-existing Homebrew state.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
