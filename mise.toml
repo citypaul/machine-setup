@@ -9,6 +9,9 @@ root = "zsh"
 [dotfile_groups.ghostty]
 root = "ghostty"
 
+[dotfile_groups.alacritty]
+root = "alacritty"
+
 # Global mise config fragment (runtimes, settings), default npm packages, environment.d for GUI apps.
 [dotfile_groups.mise]
 root = "mise"
@@ -34,8 +37,18 @@ root = "ssh"
 [dotfile_groups.bin]
 root = "bin"
 
+# Terminal multiplexers and the herdr workspace manager (citypaul/.dotfiles tmux/, zellij/, herdr/).
+[dotfile_groups.tmux]
+root = "tmux"
+
+[dotfile_groups.zellij]
+root = "zellij"
+
+[dotfile_groups.herdr]
+root = "herdr"
+
 [bootstrap]
-dotfile_groups = ["zsh", "mise", "git", "gnupg", "ssh", "bin"]
+dotfile_groups = ["zsh", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr"]
 
 [bootstrap.directories."~/.gnupg"]
 mode = "0700"
@@ -47,6 +60,13 @@ mode = "0700"
 # nvm is retired (slice 3): remove the lazy-loader an older setup linked into the home directory.
 [dotfiles]
 "~/.nvm_setup" = { mode = "absent" }
+
+# Checkouts the shell and editor configs expect (mac-dev-machine-setup zsh.yaml, nvim.yaml). mise clones
+# them when missing and otherwise leaves them alone; URLs match the checkouts already on Paul's Macs.
+# NvChad's v2.0 branch is what the existing config runs; it is frozen upstream (ADR 0001 D-29).
+[bootstrap.repos]
+"~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }
+"~/.config/nvim" = { url = "https://github.com/NvChad/NvChad", ref = "refs/heads/v2.0" }   # full form: a bare branch name never reads as current (F-39)
 
 # CLI tools for every machine, Homebrew bottles poured by mise on both OSes (plan D4).
 # Ported from mac-dev-machine-setup/Brewfile.cli. Not here on purpose: agent-browser, gemini-cli
@@ -94,6 +114,7 @@ mode = "0700"
 "brew:lazygit" = "latest"
 "brew:mosh" = "latest"
 "brew:navi" = "latest"
+"brew:neovim" = "latest"
 "brew:ollama" = "latest"
 "brew:opencode" = "latest"
 "brew:pnpm" = "latest"
@@ -117,6 +138,7 @@ mode = "0700"
 "brew:yt-dlp" = "latest"
 "brew:zellij" = "latest"
 "brew:zoxide" = "latest"
+"brew:zsh-autosuggestions" = "latest"
 "brew:zsh-syntax-highlighting" = "latest"
 
 # Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
@@ -167,9 +189,17 @@ run = "tasks/herdr-integrations"
 description = "Import the public GPG keys; configure YubiKey commit signing when a key is inserted"
 run = "tasks/gpg-setup"
 
+[tasks.talat]
+description = "Install Talat from its release feed, once (macOS, Apple Silicon, desktop role)"
+run = "tasks/talat '{{ vars.roles | default(value='') }}'"
+
+[tasks.gh-extensions]
+description = "Install the gh extensions (gh-stack) once gh is signed in"
+run = "tasks/gh-extensions"
+
 [tasks.bootstrap]
 description = "Imperative setup that runs after tools on every bootstrap"
-depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations", "gpg-setup"]
+depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations", "gpg-setup", "talat", "gh-extensions"]
 run = "true"
 
 [tasks.fix-brew-certs]

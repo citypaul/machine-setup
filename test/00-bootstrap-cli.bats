@@ -3,6 +3,9 @@
 # Non-mutating: everything runs with --select-only against a private copy of the checkout.
 load helpers
 
+# The desktop role has a macOS overlay (mise.desktop-macos.toml: Dock, iTerm2 profile) and no Linux one yet.
+desktop_envs() { if is_macos; then echo "desktop,desktop-macos"; else echo "desktop"; fi; }
+
 setup() {
   fresh_home
   CO="$BATS_TEST_TMPDIR/checkout"
@@ -49,8 +52,8 @@ setup() {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
   local os; if is_macos; then os=macos; else os=linux; fi
-  [[ "$output" == *"envs=personal,desktop,conquer,conquer-$os,machine-studio"* ]]
-  [ "$(env_list_of "$CO")" = "personal,desktop,conquer,conquer-$os,machine-studio" ]
+  [[ "$output" == *"envs=personal,$(desktop_envs),conquer,conquer-$os,machine-studio"* ]]
+  [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-studio" ]
   grep -q '^profile = "personal"$' "$CO/mise.local.toml"
   grep -q '^roles = "desktop conquer"$' "$CO/mise.local.toml"
   grep -q '^machine = "studio"$' "$CO/mise.local.toml"
@@ -61,7 +64,7 @@ setup() {
   local os; if is_macos; then os=macos; else os=linux; fi
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop,conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "personal,desktop,conquer,conquer-$os,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-studio" ]
 }
 
 @test "the detected OS, family and architecture are printed" {
@@ -79,14 +82,14 @@ setup() {
   "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine studio --select-only --yes >/dev/null
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --select-only --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,desktop,machine-studio"* ]]
+  [[ "$output" == *"envs=personal,$(desktop_envs),machine-studio"* ]]
 }
 
 @test "changing only --profile keeps the saved roles and machine" {
   "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine studio --select-only --yes >/dev/null
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "work,desktop,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "work,$(desktop_envs),machine-studio" ]
 }
 
 # A daemon started during a run (the 1Password CLI starts one when its cask generates completions)

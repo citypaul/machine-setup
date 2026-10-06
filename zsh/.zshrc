@@ -45,7 +45,10 @@ else
 fi
 
 if [[ -t 0 ]]; then export GPG_TTY="$(tty)"; fi
-[[ -f "$HOME/.fzf.zsh" ]] && source "$HOME/.fzf.zsh"
+# fzf key bindings and completion: the file the old installer wrote if present, else fzf's own.
+if [[ -f "$HOME/.fzf.zsh" ]]; then source "$HOME/.fzf.zsh"
+elif (( $+commands[fzf] )); then source <(fzf --zsh)
+fi
 source "$HOME/.zsh_profile"
 [[ -f "$HOME/.zshrc.local" ]] && source "$HOME/.zshrc.local"
 

@@ -1,0 +1,24 @@
+#!/usr/bin/env bash
+# The gh extensions the old setup installed (mac-dev-machine-setup/ansible/tasks/cli-tools.yaml):
+# github/gh-stack. Advisory: `gh extension install` needs a signed-in gh, so without one this says
+# what to run and never fails a bootstrap.
+set -uo pipefail
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+if ! command -v gh >/dev/null 2>&1; then
+  echo "gh-extensions: gh is not installed yet; skipping"
+  exit 0
+fi
+if gh extension list 2>/dev/null | grep -q 'gh-stack'; then
+  echo "gh-extensions: gh-stack already installed"
+  exit 0
+fi
+if ! gh auth status >/dev/null 2>&1; then
+  echo "gh-extensions: gh is not signed in; run 'gh auth login' and then 'mise run gh-extensions' to install gh-stack"
+  exit 0
+fi
+if gh extension install github/gh-stack; then
+  echo "gh-extensions: installed gh-stack"
+else
+  echo "gh-extensions: warning: 'gh extension install github/gh-stack' failed; re-run 'mise run gh-extensions' later"
+fi
+exit 0

@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# Install Talat once from the release feed its own updater reads (mac-dev-machine-setup/ansible/
+# tasks/talat.yaml). Talat is not on Homebrew or the App Store and publishes Apple Silicon builds
+# only, so this runs on macOS arm64 with the desktop role and skips everywhere else. The download
+# carries no quarantine flag, so Gatekeeper would never check it: the notarization and the
+# developer's team id are verified here before the app is moved into place. Usage: tasks/talat <roles>
+set -uo pipefail
+roles=${1:-}
+app=/Applications/Talat.app
+team=X37TLUX6CW
+if [ "$(uname -s)" != Darwin ] || [ "$(uname -m)" != arm64 ] || [[ " $roles " != *" desktop "* ]]; then
+  echo "talat: skipping (macOS on Apple Silicon with the desktop role only; roles='$roles')"
+  exit 0
+fi
+if [ -d "$app" ]; then
+  echo "talat: already installed at $app"
+  exit 0
+fi
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/talat.XXXXXX") || exit 1
+trap 'rm -rf "$tmp"' EXIT
+if ! curl -fsSL --max-time 30 https://releases.talat.app/latest.json -o "$tmp/latest.json"; then
+  echo "talat: warning: could not read the release feed; re-run 'mise run talat' later"
+  exit 0
+fi
+url=$(plutil -extract 'platforms.darwin-aarch64.url' raw -o - "$tmp/latest.json" 2>/dev/null)
+if [ -z "$url" ]; then
+  echo "talat: warning: the release feed has no darwin-aarch64 entry; re-run 'mise run talat' later"
+  exit 0
+fi
+echo "talat: downloading $url"
+if ! curl -fL --max-time 600 "$url" -o "$tmp/talat.tar.gz"; then
+  echo "talat: warning: download failed; re-run 'mise run talat' later"
+  exit 0
+fi
+tar -xzf "$tmp/talat.tar.gz" -C "$tmp" || { echo "talat: error: could not unpack the download" >&2; exit 1; }
+bundle=$(find "$tmp" -maxdepth 1 -name '*.app' | head -1)
+[ -n "$bundle" ] || { echo "talat: error: no .app in the download" >&2; exit 1; }
+# Security checks fail loudly: an unverifiable app must never be installed.
+spctl --assess --type execute "$bundle" || { echo "talat: error: Gatekeeper rejects the download" >&2; exit 1; }
+codesign -dv "$bundle" 2>&1 | grep -qx "TeamIdentifier=$team" || { echo "talat: error: the app is not signed by team $team" >&2; exit 1; }
+mv "$bundle" "$app" || { echo "talat: error: could not move the app into /Applications" >&2; exit 1; }
+echo "talat: installed $app (it updates itself from here on)"
+exit 0

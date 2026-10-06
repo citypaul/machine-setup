@@ -76,5 +76,8 @@ file_mode() {
   if [ "$(uname -s)" = Darwin ]; then stat -f '%Lp' "$1"; else stat -c '%a' "$1"; fi
 }
 
+# Run the installed mise from the checkout, where the config and the saved selection live.
+mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
+
 # Where bootstrap keeps the per-machine selection inside a checkout.
 env_list_of() { sed -n 's/^env = \[\(.*\)\]$/\1/p' "$1/.miserc.local.toml" | tr -d '" ' ; }

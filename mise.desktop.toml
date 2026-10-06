@@ -4,7 +4,11 @@
 # Linux desktop apps arrive in slice 8 (plan D7). Not selected in CI or on the test
 # VMs by default: the representative apps in mise.macos.toml cover the mechanism.
 [bootstrap]
-dotfile_groups = ["zsh", "ghostty", "mise", "git", "gnupg", "ssh", "bin"]
+dotfile_groups = ["zsh", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]
+
+# The theme collection ~/.alacritty.toml imports (themes/night_owl.toml); cloned once, never reset.
+[bootstrap.repos]
+"~/.config/alacritty/themes" = { url = "https://github.com/alacritty/alacritty-theme.git" }
 
 [bootstrap.packages]
 "brew-cask:alacritty" = { os = "macos" }

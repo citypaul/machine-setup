@@ -591,6 +591,66 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   enrollment later; the role stays opt-in with the placeholder
   `headscale_url`, and nothing else in the stack waits on it.
 
+### 2026-10-06 — slice 7 decisions (macOS extras and the remaining groups)
+
+- **D-24 macOS preferences are declared, not scripted.** `osx.yaml` maps onto
+  mise's friendly `[bootstrap.macos.finder|keyboard]` sections plus raw
+  `[bootstrap.macos.defaults]`; a `post-defaults` hook unhides `~/Library`
+  and restarts Finder. Defaults are not templated (bootstrap.md), so new
+  Finder windows open at "home" (`PfHm`) rather than a `file://$HOME` path:
+  the same behaviour, machine-independent. `LSQuarantine = false` is carried
+  over as it was. The automatic software-update check is a system-domain
+  default that needs admin rights, so it is flagged (D8), not declared.
+- **F-37 Hooks merge per key across config files.** The Linux layer's
+  `post-dotfiles` replaced the base one while the base `post-packages` still
+  ran (CI log), so a later file replaces a hook key wholesale and leaves the
+  others. `post-defaults` therefore lives in the macOS layer alone, and a
+  second `final` hook would silently replace Conquer's.
+- **D-25 The Dock is one declared list, owned by the desktop role on macOS**
+  (`mise.desktop-macos.toml`). mise adds, removes and reorders the pinned
+  apps and refuses a layout whose apps do not exist, and the Dock phase runs
+  before tasks. So Slack (App Store role), Spotify and Brave (personal
+  profile), and Talat (a task) are not pinned yet: group-style lists replace,
+  and the test machines still use the `studio` machine id without the
+  desktop role, so a studio Dock list would fail CI. Slice 9 gives machines
+  their own ids and Dock lists. Spacers have no equivalent and are dropped.
+- **D-26 Talat is a task** (`tasks/talat`): macOS on Apple Silicon with the
+  desktop role; reads the release feed with `plutil` (no jq needed), checks
+  Gatekeeper and the developer team id before moving the app into place,
+  warns on network failure and fails on a verification failure.
+- **D-27 gh extensions are advisory**: `gh extension install` needs a
+  signed-in gh, so the task installs `github/gh-stack` when it can and
+  otherwise prints the two commands to run.
+- **D-28 fzf and autosuggestions without installers.** `.zshrc` sources
+  `~/.fzf.zsh` if the old installer wrote it, else `fzf --zsh`;
+  `zsh-autosuggestions` is a Homebrew formula the existing `.zshrc` already
+  sources from the Homebrew prefix.
+- **D-29 Checkouts as `[bootstrap.repos]`**: Oh My Zsh, NvChad on its `v2.0`
+  branch (what Paul's config runs; upstream froze it, so an upgrade to 2.5
+  is a separate decision for Paul), and `alacritty-theme` (the collection
+  `~/.alacritty.toml` imports) with the desktop role. URLs match the
+  checkouts already on Paul's Macs so slice 10 adopts them without a
+  re-clone. Retired with evidence: the Catppuccin and Dracula clones (no
+  config imports them), `zsh-you-should-use` (vendored under a name whose
+  plugin file never matched the loader, so it never loaded), the two cask
+  receipt scripts (mise owns casks and repairs drift itself, E-13/E-25);
+  `ensure-mac-permissions` moves to slice 9's `doctor`.
+- **F-39 A `[bootstrap.repos]` ref that names both a tag and a branch must
+  be written in full.** NvChad has a tag and a branch called `v2.0`; git
+  resolves the bare name to the tag, so mise compared the branch checkout
+  with the tag's commit and reported `differs` after every converge
+  (`ref_is_current` in `src/system/repos.rs`), which failed six drift
+  checks on the Ubuntu VM. `refs/heads/v2.0` names the branch and reads as
+  `current`; a commit SHA does too (both tried on the VM).
+- **F-40 A sandboxed app's preferences need Full Disk Access.** Writing
+  `com.apple.notificationcenterui` (the banner time from `osx.yaml`) failed
+  with "failed to synchronize macOS preference domain … may require Full
+  Disk Access for your terminal" and stopped the whole converge on the
+  macOS VM (every later test failed with it). The banner time is not
+  declared; it joins the by-hand list with the software-update check.
+- The `tmux`, `zellij` and `herdr` groups join the base list, `alacritty`
+  the desktop list; `neovim` joins the base formulae.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
