@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Docker's CLI talks to a root-owned socket; membership of the docker group makes it usable without
+# sudo. Takes effect at the next login. Linux only; advisory without sudo.
+set -uo pipefail
+[ "$(uname -s)" = Linux ] || { echo "docker-group: Linux only; skipping"; exit 0; }
+user=$(id -un)
+getent group docker >/dev/null 2>&1 || { echo "docker-group: no docker group yet (Docker Engine not installed); skipping"; exit 0; }
+if getent group docker | grep -q "\b$user\b"; then
+  echo "docker-group: $user is already in the docker group"
+  exit 0
+fi
+if [ "$(id -u)" = 0 ]; then
+  usermod -aG docker "$user" && echo "docker-group: added $user (takes effect at next login)"
+elif sudo -n true 2>/dev/null; then
+  sudo -n usermod -aG docker "$user" && echo "docker-group: added $user (takes effect at next login)"
+else
+  echo "docker-group: cannot change groups without sudo; run: sudo usermod -aG docker $user"
+fi
+exit 0

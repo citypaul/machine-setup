@@ -114,3 +114,23 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   [[ "$plan" != *"brave-browser"* ]]
   [[ "$plan" != *"protonvpn"* ]]
 }
+
+@test "the Linux desktop overlay declares the GUI set from the vendors' repositories for both profiles (D7)" {
+  skip_unless_linux   # packages status lists only this OS's managers (no apt or flatpak entries on a Mac)
+  local pk want; pk=$(packages_for personal,desktop,desktop-linux)
+  for want in code brave-browser alacritty docker-ce docker-compose-plugin flatpak 1password-cli md.obsidian.Obsidian; do
+    grep -qx "$want" <<<"$pk" || { echo "missing $want"; return 1; }
+  done
+  # 1Password's desktop app exists for x86_64 only; its arm64 repository ships the CLI alone.
+  if [ "$(uname -m)" = x86_64 ]; then grep -qx 1password <<<"$pk"; else ! grep -qx 1password <<<"$pk"; fi
+  pk=$(packages_for work,desktop,desktop-linux)
+  grep -qx code <<<"$pk"
+  ! grep -qx spotify <<<"$pk"
+}
+
+@test "every vendor apt key vendored under files/ is an ASCII-armored public key, so mise can deploy it (F-29)" {
+  local k
+  for k in "$CO"/files/*.asc; do
+    head -1 "$k" | grep -q -- '-----BEGIN PGP PUBLIC KEY BLOCK-----' || { echo "$k is not armored"; return 1; }
+  done
+}

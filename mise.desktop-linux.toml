@@ -1,0 +1,113 @@
+# Desktop role on Linux (plan D7), selected automatically next to `desktop` (ADR 0001 D-14). The GUI
+# set comes from the vendors' apt repositories: their signing keys are vendored under files/ (ASCII
+# armored, F-29; fingerprints in ADR 0001 D-30) and pre-packages files add the sources. Alacritty is
+# Ubuntu's package, Ghostty comes from the ghostty-ubuntu builds through a task (no repository, D-31),
+# Obsidian is a Flatpak from Flathub (the pre-packages hook installs flatpak and adds the remote).
+# Not declared (D-30): Cursor has no supported Linux arm64 channel; Firefox is Ubuntu's own snap.
+[bootstrap.directories."/etc/apt/keyrings"]
+mode = "0755"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/keyrings/1password.asc"]
+source = "files/1password.asc"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/keyrings/microsoft.asc"]
+source = "files/microsoft.asc"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/keyrings/brave.asc"]
+source = "files/brave.asc"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/keyrings/docker.asc"]
+source = "files/docker.asc"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/sources.list.d/1password.list"]
+content = '''# 1Password (machine-setup, desktop role)
+deb [arch={{ exec(command="dpkg --print-architecture") }} signed-by=/etc/apt/keyrings/1password.asc] https://downloads.1password.com/linux/debian/{{ exec(command="dpkg --print-architecture") }} stable main
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/sources.list.d/vscode.list"]
+content = '''# Visual Studio Code (machine-setup, desktop role)
+deb [arch={{ exec(command="dpkg --print-architecture") }} signed-by=/etc/apt/keyrings/microsoft.asc] https://packages.microsoft.com/repos/code stable main
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/sources.list.d/brave-browser.list"]
+content = '''# Brave (machine-setup, desktop role)
+deb [arch={{ exec(command="dpkg --print-architecture") }} signed-by=/etc/apt/keyrings/brave.asc] https://brave-browser-apt-release.s3.brave.com/ stable main
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/sources.list.d/docker.list"]
+content = '''# Docker Engine (machine-setup, desktop role)
+deb [arch={{ exec(command="dpkg --print-architecture") }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ exec(command="sh -c '. /etc/os-release && echo $VERSION_CODENAME'") }} stable
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.packages]
+# 1Password's arm64 repository ships the CLI only (checked: its Packages index lists 1password-cli alone),
+# so the desktop app is x86_64-only here and every Linux desktop gets the CLI (ADR 0001 D-30).
+"apt:1password" = { os = "linux/x64" }
+"apt:1password-cli" = "latest"
+"apt:code" = "latest"
+"apt:brave-browser" = "latest"
+"apt:alacritty" = "latest"
+"apt:docker-ce" = "latest"
+"apt:docker-ce-cli" = "latest"
+"apt:containerd.io" = "latest"
+"apt:docker-buildx-plugin" = "latest"
+"apt:docker-compose-plugin" = "latest"
+"apt:flatpak" = "latest"
+"flatpak:md.obsidian.Obsidian" = "latest"
+
+[bootstrap.services.docker]
+state = "running"
+enabled = true
+
+[tasks.flathub]
+description = "Install flatpak and add the Flathub remote before the packages phase needs them"
+run = "tasks/flathub"
+
+[tasks.ghostty-linux]
+description = "Install Ghostty from the ghostty-ubuntu build for this Ubuntu release, once"
+run = "tasks/ghostty-linux"
+
+[tasks.docker-group]
+description = "Put the current user in the docker group"
+run = "tasks/docker-group"
+
+[bootstrap.hooks]
+pre-packages = "mise run flathub"
+post-packages = ["mise run fix-brew-certs", "mise run remove-packages", "mise run ghostty-linux", "mise run docker-group"]

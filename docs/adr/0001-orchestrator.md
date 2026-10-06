@@ -651,6 +651,38 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
 - The `tmux`, `zellij` and `herdr` groups join the base list, `alacritty`
   the desktop list; `neovim` joins the base formulae.
 
+### 2026-10-06 — slice 8 decisions (the Linux desktop set, plan D7)
+
+- **D-30 The Linux GUI set and where each piece comes from.** 1Password, VS
+  Code (`code`), Brave and Docker Engine from the vendors' apt repositories,
+  added as pre-packages files the same way as Tailscale (D-13): the keys are
+  vendored under `files/` as ASCII-armored public keys (F-29) and compared
+  with the fingerprints the vendors publish: 1Password
+  `3FEF 9748 469A DBE1 5DA7 CA80 AC2D 6274 2012 EA22`, Microsoft
+  `BC52 8686 B50D 79E3 39D3 721C EB3E 94AD BE12 29CF`, Docker
+  `9DC8 5822 9FC7 DD38 854A E2D8 8D81 803C 0EBF CD88`; Brave ships its
+  keyring as a binary file, re-armored here, fingerprint
+  `DBF1 A116 C220 B8C7 164F 9823 0686 B784 2003 8257` (its current key).
+  1Password's arm64 repository publishes `1password-cli` only (the first
+  Ubuntu VM converge failed with "Unable to locate package 1password"),
+  so the desktop app is declared for `linux/x64` and the CLI everywhere.
+  Alacritty is Ubuntu's own package. Obsidian is a system Flatpak from
+  Flathub (aarch64 and x86_64): mise installs neither flatpak nor the
+  remote, so a `pre-packages` hook does. Docker's daemon is a declared
+  service and a task puts the user in the `docker` group. Not declared:
+  Cursor (no supported Linux arm64 channel: Flathub has nothing, the vendor
+  publishes an AppImage without a stable URL) and Firefox (Ubuntu ships it
+  as a snap already). Mozilla's apt repository has no arm64 packages
+  (checked: 404), so Brave is the declared browser. Repositories were
+  checked for Ubuntu 26.04 (`resolute`) on arm64 before being declared.
+- **D-31 Ghostty on Ubuntu is a task, not a package entry.** There is no
+  repository; Ghostty's docs point at the `ghostty-ubuntu` builds (one
+  `.deb` per release and architecture). `tasks/ghostty-linux` resolves the
+  latest tag from GitHub's redirect (no API call, so no rate limit in CI)
+  and installs the file for this release once. The trust decision: a
+  community build over TLS from GitHub, the same standing as a Homebrew
+  cask; a signed repository would replace it.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# flatpak and the Flathub remote must exist before mise's packages phase applies a `flatpak:` entry,
+# and mise adds neither (bootstrap/packages/flatpak.md). Runs as the pre-packages hook of the Linux
+# desktop role; idempotent; Linux only.
+set -uo pipefail
+[ "$(uname -s)" = Linux ] || { echo "flathub: Linux only; skipping"; exit 0; }
+as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
+if ! command -v flatpak >/dev/null 2>&1; then
+  echo "flathub: installing flatpak"
+  if ! { as_root apt-get update -qq && as_root env DEBIAN_FRONTEND=noninteractive apt-get install -y -qq flatpak; }; then
+    echo "flathub: error: could not install flatpak" >&2; exit 1
+  fi
+fi
+if ! flatpak remotes --system 2>/dev/null | grep -q '^flathub'; then
+  as_root flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || { echo "flathub: error: could not add the Flathub remote" >&2; exit 1; }
+  echo "flathub: added the Flathub remote (system scope)"
+else
+  echo "flathub: Flathub remote present"
+fi
+exit 0
