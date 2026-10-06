@@ -16,7 +16,8 @@ while [ $# -gt 0 ]; do
 done
 [ -n "$login_server" ] || { echo "tailscale-join: --login-server is required" >&2; exit 2; }
 
-export PATH="$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+# Appended, not prepended: a test fake earlier on PATH must win over the real ~/.local/bin/tailscale.
+export PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
 command -v tailscale >/dev/null 2>&1 || { echo "tailscale-join: tailscale is not installed yet; converge again"; exit 0; }
 
 # `status` is readable by any user. `up` talks to the Linux system daemon as root; `sudo env PATH=…`
