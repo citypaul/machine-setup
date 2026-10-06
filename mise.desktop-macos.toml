@@ -1,0 +1,37 @@
+# Desktop role on macOS, selected automatically next to `desktop` (ADR 0001 D-14): the Dock and the
+# iTerm2 profile. Everything here needs apps the role installs.
+
+# Pinned applications in order (mac-dev-machine-setup/ansible/tasks/dock.yaml, minus the spacers
+# mise has no notion of). mise owns the pinned-app tiles: it adds, removes and reorders them, and
+# every path must exist when the Dock phase runs, which is before tasks. So Slack (App Store role),
+# Spotify and Brave (personal profile) and Talat (installed by a task) are not here; they return
+# with per-machine Dock lists in slice 9 (D-25).
+[bootstrap.macos.dock]
+apps = [
+  "/Applications/Fantastical.app",
+  "/Applications/Alacritty.app",
+  "/Applications/Ghostty.app",
+  "/Applications/Cursor.app",
+  "/Applications/Audio Hijack.app",
+  "/Applications/Loopback.app",
+  "/Applications/Google Chrome.app",
+  "/Applications/Firefox.app",
+  "/Applications/ResponsivelyApp.app",
+  "/Applications/DeskPad.app",
+  "/Applications/Bruno.app",
+  "/Applications/TablePlus.app",
+  "/Applications/Sourcetree.app",
+  "/Applications/Raycast.app",
+  "/Applications/ChatGPT.app",
+  "/Applications/Claude.app",
+  "/Applications/FluidVoice.app",
+  "/Applications/Obsidian.app",
+]
+
+# iTerm2 reads dynamic profiles from this folder (mac-dev-machine-setup/ansible/tasks/iterm.yaml).
+[bootstrap.directories."~/Library/Application Support/iTerm2/DynamicProfiles"]
+mode = "0755"
+
+[bootstrap.files."~/Library/Application Support/iTerm2/DynamicProfiles/machine-setup.json"]
+source = "files/iterm-dynamic-profile.json"
+mode = "0644"

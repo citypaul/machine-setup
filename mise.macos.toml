@@ -21,3 +21,29 @@ program = "/bin/launchctl"
 args = ["setenv", "PATH", "{{ env.HOME }}/.local/share/mise/shims:{{ env.HOME }}/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]
 run_at_load = true
 process_type = "Background"
+
+# Finder, keyboard and panel preferences (mac-dev-machine-setup/ansible/tasks/osx.yaml): mise's friendly
+# sections where they exist, raw defaults for the rest. Defaults are not templated, so new Finder
+# windows open at "home" (PfHm) instead of a per-user file:// path (ADR 0001 D-24). The automatic
+# software-update check lives in /Library and needs admin rights, so it is not declared (D8).
+[bootstrap.macos.finder]
+show_all_files = true
+show_pathbar = true
+show_status_bar = true
+show_extensions_warning = false
+preferred_view_style = "list"
+
+[bootstrap.macos.keyboard]
+key_repeat = 0
+automatic_spelling_correction = false
+
+[bootstrap.macos.defaults]
+"com.apple.finder" = { ShowExternalHardDrivesOnDesktop = true, ShowHardDrivesOnDesktop = true, ShowMountedServersOnDesktop = true, ShowRemovableMediaOnDesktop = true, _FXShowPosixPathInTitle = true, NewWindowTarget = "PfHm", FXDefaultSearchScope = "SCcf", EmptyTrashSecurely = true }
+"NSGlobalDomain" = { AppleShowAllExtensions = true, AppleKeyboardUIMode = 3 }
+"com.apple.LaunchServices" = { LSQuarantine = false }   # as before: no "are you sure you want to open" dialog
+"com.apple.spotlight" = { DictionaryLookupEnabled = false }
+"com.apple.notificationcenterui" = { bannerTime = 20 }
+"com.apple.Terminal" = { NewTabWorkingDirectoryBehavior = true }
+
+[bootstrap.hooks]
+post-defaults = ["chflags nohidden ~/Library", "killall Finder || true"]

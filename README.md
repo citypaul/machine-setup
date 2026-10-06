@@ -95,6 +95,9 @@ cd ~/.local/share/machine-setup
 | See the git identity this machine renders | `git config --global user.email` |
 | Use a different git email on this machine (later runs keep it; `''` goes back to the default) | `./bootstrap.sh --git-email you@example.com --yes` |
 | Configure YubiKey signing (explains and exits 0 when no key is inserted) | `~/.local/bin/mise run gpg-setup` |
+| See which macOS preferences differ from the declared ones | `~/.local/bin/mise bootstrap macos defaults status` |
+| Install the gh extensions once `gh auth login` has run | `~/.local/bin/mise run gh-extensions` |
+| Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
 
 The saved selection lives in two untracked files in the checkout:
 `.miserc.local.toml` (the list of config environments) and `mise.local.toml`
@@ -113,7 +116,7 @@ and for the same key the later file wins:
 | `mise.macos.toml`, `mise.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
 | `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
 | `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
-| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role, e.g. `mise.conquer-linux.toml` |
+| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile) |
 | `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions |
 
 Two rules that are not obvious:
@@ -164,7 +167,7 @@ from the current run and tells you; run `op signin` and re-run to add them.
 The suite is [bats](https://github.com/bats-core/bats-core) files under
 `test/`, one per gate or slice, run in name order. Files `00` to `05` are
 safe anywhere: they use a fresh `HOME`, a private copy of the checkout and
-fake `op` and `tailscale` binaries. Files `10` to `70` change the machine
+fake `op` and `tailscale` binaries. Files `10` to `80` change the machine
 they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 
 | File | Proves |
@@ -182,6 +185,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `50-ai-tooling` | skills at the pinned release, the settings merge on a real machine, herdr and OpenCode, the agent CLIs (`claude`, `codex`, `omp`) from mise |
 | `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
+| `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Talat |
 
 ```bash
 test/run.sh                                    # safe files run, mutating files skip
@@ -231,9 +235,10 @@ to come:
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the
   details are settled (ADR 0001 D-23);
-- the remaining dotfile groups (`tmux`, `herdr`, `alacritty`, `zellij`) and
-  the macOS extras: `defaults`, the Dock, the gh-stack extension, fzf shell
-  integration, Talat, nvim (slice 7);
+- per-machine Dock lists: the desktop role pins one generic list, so Spotify,
+  Brave, Slack and Talat are not pinned until machine ids are real (slice 9);
+- anything needing admin rights on a Mac: the automatic software-update
+  check and the terminal's App Management permission are not managed;
 - the Linux desktop set, including native 1Password (slice 8);
 - per-machine files for the real machines, `doctor` and `update` (slice 9);
 - the rehearsed migration of the existing Macs, moving an existing
@@ -246,7 +251,7 @@ to come:
 |------|------|
 | `bootstrap.sh` | the one command; POSIX sh |
 | `mise*.toml`, `.miserc.toml` | the declared state, one file per layer |
-| `zsh/`, `ghostty/`, `claude/` | dotfile groups and the Claude settings source |
+| `zsh/`, `ghostty/`, `git/`, `gnupg/`, `ssh/`, `bin/`, `tmux/`, `zellij/`, `herdr/`, `alacritty/`, `claude/` | dotfile groups and the Claude settings source |
 | `tasks/` | the shell tasks mise runs: `remove-packages`, `merge-claude-settings`, `migrate`, `tailscale-join` |
 | `test/` | the bats suite and its fixtures |
 | `docs/adr/0001-orchestrator.md` | the orchestrator decision, every finding, every executed result |
