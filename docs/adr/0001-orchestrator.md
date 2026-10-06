@@ -463,6 +463,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   **D-15:** App Store apps are their own opt-in `appstore` role, selected
   once a Mac is signed in; the desktop role never carries them.
 
+- **F-36 Services need systemd as PID 1.** In the ubuntu:24.04 CI
+  container `mise bootstrap` stops at "refusing unsafe change to bootstrap
+  service 'tailscaled'" (there is no init to talk to), so the Conquer
+  converge failed there while it passed on the VM (E-23). `bootstrap.sh`
+  passes `--skip services` when `/run/systemd/system` is absent on Linux
+  and says so; the daemon test skips there too, so containers and WSL1
+  converge everything else.
 - **E-23** Slice 4 on Ubuntu VM 2 (`20261006T215713-slice4c.log`):
   `60-conquer` 5 pass (1 macOS-only skip). Adding `--role conquer` selected
   `conquer,conquer-linux`, wrote the keyring and list (codename `resolute`),

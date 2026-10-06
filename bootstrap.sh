@@ -289,5 +289,12 @@ if [ "$dry_run" = 1 ]; then
 fi
 log "converging with mise bootstrap"
 # --update refreshes apt metadata so a repository added in this run (pre-packages files) is usable.
-stdio_only "$MISE" bootstrap --update --yes
+# Services need systemd as PID 1; in a container (CI, WSL1) mise refuses the change (ADR 0001 F-36).
+if [ "$os" = linux ] && [ ! -d /run/systemd/system ]; then
+  log "no systemd on this machine: declared services are installed but not enabled or started"
+  set -- --skip services
+else
+  set --
+fi
+stdio_only "$MISE" bootstrap --update --yes "$@"
 log "done. Open a new shell (exec zsh) to pick up the environment."

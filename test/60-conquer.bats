@@ -20,6 +20,7 @@ setup() {
 
 @test "the Tailscale daemon is running (Linux)" {
   skip_unless_linux
+  [ -d /run/systemd/system ] || skip "no systemd here (container): services are not managed (F-36)"
   run systemctl is-active tailscaled
   [ "$output" = "active" ]
 }
