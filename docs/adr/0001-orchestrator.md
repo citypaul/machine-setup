@@ -28,11 +28,11 @@ macOS VM. Verdicts are filled in from executed runs only.
 | 2 | Dotfile-group composition across env files | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
 | 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
 | 4 | Locked 1Password handling | `test/02-secrets.bats` | pass (VM, fake op) | pass (host, fake op) | pending macOS VM/CI |
-| 5 | Representative casks (1Password, Ghostty, VS Code) | `test/10-bootstrap.bats` | n/a | — | pending |
+| 5 | Representative casks (1Password, Ghostty, VS Code) | `test/10-bootstrap.bats` | n/a | pass (clean VM; mise poured all three + `code` binary) | pending CI (Homebrew-owned case) |
 | 6 | JSON merge of `~/.claude/settings.json` preserving herdr hooks | `test/03-merge-claude-settings.bats` | pass (VM) | pass (host) | pending macOS VM/CI |
 | 7 | Partial-migration rollback | `test/04-migrate.bats` | pass (VM) | pass (host) | pending macOS VM/CI |
-| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | pass: interactive, login, empty-env zsh; ssh skipped (no sshd) | — | pending macOS |
-| + | Drift repair | `test/30-drift.bats` | pass (dotfile and apt package) | — | pending macOS |
+| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | pass: interactive, login, empty-env zsh; ssh skipped (no sshd) | pass (same three; ssh skipped) | **pass** (ssh path: slice 3) |
+| + | Drift repair | `test/30-drift.bats` | pass (dotfile and apt package) | pass (dotfile and brew formula) | **pass** |
 
 ## Findings log
 
@@ -221,6 +221,35 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   20 minutes: the commit predates the `mise_bin` fix, so `command -v mise`
   found the helper's own shell function and recursed. No gate evidence from
   CI yet; the fix batch is the next push. Job timeouts (45/60 min) added.
+
+### 2026-10-06 — executed: full suite on the clean macOS VM (27.0.1 arm64)
+
+- **E-11** `20261006T121134-full.log`: 48 pass, 2 fail, 22 skip. The
+  clean-machine bootstrap passed in 368 s: headless CLT via `softwareupdate`,
+  Homebrew installer, pinned mise, six formulae and four casks (1Password,
+  Ghostty, Visual Studio Code, Spotify) poured by mise, node 24, both dotfile
+  groups, the settings merge. Second run: 0.6 s, no changes.
+- **E-12** Gate 5 pass: all three representative apps in `/Applications` and
+  `/opt/homebrew/bin/code` linked, with no Homebrew involvement in the pour.
+- **E-13** Gate 8 and drift repair pass on macOS as on Linux (ssh path still
+  unexercised: no sshd on the VM).
+- **E-14** Failures: test 39 was a test bug (on a clean Mac the arrange step
+  skips, and "brew exists" was later true because bootstrap installed it;
+  fixed with an explicit marker). Test 49 is real: the post-packages
+  `remove-packages` hook errored while switching to the work profile, so the
+  mise-poured Spotify was not removed. Diagnosis below.
+
+- **F-17 Mixed ownership, observed.** After mise poured Spotify,
+  `brew list --cask` listed it (Homebrew lists Caskroom directories) but
+  `brew uninstall --cask spotify` answered "Cask 'spotify' is not installed"
+  (no Homebrew `.metadata`). mise's receipt is
+  `Caskroom/spotify/1.3.3.264/.mise-cask.toml` with `Spotify.app ->
+  /Applications/Spotify.app` beside it. The removal task now decides
+  ownership from `Caskroom/<cask>/.metadata` (Homebrew) versus
+  `<version>/.mise-cask.toml` (mise) and removes a mise-owned cask by
+  deleting the linked bundles and the Caskroom entry. There is no
+  `mise bootstrap packages remove`; this is the small task plan §3.3
+  budgeted for.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
