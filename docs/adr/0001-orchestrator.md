@@ -420,6 +420,14 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   herdr integrations, herdr's hook preserved by the settings merge, OpenCode
   config.
 
+- **E-22** Slices 3 and 5 on Ubuntu VM 2, final (`20261006T214?-slice35e.log`):
+  bootstrap exit 0; `20-runtime-env` and `50-ai-tooling` 20 pass, 0 fail,
+  1 skip (no Chrome for Testing build on arm64). Adds to E-21: brewed CLI
+  tools (rg, gh, herdr) resolve in login, interactive and empty-environment
+  zsh with no `brew` binary, through the prefix added by existence in
+  `.zshenv`/`.zprofile`; herdr's `integration status` reports claude and
+  codex current.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
