@@ -1,0 +1,32 @@
+#!/usr/bin/env bash
+# Make zsh the login shell so ssh and cron shells read .zshenv and .zprofile (plan.md §4.5). mise's
+# [bootstrap.user] runs chsh unprivileged, which asks PAM for a password and fails a non-interactive
+# bootstrap (ADR 0001 F-28); this uses sudo where available and never fails the run.
+set -uo pipefail
+want=$(command -v zsh || true)
+[ -n "$want" ] || { echo "login-shell: zsh is not installed yet; skipping"; exit 0; }
+user=$(id -un)
+if [ "$(uname -s)" = Darwin ]; then
+  current=$(dscl . -read "/Users/$user" UserShell 2>/dev/null | awk '{print $2}')
+else
+  current=$(getent passwd "$user" | cut -d: -f7)
+fi
+if [ "$current" = "$want" ] || [[ "$current" == */zsh ]]; then
+  echo "login-shell: already $current"
+  exit 0
+fi
+if ! grep -qx "$want" /etc/shells 2>/dev/null; then
+  printf '%s\n' "$want" | sudo -n tee -a /etc/shells >/dev/null 2>&1 || true
+fi
+if [ "$(id -u)" = 0 ]; then
+  chsh -s "$want" "$user" && echo "login-shell: set to $want"
+elif sudo -n true 2>/dev/null; then
+  if [ "$(uname -s)" = Darwin ]; then
+    sudo -n chsh -s "$want" "$user" && echo "login-shell: set to $want (takes effect at next login)"
+  else
+    sudo -n usermod -s "$want" "$user" && echo "login-shell: set to $want (takes effect at next login)"
+  fi
+else
+  echo "login-shell: cannot change the login shell without sudo; run: chsh -s $want"
+fi
+exit 0
