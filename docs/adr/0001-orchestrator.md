@@ -1,6 +1,6 @@
 # ADR 0001: Orchestrator for machine-setup
 
-**Status:** in progress (slice 0 spike running) · **Date:** 2026-10-06 · **Decides:** plan.md D0
+**Status:** accepted 2026-10-06 · **Decides:** plan.md D0 · **Decision:** option A, mise-native
 
 ## Context
 
@@ -12,9 +12,19 @@ be made by an executed, risk-driven spike rather than prose. Paul confirmed on
 
 ## Decision
 
-Pending the gate results below. The rule from plan §3.3 applies: every gate
-passes or is inconclusive-with-a-small-task → adopt A; any gate fails in a way
-that needs more than a small task → design B2 before slice 1.
+**Option A, mise-native, is adopted.** Every gate and drift repair passed on
+the Ubuntu VM (50/50), on the clean macOS VM (50/50) and on GitHub Actions
+(both jobs green on pull request #1, merged as 5bf7ba6). The gaps the review
+predicted all exist and all stayed small: four shell tasks
+(`remove-packages`, `merge-claude-settings`, `migrate`, `tailscale-join`)
+and three one-line facts in `bootstrap.sh` (cd into the checkout, export the
+mise dir, trust the checkout durably). B2 (minimal Ansible + mise) is not
+needed; it stays in plan §3.2 as the recorded fallback.
+
+Consequences carried into the next slices: machine-wide runtimes move to the
+global mise config (F-19); the ssh and GUI launch paths still need executed
+evidence (slice 3); Linux has no `brew` binary, so formula removal there is
+reported, not done, until a decision says otherwise (D-04).
 
 ## Gates (plan §5, slice 0)
 
@@ -24,15 +34,15 @@ macOS VM. Verdicts are filled in from executed runs only.
 
 | # | Gate | Test | Linux | macOS | Verdict |
 |---|------|------|-------|-------|---------|
-| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | pass (apt; brew formulae unexercised, no `brew` on Linux) | pass on the clean VM for mise-owned casks (Spotify removed, re-poured on switch back; declared apps kept); Homebrew-owned case pending CI | pending CI |
-| 2 | Dotfile-group composition across env files | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
-| 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | pass (VM) | pass (host, non-mutating) | pending macOS VM/CI |
-| 4 | Locked 1Password handling | `test/02-secrets.bats` | pass (VM, fake op) | pass (host, fake op) | pending macOS VM/CI |
-| 5 | Representative casks (1Password, Ghostty, VS Code) | `test/10-bootstrap.bats` | n/a | pass (clean VM; mise poured all three + `code` binary) | pending CI (Homebrew-owned case) |
-| 6 | JSON merge of `~/.claude/settings.json` preserving herdr hooks | `test/03-merge-claude-settings.bats` | pass (VM) | pass (host) | pending macOS VM/CI |
-| 7 | Partial-migration rollback | `test/04-migrate.bats` | pass (VM) | pass (host) | pending macOS VM/CI |
-| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | pass: interactive, login, empty-env zsh; ssh skipped (no sshd) | pass (same three; ssh skipped) | **pass** (ssh path: slice 3) |
-| + | Drift repair | `test/30-drift.bats` | pass (dotfile and apt package) | pass (dotfile and brew formula) | **pass** |
+| 1 | Layered removal with mixed Homebrew ownership | `test/40-removal.bats` | pass (apt; brew formulae unexercised, no `brew` on Linux) | pass: mise-owned cask on the clean VM, Homebrew-owned cask and undeclared formula on the `macos-15` runner | **pass** |
+| 2 | Dotfile-group composition across env files | `test/01-layering.bats` | pass (VM, CI) | pass (VM, CI) | **pass** |
+| 3 | Machine-file discovery (env name = file name) | `test/01-layering.bats` | pass (VM, CI) | pass (VM, CI) | **pass** |
+| 4 | Locked 1Password handling | `test/02-secrets.bats` | pass (VM, CI; fake op) | pass (VM, CI; fake op) | **pass** |
+| 5 | Representative casks (1Password, Ghostty, VS Code) | `test/10-bootstrap.bats` | n/a | pass (clean VM and CI; mise poured all three + `code` binary) | **pass** |
+| 6 | JSON merge of `~/.claude/settings.json` preserving herdr hooks | `test/03-merge-claude-settings.bats` | pass (VM, CI) | pass (VM, CI) | **pass** |
+| 7 | Partial-migration rollback | `test/04-migrate.bats` | pass (VM, CI) | pass (VM, CI) | **pass** |
+| 8 | Non-interactive runtime env | `test/20-runtime-env.bats` | pass: interactive, login, empty-env zsh (VM, CI) | pass (VM, CI, incl. a shadowing node in /usr/local/bin) | **pass** (ssh and GUI paths: slice 3) |
+| + | Drift repair | `test/30-drift.bats` | pass (dotfile and apt package; VM, CI) | pass (dotfile and brew formula; VM, CI) | **pass** |
 
 ## Findings log
 
@@ -297,6 +307,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   empty-environment shells were already correct. The zsh group gains a
   `.zprofile` that re-prepends the shims dir and `~/.local/bin`, which is the
   §4.5 table's login-path mechanism. The Ubuntu container job is green.
+
+- **E-19** F-20 fix verified on the macOS VM before CI: with a fake
+  `/usr/local/bin/node` planted (the directory path_helper promotes),
+  `zsh -lc`, `zsh -ic` and `env -i … zsh -c` all answered v24.21.0 while a
+  plain `sh` saw the fake; `test/20-runtime-env.bats` 3 pass, 1 skip. The
+  new `.zprofile` showed up as drift (`status --missing` exit 1) and the
+  next converge linked it.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
