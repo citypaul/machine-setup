@@ -635,6 +635,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   plugin file never matched the loader, so it never loaded), the two cask
   receipt scripts (mise owns casks and repairs drift itself, E-13/E-25);
   `ensure-mac-permissions` moves to slice 9's `doctor`.
+- **F-39 A `[bootstrap.repos]` ref that names both a tag and a branch must
+  be written in full.** NvChad has a tag and a branch called `v2.0`; git
+  resolves the bare name to the tag, so mise compared the branch checkout
+  with the tag's commit and reported `differs` after every converge
+  (`ref_is_current` in `src/system/repos.rs`), which failed six drift
+  checks on the Ubuntu VM. `refs/heads/v2.0` names the branch and reads as
+  `current`; a commit SHA does too (both tried on the VM).
 - The `tmux`, `zellij` and `herdr` groups join the base list, `alacritty`
   the desktop list; `neovim` joins the base formulae.
 

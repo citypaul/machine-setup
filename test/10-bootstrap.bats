@@ -6,8 +6,6 @@ load helpers
 setup() { require_mutation; }
 
 as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
-mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
-
 @test "arrange pre-existing state: an undeclared package and, where Homebrew exists, a Homebrew-owned declared cask" {
   if is_macos; then
     command -v brew >/dev/null 2>&1 || skip "no Homebrew on this Mac yet (clean machine): bootstrap installs it"

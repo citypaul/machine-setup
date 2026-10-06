@@ -66,7 +66,7 @@ mode = "0700"
 # NvChad's v2.0 branch is what the existing config runs; it is frozen upstream (ADR 0001 D-29).
 [bootstrap.repos]
 "~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }
-"~/.config/nvim" = { url = "https://github.com/NvChad/NvChad", ref = "v2.0" }
+"~/.config/nvim" = { url = "https://github.com/NvChad/NvChad", ref = "refs/heads/v2.0" }   # full form: a bare branch name never reads as current (F-39)
 
 # CLI tools for every machine, Homebrew bottles poured by mise on both OSes (plan D4).
 # Ported from mac-dev-machine-setup/Brewfile.cli. Not here on purpose: agent-browser, gemini-cli
