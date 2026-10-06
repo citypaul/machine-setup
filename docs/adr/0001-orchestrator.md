@@ -666,7 +666,7 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   1Password's arm64 repository publishes `1password-cli` only (the first
   Ubuntu VM converge failed with "Unable to locate package 1password"),
   so the desktop app is declared for `linux/x64` and the CLI everywhere.
-  Alacritty is Ubuntu's own package. Obsidian is a system Flatpak from
+  Alacritty is Ubuntu's own package. Obsidian is a per-user Flatpak from
   Flathub (aarch64 and x86_64): mise installs neither flatpak nor the
   remote, so a `pre-packages` hook does. Docker's daemon is a declared
   service and a task puts the user in the `docker` group. Not declared:
@@ -675,6 +675,12 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   as a snap already). Mozilla's apt repository has no arm64 packages
   (checked: 404), so Brave is the declared browser. Repositories were
   checked for Ubuntu 26.04 (`resolute`) on arm64 before being declared.
+- **F-42 A system Flatpak needs polkit; an unattended run has none.** The
+  first desktop converge on the Ubuntu VM failed at "Flatpak system
+  operation GetRevokefsFd not allowed for user": `flatpak install --system`
+  asks polkit, and a run from a script or ssh has no session to answer.
+  Obsidian is a `flatpak-user:` entry and the Flathub remote is added in
+  user scope, which need no privilege.
 - **D-31 Ghostty on Ubuntu is a task, not a package entry.** There is no
   repository; Ghostty's docs point at the `ghostty-ubuntu` builds (one
   `.deb` per release and architecture). `tasks/ghostty-linux` resolves the

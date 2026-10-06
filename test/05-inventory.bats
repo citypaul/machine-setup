@@ -8,7 +8,7 @@ all_package_keys() { cat "$REPO_ROOT"/mise*.toml | sed -n -E 's/^"([a-z-]+:[^"]+
 @test "every declared package key names a manager this setup uses" {
   local key bad=()
   for key in $(all_package_keys); do
-    case "$key" in brew:*|brew-cask:*|apt:*|mas:*|flatpak:*) ;; *) bad+=("$key") ;; esac
+    case "$key" in brew:*|brew-cask:*|apt:*|mas:*|flatpak:*|flatpak-user:*) ;; *) bad+=("$key") ;; esac
   done
   [ ${#bad[@]} -eq 0 ] || { printf 'unexpected manager: %s\n' "${bad[@]}"; return 1; }
 }

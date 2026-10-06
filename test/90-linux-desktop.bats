@@ -48,9 +48,9 @@ setup() {
   fi
 }
 
-@test "Obsidian is installed as a system Flatpak from Flathub" {
-  flatpak remotes --system | grep -q flathub
-  flatpak list --system --app --columns=application | grep -qx 'md.obsidian.Obsidian'
+@test "Obsidian is installed as a per-user Flatpak from Flathub" {
+  flatpak remotes --user | grep -q flathub
+  flatpak list --user --app --columns=application | grep -qx 'md.obsidian.Obsidian'
 }
 
 @test "the converged Linux desktop reports no drift" {

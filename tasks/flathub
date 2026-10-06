@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# flatpak and the Flathub remote must exist before mise's packages phase applies a `flatpak:` entry,
+# flatpak and the Flathub remote must exist before mise's packages phase applies a `flatpak-user:` entry,
 # and mise adds neither (bootstrap/packages/flatpak.md). Runs as the pre-packages hook of the Linux
 # desktop role; idempotent; Linux only.
 set -uo pipefail
@@ -11,10 +11,12 @@ if ! command -v flatpak >/dev/null 2>&1; then
     echo "flathub: error: could not install flatpak" >&2; exit 1
   fi
 fi
-if ! flatpak remotes --system 2>/dev/null | grep -q '^flathub'; then
-  as_root flatpak remote-add --system --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || { echo "flathub: error: could not add the Flathub remote" >&2; exit 1; }
-  echo "flathub: added the Flathub remote (system scope)"
+# User scope: adding a system remote or installing system-wide asks polkit, and an unattended run has
+# no session to answer it (ADR 0001 F-42).
+if ! flatpak remotes --user 2>/dev/null | grep -q '^flathub'; then
+  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo || { echo "flathub: error: could not add the Flathub remote" >&2; exit 1; }
+  echo "flathub: added the Flathub remote (user scope)"
 else
-  echo "flathub: Flathub remote present"
+  echo "flathub: Flathub remote present (user scope)"
 fi
 exit 0
