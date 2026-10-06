@@ -369,3 +369,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   entry in either VM and refused to start a local HTTP server to feed the VMs.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
+
+### 2026-10-07 — CI: the macOS job hung after its last test
+
+- **F-41 A daemon started during a run holds the test runner's pipe.**
+  On the macOS runner every test passed within three minutes, then the job
+  waited until the 60-minute timeout; GitHub's cleanup reported an orphaned
+  `op`. The `1password-cli` cask generates its shell completions by running
+  `op completion`, which starts `op daemon`, and the daemon keeps every
+  descriptor it inherited, including bats' fd 3, so bats never saw EOF. It
+  only shows on a machine where the cask is installed for the first time
+  (CI); the VMs had it already. `bootstrap.sh` runs `mise bootstrap` and
+  `op whoami` with stdio only (`stdio_only`), and two tests in
+  `00-bootstrap-cli` prove neither inherits a descriptor beyond stdio.
