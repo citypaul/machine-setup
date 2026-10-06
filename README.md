@@ -98,6 +98,7 @@ cd ~/.local/share/machine-setup
 | See which macOS preferences differ from the declared ones | `~/.local/bin/mise bootstrap macos defaults status` |
 | Install the gh extensions once `gh auth login` has run | `~/.local/bin/mise run gh-extensions` |
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
+| Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
 
 The saved selection lives in two untracked files in the checkout:
 `.miserc.local.toml` (the list of config environments) and `mise.local.toml`
@@ -116,7 +117,7 @@ and for the same key the later file wins:
 | `mise.macos.toml`, `mise.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
 | `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
 | `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
-| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile) |
+| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile), `mise.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
 | `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions |
 
 Two rules that are not obvious:
@@ -167,7 +168,7 @@ from the current run and tells you; run `op signin` and re-run to add them.
 The suite is [bats](https://github.com/bats-core/bats-core) files under
 `test/`, one per gate or slice, run in name order. Files `00` to `05` are
 safe anywhere: they use a fresh `HOME`, a private copy of the checkout and
-fake `op` and `tailscale` binaries. Files `10` to `80` change the machine
+fake `op` and `tailscale` binaries. Files `10` to `90` change the machine
 they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 
 | File | Proves |
@@ -186,6 +187,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 | `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Talat |
+| `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code and Brave from their vendors' repositories, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
 ```bash
 test/run.sh                                    # safe files run, mutating files skip
@@ -241,7 +243,9 @@ to come:
   automatic software-update check, the terminal's App Management
   permission and the Notification Center banner time (Full Disk Access)
   are not managed;
-- the Linux desktop set, including native 1Password (slice 8);
+- on a Linux desktop: Cursor (no supported Linux arm64 channel) and Firefox
+  (Ubuntu's own snap) are not declared, and the 1Password SSH agent is
+  switched on in the app's settings by hand;
 - per-machine files for the real machines, `doctor` and `update` (slice 9);
 - the rehearsed migration of the existing Macs, moving an existing
   `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public
