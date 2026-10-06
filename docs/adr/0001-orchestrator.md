@@ -612,6 +612,11 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   os.execvp(...)'`. Long runs are launched that way and read back from
   `.cache/runs/<timestamp>.log`.
 
+- **The CI container's `$HOME` is not the passwd home.** GitHub sets
+  `HOME=/github/home` for container jobs while root's passwd entry says
+  `/root`; ssh (and gpg) resolve `~` through passwd, so `ssh -G` ignored the
+  deployed `~/.ssh/config` there. Tests name the file with `-F`.
+
 ### 2026-10-06 — harness constraints (not mise findings)
 
 - The Claude Code auto-mode classifier refused to write a NOPASSWD sudoers

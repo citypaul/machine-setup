@@ -66,7 +66,8 @@ current_profile() { sed -n 's/^profile = "\(.*\)"$/\1/p' "$REPO_ROOT/mise.local.
   else
     grep -q 'IdentityAgent ~/.1password/agent.sock' "$HOME/.ssh/config"
   fi
-  run ssh -G localhost
+  # -F names the file: ssh reads the passwd home, which in the CI container is not $HOME (ADR 0001 harness notes).
+  run ssh -G -F "$HOME/.ssh/config" localhost
   [ "$status" -eq 0 ]
   [[ "$output" == *"identityagent"* ]]
 }
