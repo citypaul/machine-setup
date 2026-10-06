@@ -393,6 +393,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
 - CI runs on pull requests and on pushes to `main` only; branch pushes no
   longer trigger a second run.
 
+- **F-27 `install-claude.sh` resolves annotated tags to the tag object.**
+  On the Ubuntu VM `--version v4.18.0` printed `Version: dc08fe7d…` and
+  then 404'd on `raw.githubusercontent.com/…/dc08fe7d…/CLAUDE.md`: the
+  script's `git ls-remote --tags --refs` returns the tag object id for an
+  annotated tag, which the raw host cannot serve. `tasks/claude-skills` now
+  peels the tag (`refs/tags/<tag>^{}`) and passes the commit. The installer
+  fix belongs with the other installer work in slice 10.
+- `[bootstrap.user].login_shell` must be an absolute path; a bare `zsh` is
+  ignored with a warning (`mise bootstrap user status` shows it).
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

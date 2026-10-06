@@ -22,12 +22,17 @@ fi
 
 # The installer uses npx (skills.sh) and git; node comes from mise's shims.
 export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+repo="https://github.com/citypaul/.dotfiles.git"
+# Resolve the tag to its commit ourselves: the installer resolves an annotated tag to the tag
+# object's id, and raw.githubusercontent.com cannot serve files at that id (ADR 0001 F-27).
+commit=$(git ls-remote "$repo" "refs/tags/$version^{}" "refs/tags/$version" | awk 'NR==1 {print $1}')
+[ -n "$commit" ] || { echo "claude-skills: tag $version not found in citypaul/.dotfiles" >&2; exit 1; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
-echo "claude-skills: installing citypaul/.dotfiles $version (CLAUDE.md, skills, agents, Codex, OpenCode)"
-curl -fsSL "https://raw.githubusercontent.com/citypaul/.dotfiles/$version/install-claude.sh" -o "$tmp/install-claude.sh"
+echo "claude-skills: installing citypaul/.dotfiles $version (${commit:0:8}): CLAUDE.md, skills, agents, Codex, OpenCode"
+curl -fsSL "https://raw.githubusercontent.com/citypaul/.dotfiles/$commit/install-claude.sh" -o "$tmp/install-claude.sh"
 chmod +x "$tmp/install-claude.sh"
-"$tmp/install-claude.sh" --version "$version" --agent codex --with-opencode
+"$tmp/install-claude.sh" --version "$commit" --agent codex --with-opencode
 mkdir -p "$HOME/.claude"
 printf '%s\n' "$version" > "$marker"
 echo "claude-skills: installed $version"
