@@ -30,9 +30,9 @@ if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ]; then up_prefix=(sudo -n env
 # (ADR 0001 F-38), and a converge must never hang on that.
 # bounded <seconds> <command...>: runs the command in its own process group and kills the whole group on
 # timeout, so a child left behind (sudo's command, a wrapper's exec target) cannot keep the pipe open.
-bounded() {
-  perl -e 'my $t = shift; setpgrp(0, 0); my $pid = fork; if (!$pid) { exec @ARGV or exit 127 } $SIG{ALRM} = sub { kill "TERM", -$$; exit 124 }; alarm $t; waitpid $pid, 0; exit $? >> 8' "$@"
-}
+# The script is a string so it can also run inside sudo: an unprivileged kill cannot reach root's child.
+bounded_pl='my $t = shift; setpgrp(0, 0); my $pid = fork; if (!$pid) { exec @ARGV or exit 127 } $SIG{ALRM} = sub { kill "TERM", -$$; exit 124 }; alarm $t; waitpid $pid, 0; exit $? >> 8'
+bounded() { perl -e "$bounded_pl" "$@"; }
 state=$(bounded 10 tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
 if [ "$state" = Running ]; then
   echo "tailscale-join: already connected"
@@ -48,7 +48,7 @@ fi
 
 echo "tailscale-join: requesting a login from $login_server"
 # `tailscale up` blocks until the login completes; give it 20 s to print the URL.
-out=$(bounded 20 ${up_prefix[@]+"${up_prefix[@]}"} tailscale up --login-server "$login_server" 2>&1 || true)
+out=$(${up_prefix[@]+"${up_prefix[@]}"} perl -e "$bounded_pl" 20 tailscale up --login-server "$login_server" 2>&1 || true)
 url=$(printf '%s\n' "$out" | grep -oE 'https://[^[:space:]]+' | head -1)
 if [ -n "$url" ]; then
   echo "tailscale-join: open this URL in a browser to finish joining (--login-server $login_server):"
