@@ -18,6 +18,7 @@ setup() {
 @test "update --dry-run on a converged machine leaves it converged" {
   run "$REPO_ROOT/tasks/update" --dry-run
   [ "$status" -eq 0 ]
-  run mise_in_checkout bootstrap status --missing
+  run "$REPO_ROOT/tasks/doctor"   # doctor's drift check knows which services a machine can manage
   [ "$status" -eq 0 ]
+  [[ "$output" == *"OK"*"drift"* ]]
 }

@@ -638,13 +638,15 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   plugin file never matched the loader, so it never loaded), the two cask
   receipt scripts (mise owns casks and repairs drift itself, E-13/E-25);
   `ensure-mac-permissions` moves to slice 9's `doctor`.
-- **F-39 A `[bootstrap.repos]` ref that names both a tag and a branch must
-  be written in full.** NvChad has a tag and a branch called `v2.0`; git
-  resolves the bare name to the tag, so mise compared the branch checkout
-  with the tag's commit and reported `differs` after every converge
-  (`ref_is_current` in `src/system/repos.rs`), which failed six drift
-  checks on the Ubuntu VM. `refs/heads/v2.0` names the branch and reads as
-  `current`; a commit SHA does too (both tried on the VM).
+- **F-39 Pin `[bootstrap.repos]` to a commit.** NvChad has a tag and a branch
+  called `v2.0`, so `ref = "v2.0"` resolved to the tag and read `differs`
+  after every converge on the Ubuntu VM. `refs/heads/v2.0` read as current
+  there only because that old checkout had a local branch: a fresh clone of
+  it (CI) is a detached HEAD, which mise compares by local branch name, so it
+  read `differs` forever and failed every later drift check
+  (`ref_is_current` in `src/system/repos.rs`). A full commit SHA compares by
+  SHA and is current everywhere; NvChad is pinned to
+  `3091ea58359bb85f087499bd73fbc0a57a935c34`, the v2.0 commit on Paul's Mac.
 - **F-40 A sandboxed app's preferences need Full Disk Access.** Writing
   `com.apple.notificationcenterui` (the banner time from `osx.yaml`) failed
   with "failed to synchronize macOS preference domain … may require Full
@@ -747,6 +749,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   entry in either VM and refused to start a local HTTP server to feed the VMs.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
+
+### 2026-10-07 — main's first CI run with every slice
+
+- **F-43 `status --missing` counts services a machine cannot manage.** In
+  the CI container the Conquer role's `tailscaled` service reads
+  `unavailable … unknown`, so the raw drift check could never pass there
+  after the role was added. `doctor` treats it as converged when, without
+  systemd, services are the only rows `status --missing` prints, and
+  `95-doctor-update` asserts through doctor. The bootstrap test also checked
+  a desktop-only group (Ghostty) and two tests a hard-coded machine id; they
+  now follow `MACHINE_SETUP_TEST_MACHINE`.
 
 ### 2026-10-07 — CI: the macOS job hung after its last test
 

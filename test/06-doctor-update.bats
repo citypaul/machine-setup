@@ -82,3 +82,18 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [ "$status" -eq 0 ]
   [[ "$output" == *"--yes"* ]]
 }
+
+@test "without systemd, declared services alone are not drift; any other unconverged row is (F-43)" {
+  is_linux && [ ! -d /run/systemd/system ] || skip "Linux without systemd only (a container)"
+  select_envs "$CO" personal - studio >/dev/null
+  export MISE_BIN="$FIXTURES/bin/mise-drift/mise"
+  export FAKE_MISSING="service    tailscaled    unavailable: System has not been booted with systemd    unknown"
+  run "$CO/tasks/doctor"
+  [[ "$output" == *"OK"*"drift: none apart from declared services"* ]]
+  export FAKE_MISSING="$FAKE_MISSING
+repos      ~/.config/nvim    HEAD    differs"
+  run "$CO/tasks/doctor"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"FAIL"*"drift"* ]]
+  [[ "$output" == *"config/nvim"* ]]
+}

@@ -168,7 +168,9 @@ arrange_sshd() {
 @test "Oh My Zsh, the NvChad config and neovim are present (declared repos and a formula)" {
   [ -f "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]
   [ -f "$HOME/.config/nvim/init.lua" ]
-  [ "$(git -C "$HOME/.config/nvim" branch --show-current)" = "v2.0" ]
+  local pin; pin=$(sed -n 's|^"~/.config/nvim" = { url = "[^"]*", ref = "\([0-9a-f]\{40\}\)".*|\1|p' "$REPO_ROOT/mise.toml")
+  [ -n "$pin" ]
+  [ "$(git -C "$HOME/.config/nvim" rev-parse HEAD)" = "$pin" ]
   run zsh -lc 'nvim --version'
   [ "$status" -eq 0 ]
   [[ "$output" == NVIM* ]]

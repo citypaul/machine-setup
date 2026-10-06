@@ -1,0 +1,8 @@
+#!/bin/sh
+# Fake mise for doctor's drift rule: `bootstrap status --missing` prints the rows in $FAKE_MISSING
+# (one per line, like the real table) and fails when there are any.
+case "$1" in
+  --version) echo "${FAKE_MISE_VERSION:-0} fake" ;;
+  bootstrap) [ "$2" = status ] || exit 0; [ -n "${FAKE_MISSING:-}" ] || exit 0; printf '%s\n' "$FAKE_MISSING"; exit 1 ;;
+esac
+exit 0
