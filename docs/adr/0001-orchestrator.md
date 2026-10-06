@@ -408,6 +408,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   on Linux, `sudo -n chsh` on macOS, a message when sudo is unavailable, and
   never a failed run.
 
+- **E-21** Slices 3 and 5 on Ubuntu VM 2 after the fixes
+  (`20261006T213448-slice35d.log`): bootstrap exit 0 in 30 s; runtime and
+  AI-tooling files 18 pass, 1 skip (Chromium, no arm64 build), 1 fail
+  (`herdr integration status` exit code, under investigation). Verified on a
+  real machine: node 24 from `$HOME` on all three shell paths, `.nvmrc`
+  switching with auto-install, nvm gone, npm-backend CLIs, terraform and
+  cargo, the old pnpm globals as tools, zsh as login shell, brewed TLS
+  clients verifying certificates, ssh to localhost resolving node 24, the
+  session PATH for GUI apps, skills at `v4.18.0` with a no-op second run,
+  herdr integrations, herdr's hook preserved by the settings merge, OpenCode
+  config.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
