@@ -21,9 +21,9 @@ as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
 }
 
 @test "bootstrap sets up a fresh machine: mise installed, groups linked, packages present, state converged" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile personal --machine studio --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile personal --machine "${MACHINE_SETUP_TEST_MACHINE:-vm}" --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,"*"machine-studio"* ]]   # roles may be carried over from an earlier selection
+  [[ "$output" == *"envs=personal,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]]   # roles may be carried over from an earlier selection
   [ -x "$HOME/.local/bin/mise" ]
   [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/zsh/.zshrc" ]
   [ "$(readlink "$HOME/.config/ghostty/config")" = "$REPO_ROOT/ghostty/.config/ghostty/config" ]
