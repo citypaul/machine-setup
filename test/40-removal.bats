@@ -14,7 +14,7 @@ status_missing() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" bootstrap status 
 @test "switching to the work profile removes the personal apps and leaves undeclared software alone" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile work --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=work,desktop,machine-studio"* ]]
+  [[ "$output" == *"envs=work,machine-studio"* ]]
   if is_macos; then
     [ ! -d /Applications/Spotify.app ]
     [ -d /Applications/1Password.app ]
