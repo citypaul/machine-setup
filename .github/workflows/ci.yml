@@ -8,8 +8,13 @@ concurrency:
 
 on:
   push:
-    branches: ["**"]
+    branches: [main]
   pull_request:
+
+# Runners prove the mechanisms with the base inventory plus the Conquer role; the desktop role (fifty
+# casks and MacTeX on a Mac) is evidence from the test VMs (ADR 0001 D-32).
+env:
+  MACHINE_SETUP_TEST_ROLES: conquer
 
 jobs:
   linux:

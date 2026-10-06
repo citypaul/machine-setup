@@ -12,6 +12,9 @@ rust = "stable"
 # The old pnpm globals, as declared tools so a converge installs them too (ADR 0001 F-25).
 "npm:task-master-ai" = "latest"
 "npm:@earendil-works/pi-coding-agent" = "latest"
+# Agent CLIs on both OSes (the macOS cask only covered one of them).
+"npm:@anthropic-ai/claude-code" = "latest"
+"npm:@openai/codex" = "latest"
 
 [settings]
 # .nvmrc and .node-version switch node per directory, as nvm did; a missing version is installed

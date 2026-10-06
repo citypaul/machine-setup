@@ -1,34 +1,62 @@
 #!/usr/bin/env bash
-# Join the Conquer network (plan.md §4.6, D6). The pre-auth key is read from 1Password at execution
-# time and reaches only the tailscale process: it is never printed, logged, or written to disk.
+# Join the Conquer network (plan.md §4.6, D6: OIDC). There is no key: `tailscale up --login-server`
+# prints a login URL that a person opens in a browser; the daemon finishes the join when the login
+# completes. This task is idempotent and never blocks a bootstrap: connected means done, otherwise it
+# prints the URL and exits 0 so converge can be re-run after the login.
 #
-#   tailscale-join --login-server <url> --authkey-ref <op://vault/item/field>
-set -euo pipefail
+#   tailscale-join --login-server <url>
+set -uo pipefail
 
-login_server='' authkey_ref=''
+login_server=''
 while [ $# -gt 0 ]; do
   case "$1" in
     --login-server) login_server=$2; shift 2 ;;
-    --authkey-ref) authkey_ref=$2; shift 2 ;;
     *) echo "tailscale-join: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
-[ -n "$login_server" ] && [ -n "$authkey_ref" ] || { echo "tailscale-join: --login-server and --authkey-ref are required" >&2; exit 2; }
+[ -n "$login_server" ] || { echo "tailscale-join: --login-server is required" >&2; exit 2; }
 
-fail() { printf 'tailscale-join: %s\n' "$1" >&2; exit 1; }
+# Appended, not prepended: a test fake earlier on PATH must win over the real ~/.local/bin/tailscale.
+export PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
+command -v tailscale >/dev/null 2>&1 || { echo "tailscale-join: tailscale is not installed yet; converge again"; exit 0; }
 
-command -v op >/dev/null 2>&1 || fail "the 1Password CLI (op) is not installed; cannot read the pre-auth key"
-op whoami >/dev/null 2>&1 || fail "1Password is not signed in; run 'op signin' and then 'mise run tailscale-join'"
-command -v tailscale >/dev/null 2>&1 || fail "tailscale is not installed yet (slice 4 installs it)"
+# `status` is readable by any user. `up` talks to the Linux system daemon as root; `sudo env PATH=…`
+# keeps our PATH so the same binary (or a test fake) is used. The macOS app's CLI runs as the user.
+up_prefix=()
+if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ]; then up_prefix=(sudo -n env "PATH=$PATH"); fi
 
-if tailscale status --json 2>/dev/null | grep -q '"BackendState": *"Running"'; then
+# Every call to the CLI is bounded (perl's alarm is portable; GNU timeout is not on macOS): the macOS
+# app's CLI blocks forever until the app has been opened once and its VPN configuration approved
+# (ADR 0001 F-38), and a converge must never hang on that.
+# bounded <seconds> <command...>: runs the command in its own process group and kills the whole group on
+# timeout, so a child left behind (sudo's command, a wrapper's exec target) cannot keep the pipe open.
+# The script is a string so it can also run inside sudo: an unprivileged kill cannot reach root's child.
+# shellcheck disable=SC2016  # perl code, not shell expansion
+bounded_pl='my $t = shift; setpgrp(0, 0); my $pid = fork; if (!$pid) { exec @ARGV or exit 127 } $SIG{ALRM} = sub { kill "TERM", -$$; exit 124 }; alarm $t; waitpid $pid, 0; exit $? >> 8'
+bounded() { perl -e "$bounded_pl" "$@"; }
+state=$(bounded 10 tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
+if [ "$state" = Running ]; then
   echo "tailscale-join: already connected"
   exit 0
 fi
+if [ -z "$state" ]; then
+  echo "tailscale-join: the Tailscale daemon did not answer within 10 s"
+  if [ "$(uname -s)" = Darwin ]; then
+    echo "tailscale-join: open /Applications/Tailscale.app once and approve its VPN configuration, then run 'mise run tailscale-join'"
+    exit 0
+  fi
+fi
 
-key=$(op read "$authkey_ref") || fail "could not read '$authkey_ref' from 1Password"
-[ -n "$key" ] || fail "the pre-auth key stored at '$authkey_ref' is empty"
-set +x
-tailscale up --login-server "$login_server" --authkey "$key" >/dev/null
-unset key
-echo "tailscale-join: joined $login_server"
+echo "tailscale-join: requesting a login from $login_server"
+# `tailscale up` blocks until the login completes; give it 20 s to print the URL.
+out=$(${up_prefix[@]+"${up_prefix[@]}"} perl -e "$bounded_pl" 20 tailscale up --login-server "$login_server" 2>&1 || true)
+url=$(printf '%s\n' "$out" | grep -oE 'https://[^[:space:]]+' | head -1)
+if [ -n "$url" ]; then
+  echo "tailscale-join: open this URL in a browser to finish joining (--login-server $login_server):"
+  echo "  $url"
+  echo "tailscale-join: then run 'mise run tailscale-join' again, or a converge, to confirm"
+else
+  echo "tailscale-join: no login URL yet; tailscale said:"
+  printf '%s\n' "$out" | sed 's/^/  /' | head -8
+fi
+exit 0

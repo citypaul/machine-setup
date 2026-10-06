@@ -1,12 +1,13 @@
-# Role: joins the Conquer network (Tailscale client against a Headscale server, plan §4.6, D6).
-# Needs 1Password at run time; bootstrap.sh drops this env from a run when op is not signed in.
+# Role: a member of the Conquer network, a Tailscale client against a Headscale server (plan.md
+# §4.6, D6: machines join by OIDC browser login, so no key is ever stored or read).
+# OS-specific parts live in the overlays mise.conquer-linux.toml and mise.conquer-macos.toml, which
+# bootstrap.sh selects automatically next to this role (ADR 0001 D-14).
 [vars]
-headscale_url = "https://headscale.conquer.example"               # D6: real URL pending
-headscale_authkey_ref = "op://Private/Conquer Headscale/pre-auth key"   # D6: real item pending
+headscale_url = "https://headscale.conquer.example"   # D6: the real URL is pending from Paul
 
 [tasks.tailscale-join]
-description = "Join the Conquer network; the pre-auth key is read from 1Password only at execution time"
-run = '''tasks/tailscale-join --login-server "{{ vars.headscale_url }}" --authkey-ref "{{ vars.headscale_authkey_ref }}"'''
+description = "Join the Conquer network by OIDC login: prints the login URL, never stores a key"
+run = 'tasks/tailscale-join --login-server "{{ vars.headscale_url }}"'
 
 [bootstrap.hooks]
 final = "mise run tailscale-join"

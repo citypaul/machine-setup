@@ -1,0 +1,8 @@
+#!/bin/sh
+# Fake tailscale: not joined; `up` prints the OIDC login URL and would block, as the real one does.
+case "$1 $2" in
+  "status --json") printf '{"BackendState":"NeedsLogin"}\n' ;;
+  "up --login-server") echo "To authenticate, visit:"; echo; echo "	https://login.example/register/abc"; echo; sleep 30 ;;
+  "version "*|"version") echo "1.99.0 (fake)" ;;
+  *) echo "fake tailscale: unexpected $*" >&2; exit 1 ;;
+esac

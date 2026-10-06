@@ -1,0 +1,9 @@
+#!/bin/sh
+# Fake tailscale whose daemon never answers: the macOS app's CLI blocks like this before the app has
+# been opened once and its VPN configuration approved (ADR 0001 F-38).
+case "$1 $2" in
+  "status --json") sleep 60 ;;
+  "up --login-server") sleep 60 ;;
+  "version "*|"version") echo "1.99.0 (fake)" ;;
+  *) echo "fake tailscale: unexpected $*" >&2; exit 1 ;;
+esac
