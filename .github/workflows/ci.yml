@@ -9,6 +9,7 @@ jobs:
   linux:
     name: ubuntu 24.04 container (clean, root)
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     container: ubuntu:24.04
     steps:
       # Only the test harness is pre-installed; bootstrap.sh must bring its own prerequisites.
@@ -18,6 +19,7 @@ jobs:
   macos:
     name: macos-15 runner (Homebrew present)
     runs-on: macos-15
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v5
       - run: brew install bats-core
