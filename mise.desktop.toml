@@ -9,7 +9,6 @@ dotfile_groups = ["zsh", "ghostty"]
 "brew-cask:alacritty" = { os = "macos" }
 "brew-cask:audio-hijack" = { os = "macos" }
 "brew-cask:balsamiq-wireframes" = { os = "macos" }
-"brew-cask:brave-browser" = { os = "macos" }
 "brew-cask:bruno" = { os = "macos" }
 "brew-cask:chatgpt" = { os = "macos" }
 "brew-cask:claude" = { os = "macos" }

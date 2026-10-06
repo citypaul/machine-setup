@@ -4,6 +4,7 @@
 [bootstrap.packages]
 "brew-cask:spotify" = { os = "macos" }
 "brew-cask:audacity" = { os = "macos", env = ["desktop"] }
+"brew-cask:brave-browser" = { os = "macos", env = ["desktop"] }   # work removes it, so it cannot be declared for all
 "brew-cask:discord" = { os = "macos", env = ["desktop"] }
 "brew-cask:dropbox" = { os = "macos", env = ["desktop"] }
 "brew-cask:jellyfin" = { os = "macos", env = ["desktop"] }
