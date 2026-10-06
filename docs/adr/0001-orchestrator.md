@@ -333,7 +333,8 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
 - **D-08 Deferred, not dropped:** `terraform` is a mise tool (the
   `hashicorp/tap` formula would be a source build under mise); `omp`
   (`can1357/tap`) and `quien` (`retlehs/tap`) are obscure taps that mise
-  would also build from source: ask Paul whether they are still wanted;
+  would also build from source: ask Paul whether they are still wanted
+  (answered in D-22);
   `agent-browser`, `gemini-cli` and `herdr` pull Homebrew's `node` and move
   to the npm backend in slices 3 and 5; Talat's download task, the gh-stack
   extension, fzf shell integration and the stale-cask-receipt repair are
@@ -498,6 +499,97 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   installers. The run then hung in `mas install` (F-30) until stopped; with
   App Store apps moved to the `appstore` role the remaining phases run on
   the next converge (E-25 to follow).
+
+### 2026-10-06 — slice 6 decisions (identity)
+
+- **D-16 Git identity is a rendered template** (`git/gitconfig.tera`, mode
+  `template`): name in the base vars, email per profile (`personal` sets it,
+  `work` is a placeholder until D8 is answered; superseded by D-20), aliases and settings ported
+  from git-setup.yaml, and `[include] path = ~/.gitconfig.local` for
+  machine-local state. `tasks/gpg-setup` writes the signing key there only
+  when a YubiKey is inserted, so the tracked template never carries a key id.
+- **D-17 GPG files are private copies, not links** (`mode = "copy"`,
+  `0600`, `~/.gnupg` `0700`), with the pinentry chosen per OS in a template;
+  the three public keys from the old repo are vendored (public material) and
+  imported by the task; the YubiKey-aware `gpg-auto-sign` wrapper ships in a
+  `bin` group.
+- **D-18 ssh config is a template that only `Include`s `~/.ssh/config.d/*`**
+  and sets the 1Password agent (macOS always; Linux when the socket exists;
+  superseded by D-21: every machine).
+  Personal host entries stay untracked, because this repo is public. The
+  migration of an existing `~/.ssh/config` into `config.d/` is a slice 10
+  item.
+- **F-31 Templates and the migration journal.** Group files ending in
+  `.tera` are not linked by the swap (mise renders them); the migration now
+  journals everything mise creates during apply (mtime after a marker) so a
+  rollback still restores the tree exactly.
+
+### 2026-10-06 — executed: the full suite on the macOS VM with slices 2-5 (desktop role present)
+
+- **E-25** `20261006T135931-full-s4.log` on macOS VM 1: converge exit 0,
+  73 pass, 6 fail. New passes on the Mac: the LaunchAgent PATH for GUI apps
+  (`launchctl getenv PATH` lists the shims), agent-browser's browser, drift
+  repair of a brewed formula, skills at the pin, herdr, OpenCode. The six
+  failures and their causes: `login-shell` undefined on macOS (it lived in
+  the Linux layer; moved to the base); brewed `wget` links `openssl@4`,
+  whose `OPENSSLDIR` had no `cert.pem` (F-33); work-profile drift from
+  `brave-browser` and `tailscale-app` being declared and removed at once
+  (moved to personal-only and Conquer-only); the Tailscale CLI symlink
+  crash (F-32); the bash 3.2 empty-array error in the join task (D-19).
+- **F-32 The Tailscale app's CLI aborts when launched through a symlink**
+  ("The current bundleIdentifier is unknown to the registry");
+  `~/.local/bin/tailscale` is a wrapper script that execs the binary at
+  its real path inside the app bundle.
+- **F-33 More than one brewed OpenSSL.** Homebrew ships `openssl@4` next to
+  `openssl@3`; each keg has its own `OPENSSLDIR` under `etc/`, and a client
+  linked against @4 ignored the @3 bundle. `fix-brew-certs` links
+  `cert.pem` under every `etc/openssl@*` whose keg exists.
+- **D-19 Tasks run under macOS's `/bin/bash` 3.2.** An empty array under
+  `set -u` is a fatal "unbound variable" there, so tasks expand arrays as
+  `${arr[@]+"${arr[@]}"}`; `tasks/tailscale-join` and `tasks/migrate` do.
+
+- **F-35 `mise run` auto-installs every declared tool first** (`task.run_auto_install`,
+  default true). Once the `mise` dotfile group deploys the tools file, a hook
+  such as `post-dotfiles = "mise run login-shell"` installs node, rust,
+  terraform, omp and the six npm agents before the phase order reaches
+  `tools`; in `04-migrate` that was 6 GB and ten minutes per test home, and
+  on a real machine it means a migration or the packages phase installs
+  toolchains as a side effect. `[settings] task.run_auto_install = false`
+  in `mise.toml` scopes the fix to this checkout; a test now asserts that a
+  migration leaves no tool installs behind. Phase order per
+  `mise bootstrap --help`: accounts and plugins; pre-packages files and
+  hook, packages; privileged files, services, firewall, compose; repos and
+  dotfiles (with their hooks); activation, macOS defaults, LaunchAgents,
+  user units, user settings; tools (with hooks); plugin packages, the
+  post-packages hook, tool-dependent services; the `bootstrap` task and the
+  final hook. So only the post-dotfiles hook runs before tools.
+
+### 2026-10-06 — answers from Paul (identity, omp, Conquer)
+
+- **D-20 One git email, overridable per machine.** The address is
+  `paul.hammond@gmail.com` for both profiles (base var `git_email`);
+  `bootstrap.sh --git-email <addr>` saves an override in `mise.local.toml`,
+  later runs keep it, and `--git-email ''` drops it. The profile files no
+  longer set the var, because a config environment's file outranks
+  `mise.local.toml` (verified with a `{{ vars.a }}` task: base < local <
+  env), so an override there could never win. Supersedes the email part of
+  D-16 and the pending work identity in D8.
+- **D-21 The 1Password SSH agent on every machine.** The rendered
+  `~/.ssh/config` always names the agent socket for its OS; the Linux
+  socket-exists condition is gone. **F-34** ssh falls back silently when
+  the `IdentityAgent` socket does not exist (verified: `ssh -o
+  IdentityAgent=/nonexistent/agent.sock -T git@github.com` authenticated
+  with the key files), so a headless machine without 1Password loses
+  nothing.
+- **D-22 omp stays, quien goes.** `omp` is Oh My Pi, a coding agent shipped
+  as one binary per OS and arch on GitHub releases (`can1357/oh-my-pi`); it
+  is a mise tool through the `github:` backend (verified: `omp` 18.6.1
+  installs on macOS arm64 with no build), next to the other agent CLIs.
+  `quien` no longer exists in `retlehs/tap` (only `ansimotd` is left) and
+  Paul does not remember it, so it is dropped. Closes the question in D-08.
+- **D-23 Conquer details deferred.** Paul will settle the Headscale URL and
+  enrollment later; the role stays opt-in with the placeholder
+  `headscale_url`, and nothing else in the stack waits on it.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 

@@ -140,6 +140,7 @@ CI drill: a container with the old Stow layout, failure injected after three rep
 | 4 | Tailscale + `conquer` join | **Ubuntu VM 2 on** |
 | 5 | AI tooling: skills, JSON merge, herdr integrations | CI + manual |
 | 6 | Identity: git, 1Password agent, GPG, YubiKey task | manual |
+|   | **Built 2026-10-06** (slices 2 to 6, one PR each, stacked and awaiting macOS CI): `test/05`, `40`, `50`, `60`, `70` green on Ubuntu VM 2; slices 2 to 5 green on the clean macOS VM (ADR 0001 E-23 to E-25). Conquer's Headscale details deferred (D-23). | |
 | 7 | macOS extras | runner + manual |
 | 8 | Linux desktop extras incl. native 1Password | VM |
 | 9 | Machine layer, `doctor`, `update` | CI |

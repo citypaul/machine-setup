@@ -1,3 +1,3 @@
 # Machine: studio. The machine file states the complete group list for this machine.
 [bootstrap]
-dotfile_groups = ["zsh", "ghostty", "mise"]
+dotfile_groups = ["zsh", "ghostty", "mise", "git", "gnupg", "ssh", "bin"]

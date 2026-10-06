@@ -15,6 +15,9 @@ rust = "stable"
 # Agent CLIs on both OSes (the macOS cask only covered one of them).
 "npm:@anthropic-ai/claude-code" = "latest"
 "npm:@openai/codex" = "latest"
+# Oh My Pi ships a single binary per OS/arch on GitHub releases; the old `can1357/tap/omp` formula just
+# downloaded it, so the github backend replaces a tap that mise would otherwise build (ADR 0001 D-22).
+"github:can1357/oh-my-pi" = "latest"
 
 [settings]
 # .nvmrc and .node-version switch node per directory, as nvm did; a missing version is installed

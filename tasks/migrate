@@ -29,7 +29,9 @@ die() { local code=$1; shift; printf 'migrate: error: %s\n' "$*" >&2; exit "$cod
 checkout=$(cd "$checkout" 2>/dev/null && pwd) || die 2 "checkout $checkout does not exist"
 mise_bin=${MISE_BIN:-$(command -v mise 2>/dev/null || echo "$HOME/.local/bin/mise")}
 export MISE_YES=1
-export PATH="$PATH:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
+# The post-dotfiles hooks that `mise dot apply` runs call `mise` by name, so its directory must be on PATH.
+mise_dir=$(dirname "$mise_bin")
+export PATH="$mise_dir:$PATH:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
 
 # 1. Plan: every file the selected groups deploy, from mise's effective configuration.
 roots=()

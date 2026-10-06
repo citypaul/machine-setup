@@ -30,6 +30,7 @@ usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>
   --role         additive role, e.g. desktop, conquer (repeat the flag or separate with commas)
   --machine      explicit machine id; loads mise.machine-<id>.toml
   --os-family    Linux only: override the family read from /etc/os-release (supported: debian)
+  --git-email    git user.email on this machine (saved; later runs keep it; '' resets to the default)
   --dir          use this existing checkout instead of cloning
   --repo/--ref   where to clone from and what to check out (default: main of the public repo)
   --select-only  write the per-machine selection and stop (no installs)
@@ -40,6 +41,7 @@ USAGE
 
 # ---------------------------------------------------------------- arguments
 profile='' roles='' machine='' os_family_override='' checkout='' repo_url=$REPO_URL_DEFAULT ref=''
+git_email='' git_email_set=0
 select_only=0 dry_run=0 yes=0
 add_roles() { roles="$roles $(printf '%s' "$1" | tr ',' ' ')"; }
 need_value() { [ $# -ge 2 ] || die "$1 needs a value" 2; }
@@ -53,6 +55,8 @@ while [ $# -gt 0 ]; do
     --machine=*) machine=${1#*=}; shift ;;
     --os-family) need_value "$@"; os_family_override=$2; shift 2 ;;
     --os-family=*) os_family_override=${1#*=}; shift ;;
+    --git-email) need_value "$@"; git_email=$2; git_email_set=1; shift 2 ;;
+    --git-email=*) git_email=${1#*=}; git_email_set=1; shift ;;
     --dir) need_value "$@"; checkout=$2; shift 2 ;;
     --dir=*) checkout=${1#*=}; shift ;;
     --repo) need_value "$@"; repo_url=$2; shift 2 ;;
@@ -65,6 +69,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 roles=$(printf '%s' "$roles" | tr -s ' ' | sed 's/^ //; s/ $//')
+case "$git_email" in *\"*) die "--git-email: a double quote cannot be stored in mise.local.toml" 2 ;; esac
 
 # ---------------------------------------------------------------- detection
 os=$(uname -s)
@@ -190,6 +195,7 @@ load_saved_selection() {
   [ -n "$profile" ] || profile=$(saved_var profile)
   [ -n "$roles" ] || roles=$(saved_var roles)
   [ -n "$machine" ] || machine=$(saved_var machine)
+  [ "$git_email_set" = 1 ] || git_email=$(saved_var git_email)
 }
 ask() { # ask <prompt>; the answer is left in $reply
   printf '%s: ' "$1"
@@ -252,11 +258,13 @@ write_selection() {
     echo "profile = \"$profile\""
     echo "roles = \"$roles\""
     echo "machine = \"$machine\""
+    # Per-machine override of the base git_email var (D-20); absent, the default in mise.toml applies.
+    [ -z "$git_email" ] || echo "git_email = \"$git_email\""
     echo
     echo "[settings]"
     echo "dotfiles.root = \"$checkout\""
   } > "$checkout/mise.local.toml"
-  log "selection saved in $checkout (profile=$profile roles='$roles' machine=$machine)"
+  log "selection saved in $checkout (profile=$profile roles='$roles' machine=$machine${git_email:+ git_email=$git_email})"
   log "envs=$envs"
 }
 
