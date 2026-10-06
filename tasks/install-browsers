@@ -1,10 +1,16 @@
 #!/usr/bin/env bash
-# Install the Chromium that agent-browser drives (Playwright's browser cache), once. Runs on every
-# bootstrap and does nothing when the browser is already there.
-set -euo pipefail
+# Install the Chromium that agent-browser drives (Playwright's browser cache), once. Advisory: a
+# browser is a convenience, so an unsupported platform or a failed download is reported and never
+# fails a bootstrap. Chrome for Testing publishes no Linux arm64 build; there agent-browser must be
+# pointed at a system Chromium with --executable-path (slice 8 decides the Linux desktop browser).
+set -uo pipefail
 export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
 if ! command -v agent-browser >/dev/null 2>&1; then
   echo "install-browsers: agent-browser is not on PATH; nothing to do"
+  exit 0
+fi
+if [ "$(uname -s)" = Linux ] && [ "$(uname -m)" != x86_64 ]; then
+  echo "install-browsers: unsupported here: Chrome for Testing has no Linux $(uname -m) build; use a system Chromium with agent-browser --executable-path"
   exit 0
 fi
 cache="${PLAYWRIGHT_BROWSERS_PATH:-}"
@@ -16,4 +22,9 @@ if ls -d "$cache"/chromium* >/dev/null 2>&1; then
   exit 0
 fi
 echo "install-browsers: installing Chromium for agent-browser"
-agent-browser install
+if agent-browser install; then
+  echo "install-browsers: installed"
+else
+  echo "install-browsers: warning: agent-browser install failed (exit $?); re-run 'mise run install-browsers' later"
+fi
+exit 0

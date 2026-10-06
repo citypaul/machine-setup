@@ -7,3 +7,5 @@
 "apt:ca-certificates" = "latest"
 "apt:jq" = "latest"
 "apt:tree" = "latest"
+# A C toolchain: rust (via mise) and some npm packages need a linker; macOS gets it from the CLT.
+"apt:build-essential" = "latest"

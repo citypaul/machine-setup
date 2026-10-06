@@ -113,7 +113,11 @@ arrange_sshd() {
   fi
 }
 
-@test "agent-browser's Chromium is installed once, in Playwright's cache" {
+@test "agent-browser's Chromium is installed where Chrome for Testing supports the platform" {
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
+  [ "$status" -eq 0 ]
+  if [[ "$output" == *"unsupported here"* ]]; then skip "no Chrome for Testing build for this platform"; fi
+  [[ "$output" != *"warning:"* ]]
   local cache
   if is_macos; then cache="$HOME/Library/Caches/ms-playwright"; else cache="$HOME/.cache/ms-playwright"; fi
   ls -d "$cache"/chromium* >/dev/null
