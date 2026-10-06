@@ -1,6 +1,6 @@
 # Proposal v4: one-command machine setup for Mac and Linux
 
-**Status:** proposed — for Paul's decisions (§8). Double-checked by Codex `gpt-6-astra` over two rounds (ledger §10); not yet converged — the ten open items are design corrections made in this version plus spike gates that need executed evidence, not prose.
+**Status:** D0 decided 2026-10-06 (ADR 0001: option A, mise-native; slice 0 done). Remaining §8 decisions open. Double-checked by Codex `gpt-6-astra` over two rounds (ledger §10); not yet converged — the ten open items are design corrections made in this version plus spike gates that need executed evidence, not prose.
 **Author:** Claude (Fable 5.1), 2026-10-06 · supersedes v3/v2/v1
 
 ## 1. The experience
@@ -133,6 +133,7 @@ CI drill: a container with the old Stow layout, failure injected after three rep
 | # | Slice | Evidence |
 |---|---|---|
 | 0 | **Risk-driven spike for A** (one day, may be inconclusive): clean Ubuntu container + runner Mac with mixed Homebrew ownership; gates = layered removal, group composition, machine-file discovery, locked 1Password, representative casks (1Password, Ghostty, VS Code), JSON merge, partial-migration rollback, non-interactive runtime env, drift repair | ADR records pass/fail per gate; fail → B2 design pass (§3.3) before any slice 1 |
+|   | **Done 2026-10-06**: all gates pass on Ubuntu VM, clean macOS VM and CI; A adopted (ADR 0001). The spike's code is kept as the walking skeleton. | |
 | 1 | Walking skeleton on clean Debian/Ubuntu containers + clean Mac VM | clean-machine + runner + drift |
 | 2 | Packages from data + explicit removal allowlist + `work-remove` | removal test |
 | 3 | Runtimes meeting §4.5 incl. all five launch paths; nvm retired | bats + CI |
