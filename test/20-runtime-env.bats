@@ -156,3 +156,37 @@ arrange_sshd() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"already"* ]]
 }
+
+@test "fzf key bindings and zsh-autosuggestions load in an interactive zsh (slice 7)" {
+  run zsh -ic 'bindkey'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"fzf-history-widget"* ]]
+  run zsh -ic 'typeset -f _zsh_autosuggest_start >/dev/null && echo loaded'
+  [[ "$output" == *"loaded"* ]]
+}
+
+@test "Oh My Zsh, the NvChad config and neovim are present (declared repos and a formula)" {
+  [ -f "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]
+  [ -f "$HOME/.config/nvim/init.lua" ]
+  [ "$(git -C "$HOME/.config/nvim" branch --show-current)" = "v2.0" ]
+  run zsh -lc 'nvim --version'
+  [ "$status" -eq 0 ]
+  [[ "$output" == NVIM* ]]
+}
+
+@test "tmux, zellij and herdr configs are linked from their groups" {
+  [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/tmux/.tmux.conf" ]
+  [ "$(readlink "$HOME/.config/zellij/config.kdl")" = "$REPO_ROOT/zellij/.config/zellij/config.kdl" ]
+  [ "$(readlink "$HOME/.config/herdr/config.toml")" = "$REPO_ROOT/herdr/.config/herdr/config.toml" ]
+}
+
+@test "the gh-extensions task installs gh-stack when gh is signed in and otherwise says what to run" {
+  run mise_in_checkout run gh-extensions
+  [ "$status" -eq 0 ]
+  if zsh -lc 'gh auth status' >/dev/null 2>&1; then
+    run zsh -lc 'gh extension list'
+    [[ "$output" == *"gh-stack"* ]]
+  else
+    [[ "$output" == *"gh auth login"* ]]
+  fi
+}

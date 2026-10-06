@@ -38,15 +38,15 @@ packages_for() {
 }
 
 @test "machine-studio deploys both the zsh and the ghostty groups" {
-  [ "$(groups_for personal,desktop,machine-studio)" = "bin ghostty git gnupg mise ssh zsh" ]
+  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
 }
 
 @test "the desktop role without a machine file still deploys zsh: group lists replace, so a role states the full list" {
-  [ "$(groups_for personal,desktop)" = "bin ghostty git gnupg mise ssh zsh" ]
+  [ "$(groups_for personal,desktop)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
 }
 
 @test "the work profile without roles deploys the base groups only (no ghostty)" {
-  [ "$(groups_for work)" = "bin git gnupg mise ssh zsh" ]
+  [ "$(groups_for work)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
 }
 
 @test "every machine file yields a non-empty group list containing zsh" {
