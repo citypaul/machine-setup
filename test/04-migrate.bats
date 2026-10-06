@@ -29,6 +29,8 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   [ "$(readlink "$HOME/.zshrc")" = "$CO/zsh/.zshrc" ]
   [ "$(readlink "$HOME/.zsh_profile")" = "$CO/zsh/.zsh_profile" ]
   [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/ghostty/.config/ghostty/config" ]
+  [ "$(readlink "$HOME/.config/mise/conf.d/machine-setup.toml")" = "$CO/mise/.config/mise/conf.d/machine-setup.toml" ]
+  [ ! -e "$HOME/.nvm_setup" ]   # declared absent: the old Stow link is removed
   [ "$(cat "$HOME/.gitconfig")" = "$(printf '[user]\n\tname = unrelated')" ]
   [ -f "$(latest_journal)/manifest.before" ]
   [ -f "$(latest_journal)/journal.log" ]

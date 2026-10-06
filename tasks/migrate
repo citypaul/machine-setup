@@ -117,7 +117,15 @@ for i in "${!targets[@]}"; do
   fi
 done
 
-# 6. Let mise record the result; the links already match, so this registers state without rewriting.
+# 6. Save anything mise will remove as `absent` (for example the retired nvm loader), then let mise
+#    record the result; the links already match, so apply registers state without rewriting them.
+while IFS= read -r t; do
+  [ -n "$t" ] || continue
+  t="${t/#\~/$HOME}"
+  if [ -L "$t" ]; then record saved-link "$t" "$(readlink "$t")"
+  elif [ -f "$t" ]; then name=$(printf '%s' "${t#"$HOME"/}" | tr '/' '%'); cp -p "$t" "$journal/saved/$name"; record saved-file "$t" "$name"
+  fi
+done < <(cd "$checkout" && "$mise_bin" dot status --json 2>/dev/null | jq -r '.files[] | select(.mode=="absent") | .target')
 (cd "$checkout" && "$mise_bin" dot apply --yes >/dev/null)
 
 # 7. Verify: everything mise manages is in place and an interactive shell still starts.

@@ -7,3 +7,15 @@
 "apt:ca-certificates" = "latest"
 "apt:jq" = "latest"
 "apt:tree" = "latest"
+# A C toolchain: rust (via mise) and some npm packages need a linker; macOS gets it from the CLT.
+"apt:build-essential" = "latest"
+
+# Login shell: zsh, so ssh and cron get .zshenv/.zprofile (plan.md §4.5). Done by tasks/login-shell
+# (post-dotfiles hook below) rather than [bootstrap.user], whose unprivileged chsh needs a password.
+
+[tasks.session-path]
+description = "Push mise's PATH into the running systemd user session for GUI apps"
+run = "tasks/session-path"
+
+[bootstrap.hooks]
+post-dotfiles = ["mise run session-path", "mise run login-shell"]

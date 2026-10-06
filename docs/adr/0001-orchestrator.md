@@ -342,6 +342,38 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   tap publishes no API JSON (brew.md); only `steipete/tap/codexbar` (a cask)
   remains tap-qualified, in the desktop role.
 
+- **E-20** Slice 2 on Ubuntu VM 2 (arm64, already bootstrapped): the full
+  personal bootstrap with the 63 base formulae, the 9 desktop font casks
+  (mise pours font casks on Linux), apt, dotfiles, node, terraform and the
+  settings merge finished with exit 0 in 255 s (`20261006T210547-slice2-
+  bootstrap.log`). All 63 formulae came as bottles; llvm 23 was pulled in as
+  a dependency. No source builds.
+
+### 2026-10-06 — slice 3 on the Ubuntu VM: four findings
+
+- **F-23 mise runs no post-install steps.** `brew.md` lists fetch, extract,
+  relocate, re-sign, receipt, link; nothing else. Homebrew's `ca-certificates`
+  and `openssl@3` create and link `cert.pem` in post-install, so on the VM
+  `/home/linuxbrew/.linuxbrew/bin/curl https://github.com` returned no
+  response (exit 60, "unable to get local issuer certificate") while
+  `/usr/bin/curl` worked, and the pinned skills task failed on it.
+  `tasks/fix-brew-certs` replicates both post-installs and runs as the first
+  `post-packages` hook; a test checks a brewed curl gets HTTP 200.
+- **F-24 `environment.d` is read when the user manager starts.**
+  `systemctl --user daemon-reload` did not pick the file up; GUI apps see it
+  after the next login. `tasks/session-path` also runs `systemctl --user
+  set-environment` for the running session (the Linux counterpart of the
+  LaunchAgent).
+- **F-25 node default packages install only with a fresh node.** On the
+  reused VM node 24 pre-dated `~/.default-npm-packages`, so nothing
+  installed; the old pnpm globals are now `npm:` tools, which converge.
+- **F-26 Login shell.** Over ssh the VM ran bash (Ubuntu's default), so
+  `.zshenv`/`.zprofile` never ran and the VM's pre-existing apt node 22
+  answered. `[bootstrap.user] login_shell = "zsh"` on Linux; macOS already
+  defaults to zsh. The old setup relied on the Oh My Zsh installer's `chsh`.
+- Chrome for Testing has no Linux arm64 build (`agent-browser install`
+  says so); the Chromium task is advisory and the test skips there.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
@@ -369,3 +401,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   entry in either VM and refused to start a local HTTP server to feed the VMs.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
+
+### 2026-10-07 — CI: the macOS job hung after its last test
+
+- **F-41 A daemon started during a run holds the test runner's pipe.**
+  On the macOS runner every test passed within three minutes, then the job
+  waited until the 60-minute timeout; GitHub's cleanup reported an orphaned
+  `op`. The `1password-cli` cask generates its shell completions by running
+  `op completion`, which starts `op daemon`, and the daemon keeps every
+  descriptor it inherited, including bats' fd 3, so bats never saw EOF. It
+  only shows on a machine where the cask is installed for the first time
+  (CI); the VMs had it already. `bootstrap.sh` runs `mise bootstrap` and
+  `op whoami` with stdio only (`stdio_only`), and two tests in
+  `00-bootstrap-cli` prove neither inherits a descriptor beyond stdio.

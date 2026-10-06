@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# mise pours Homebrew bottles without running their post-install steps (ADR 0001 F-23). For
+# ca-certificates and openssl@3 that step is what creates the CA bundle every brewed TLS client
+# (curl, wget, anything linked against openssl@3) reads, so a mise-poured curl cannot verify any
+# certificate. Replicate it: <prefix>/etc/ca-certificates/cert.pem and <prefix>/etc/openssl@3/cert.pem.
+# Idempotent; does nothing when the bundle is already current or ca-certificates is not installed.
+set -euo pipefail
+for prefix in /opt/homebrew /home/linuxbrew/.linuxbrew; do
+  src="$prefix/opt/ca-certificates/share/ca-certificates/cacert.pem"
+  [ -f "$src" ] || continue
+  dst="$prefix/etc/ca-certificates/cert.pem"
+  if [ ! -f "$dst" ] || ! cmp -s "$src" "$dst"; then
+    mkdir -p "$prefix/etc/ca-certificates"
+    cp "$src" "$dst"
+    echo "fix-brew-certs: wrote $dst"
+  fi
+  # Every brewed OpenSSL keg (openssl@3, openssl@4, …) has its own OPENSSLDIR under etc/ (ADR 0001 F-33).
+  for keg in "$prefix"/opt/openssl@*; do
+    [ -d "$keg" ] || continue
+    name=$(basename "$keg")
+    mkdir -p "$prefix/etc/$name"
+    if [ "$(readlink "$prefix/etc/$name/cert.pem" 2>/dev/null)" != "../ca-certificates/cert.pem" ]; then
+      ln -sfn ../ca-certificates/cert.pem "$prefix/etc/$name/cert.pem"
+      echo "fix-brew-certs: linked $prefix/etc/$name/cert.pem"
+    fi
+  done
+done

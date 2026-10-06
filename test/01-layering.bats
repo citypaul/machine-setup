@@ -15,7 +15,7 @@ setup() {
 
 # Group roots deployed for an env selection, as space-separated basenames.
 groups_for() {
-  (cd "$CO" && mise -E "$1" dot status --json 2>/dev/null | jq -r '.files[].source | split("/") | last' | sort | tr '\n' ' ' | sed 's/ $//')
+  (cd "$CO" && mise -E "$1" dot status --json 2>/dev/null | jq -r '.files[] | select(.mode == "symlink-each") | .source | split("/") | last' | sort | tr '\n' ' ' | sed 's/ $//')
 }
 
 # Every package name the effective configuration declares for an env selection.
@@ -38,15 +38,15 @@ packages_for() {
 }
 
 @test "machine-studio deploys both the zsh and the ghostty groups" {
-  [ "$(groups_for personal,desktop,machine-studio)" = "ghostty zsh" ]
+  [ "$(groups_for personal,desktop,machine-studio)" = "ghostty mise zsh" ]
 }
 
 @test "the desktop role without a machine file still deploys zsh: group lists replace, so a role states the full list" {
-  [ "$(groups_for personal,desktop)" = "ghostty zsh" ]
+  [ "$(groups_for personal,desktop)" = "ghostty mise zsh" ]
 }
 
-@test "the work profile without roles deploys zsh only" {
-  [ "$(groups_for work)" = "zsh" ]
+@test "the work profile without roles deploys the zsh and mise groups only" {
+  [ "$(groups_for work)" = "mise zsh" ]
 }
 
 @test "every machine file yields a non-empty group list containing zsh" {

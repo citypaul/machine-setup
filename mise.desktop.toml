@@ -3,7 +3,7 @@
 # App Store apps; Linux desktop apps arrive in slice 8 (plan D7). Not selected in CI or on the test
 # VMs by default: the representative apps in mise.macos.toml cover the mechanism.
 [bootstrap]
-dotfile_groups = ["zsh", "ghostty"]
+dotfile_groups = ["zsh", "ghostty", "mise"]
 
 [bootstrap.packages]
 "brew-cask:alacritty" = { os = "macos" }

@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# Install the Chromium that agent-browser drives (Playwright's browser cache), once. Advisory: a
+# browser is a convenience, so an unsupported platform or a failed download is reported and never
+# fails a bootstrap. Chrome for Testing publishes no Linux arm64 build; there agent-browser must be
+# pointed at a system Chromium with --executable-path (slice 8 decides the Linux desktop browser).
+set -uo pipefail
+export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:$PATH"
+if ! command -v agent-browser >/dev/null 2>&1; then
+  echo "install-browsers: agent-browser is not on PATH; nothing to do"
+  exit 0
+fi
+if [ "$(uname -s)" = Linux ] && [ "$(uname -m)" != x86_64 ]; then
+  echo "install-browsers: unsupported here: Chrome for Testing has no Linux $(uname -m) build; use a system Chromium with agent-browser --executable-path"
+  exit 0
+fi
+cache="${PLAYWRIGHT_BROWSERS_PATH:-}"
+if [ -z "$cache" ]; then
+  if [ "$(uname -s)" = Darwin ]; then cache="$HOME/Library/Caches/ms-playwright"; else cache="$HOME/.cache/ms-playwright"; fi
+fi
+if ls -d "$cache"/chrom* >/dev/null 2>&1; then
+  echo "install-browsers: browser already present in $cache"
+  exit 0
+fi
+echo "install-browsers: installing a browser for agent-browser"
+result=$(agent-browser install 2>&1); rc=$?
+printf '%s\n' "$result"
+if [ "$rc" = 0 ] && grep -q 'already installed' <<<"$result"; then
+  echo "install-browsers: already installed (agent-browser's own cache)"
+elif [ "$rc" = 0 ]; then
+  echo "install-browsers: installed"
+else
+  echo "install-browsers: warning: agent-browser install failed (exit $rc); re-run 'mise run install-browsers' later"
+fi
+exit 0

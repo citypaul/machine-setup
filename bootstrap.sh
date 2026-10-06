@@ -210,7 +210,11 @@ complete_selection() {
   fi
 }
 
-op_signed_in() { have op && op whoami >/dev/null 2>&1; }
+# Run a command with stdio only. The 1Password CLI leaves a daemon behind (on `op whoami`, and when
+# its cask generates completions during `mise bootstrap`); the daemon keeps every descriptor it
+# inherited, so a caller waiting for EOF on one (bats on fd 3) never finishes (ADR 0001 F-41).
+stdio_only() { "$@" 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-; }
+op_signed_in() { have op && stdio_only op whoami >/dev/null 2>&1; }
 compute_envs() {
   envs=$profile
   skipped=
@@ -274,5 +278,5 @@ if [ "$dry_run" = 1 ]; then
   exit 0
 fi
 log "converging with mise bootstrap"
-"$MISE" bootstrap --yes
+stdio_only "$MISE" bootstrap --yes
 log "done. Open a new shell (exec zsh) to pick up the environment."

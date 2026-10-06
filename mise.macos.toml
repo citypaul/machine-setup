@@ -13,3 +13,11 @@ adopt = true   # keep an existing app bundle in place instead of replacing it (p
 "brew-cask:1password-cli" = "latest"
 "brew-cask:ghostty" = "latest"
 "brew-cask:visual-studio-code" = "latest"
+
+# GUI applications do not inherit the shell's PATH; a LaunchAgent sets the login session's PATH so
+# apps started from the Dock or Spotlight see mise's shims and Homebrew (plan.md §4.5).
+[bootstrap.macos.launchd.agents.machine-setup-path]
+program = "/bin/launchctl"
+args = ["setenv", "PATH", "{{ env.HOME }}/.local/share/mise/shims:{{ env.HOME }}/.local/bin:/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"]
+run_at_load = true
+process_type = "Background"

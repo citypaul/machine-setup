@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# Linux: environment.d is read when the systemd user manager starts, so GUI apps launched later in an
+# already-running session would still miss mise's shims until the next login. Push the same PATH into
+# the running user manager now (the Linux counterpart of the macOS LaunchAgent, plan.md §4.5).
+set -uo pipefail
+[ "$(uname -s)" = Linux ] || exit 0
+command -v systemctl >/dev/null 2>&1 || exit 0
+if ! systemctl --user show-environment >/dev/null 2>&1; then
+  echo "session-path: no systemd user session here (container or headless login); environment.d applies at next login"
+  exit 0
+fi
+current=$(systemctl --user show-environment | sed -n 's/^PATH=//p')
+want="$HOME/.local/share/mise/shims:$HOME/.local/bin:/home/linuxbrew/.linuxbrew/bin"
+case ":$current:" in
+  *":$HOME/.local/share/mise/shims:"*) echo "session-path: user session PATH already has the shims" ;;
+  *) systemctl --user set-environment "PATH=$want:${current:-/usr/local/bin:/usr/bin:/bin}" && echo "session-path: user session PATH updated (new GUI apps see mise)" ;;
+esac
+exit 0
