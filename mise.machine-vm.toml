@@ -1,0 +1,4 @@
+# Machine: vm, the two VMPal test machines (Ubuntu VM 2, macOS VM 1). They take the desktop role, so
+# the list is the full desktop one; no exceptions (ADR 0001 D-33).
+[bootstrap]
+dotfile_groups = ["zsh", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]

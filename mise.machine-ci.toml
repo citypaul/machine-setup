@@ -1,0 +1,3 @@
+# Machine: ci, the GitHub-hosted runners. No desktop role there (ADR 0001 D-32), so the base list.
+[bootstrap]
+dotfile_groups = ["zsh", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr"]
