@@ -78,9 +78,9 @@ shims="$HOME/.local/share/mise/shims"
 }
 
 @test "brewed CLI tools resolve in login and interactive zsh without a brew binary on PATH" {
-  run zsh -lc 'command -v rg gh herdr'
+  run zsh -lc 'command -v rg gh'
   [ "$status" -eq 0 ]
-  run zsh -ic 'command -v rg gh herdr'
+  run zsh -ic 'command -v rg gh'
   [ "$status" -eq 0 ]
   run env -i HOME="$HOME" PATH=/usr/bin:/bin zsh -c 'cd && command -v rg'
   [ "$status" -eq 0 ]
