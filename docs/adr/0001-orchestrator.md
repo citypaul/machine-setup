@@ -437,13 +437,25 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   the gate-4 tests declare one in their private copy so the mechanism stays
   proven. The old `op read` join path and its tests are gone.
 - **D-13 Client install.** Linux: Tailscale's apt repository as pre-packages
-  files (signing key vendored in `files/`, identical for Ubuntu and Debian;
-  list templated from `/etc/os-release`), `apt:tailscale`, and bootstrap now
-  passes `--update` so a repository added in the same run has metadata
-  (plan F14). pkgs.tailscale.com serves `resolute` (Ubuntu 26.04), `noble`,
-  `trixie`, `bookworm`. macOS: the Tailscale app (its own daemon) with
+  files (ASCII-armored signing key vendored in `files/tailscale.asc`,
+  identical for Ubuntu and Debian; list templated from `/etc/os-release`),
+  `apt:tailscale`, `tailscaled` as a system service, and bootstrap now passes
+  `--update` so a repository added in the same run has metadata (plan F14).
+  pkgs.tailscale.com serves `resolute` (Ubuntu 26.04), `noble`, `trixie`,
+  `bookworm`. macOS: the Tailscale app (its own daemon) with
   `~/.local/bin/tailscale` linked to the app's CLI; mise cannot run a root
   LaunchDaemon for the formula's `tailscaled`.
+- **F-29 `[bootstrap.files]` has no `os` field and sources must be UTF-8.**
+  The first attempt put `os = "linux"` on the files (ignored with "unknown
+  field") and vendored the binary `.gpg` keyring ("stream did not contain
+  valid UTF-8"). apt accepts an armored key under `/etc/apt/keyrings`.
+- **D-14 Role and profile overlays per OS.** Because files and services have
+  no OS selector, bootstrap.sh selects `mise.<env>-<os>.toml` right after
+  `<env>` when the checkout has it: `conquer` on Linux loads
+  `mise.conquer-linux.toml`. A CLI test pins the env list.
+- `timeout` cannot run a shell function, and `sudo` drops PATH; the join task
+  uses `perl -e 'alarm'` (portable, macOS has no GNU timeout) and
+  `sudo -n env PATH=…` so the same binary (or a test fake) is used.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 

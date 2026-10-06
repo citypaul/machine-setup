@@ -227,6 +227,14 @@ compute_envs() {
     esac
   done
   envs="$envs,machine-$machine"
+  # Role and profile overlays per OS: mise.<env>-<os>.toml is selected right after <env> when the
+  # checkout has it (OS-specific files, services and packages that belong to a role).
+  expanded=''
+  for e in $(printf '%s' "$envs" | tr ',' ' '); do
+    expanded="$expanded,$e"
+    [ -f "$checkout/mise.$e-$os.toml" ] && expanded="$expanded,$e-$os"
+  done
+  envs=${expanded#,}
   if [ -n "$skipped" ]; then
     log "1Password is not signed in (op whoami failed); skipping env(s):$skipped. Run 'op signin' and re-run bootstrap to add them."
   fi

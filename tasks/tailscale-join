@@ -19,17 +19,21 @@ done
 export PATH="$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
 command -v tailscale >/dev/null 2>&1 || { echo "tailscale-join: tailscale is not installed yet; converge again"; exit 0; }
 
-# The Linux CLI talks to tailscaled as root; the macOS app's CLI runs as the user.
-ts() { if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ]; then sudo -n tailscale "$@"; else tailscale "$@"; fi; }
+# `status` is readable by any user. `up` talks to the Linux system daemon as root; `sudo env PATH=…`
+# keeps our PATH so the same binary (or a test fake) is used. The macOS app's CLI runs as the user.
+up_prefix=()
+if [ "$(uname -s)" = Linux ] && [ "$(id -u)" != 0 ]; then up_prefix=(sudo -n env "PATH=$PATH"); fi
 
-state=$(ts status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
+state=$(tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
 if [ "$state" = Running ]; then
   echo "tailscale-join: already connected"
   exit 0
 fi
 
 echo "tailscale-join: requesting a login from $login_server"
-out=$(timeout 20 ts up --login-server "$login_server" 2>&1 || true)
+# `tailscale up` blocks until the login completes; give it 20 s to print the URL (perl's alarm is
+# portable; GNU timeout is not on macOS).
+out=$(perl -e 'alarm shift; exec @ARGV' 20 "${up_prefix[@]}" tailscale up --login-server "$login_server" 2>&1 || true)
 url=$(printf '%s\n' "$out" | grep -oE 'https://[^[:space:]]+' | head -1)
 if [ -n "$url" ]; then
   echo "tailscale-join: open this URL in a browser to finish joining (--login-server $login_server):"

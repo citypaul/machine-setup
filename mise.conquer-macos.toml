@@ -1,0 +1,7 @@
+# Conquer role, macOS overlay: the Tailscale app runs its own daemon; its CLI is linked into
+# ~/.local/bin. Selected automatically with the conquer role on macOS (ADR 0001 D-14).
+[bootstrap.packages]
+"brew-cask:tailscale-app" = "latest"
+
+[dotfiles]
+"~/.local/bin/tailscale" = { source = "/Applications/Tailscale.app/Contents/MacOS/Tailscale", mode = "symlink" }

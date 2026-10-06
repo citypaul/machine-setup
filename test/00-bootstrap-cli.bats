@@ -115,3 +115,10 @@ prerequisites_present() {
   [ "$status" -eq 0 ]
   [ "$(cat "$FD_PROBE")" = "open: none" ]
 }
+
+@test "a role's per-OS overlay file is selected right after the role when the checkout has one" {
+  local os; if is_macos; then os=macos; else os=linux; fi
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  [ "$status" -eq 0 ]
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
+}
