@@ -18,10 +18,14 @@ status_missing() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" bootstrap status 
   if is_macos; then
     [ ! -d /Applications/Spotify.app ]
     [ -d /Applications/1Password.app ]
-    if command -v brew >/dev/null 2>&1; then brew list hello >/dev/null; fi
+    [ -d /Applications/Ghostty.app ]
+    [ -d "/Applications/Visual Studio Code.app" ]
   else
     ! dpkg -s cmatrix >/dev/null 2>&1
-    dpkg -s sl >/dev/null
+  fi
+  # Undeclared software survives: only checkable when 10-bootstrap arranged some in this run.
+  if [ -f "$BATS_RUN_TMPDIR/arranged" ]; then
+    if is_macos; then brew list hello >/dev/null; else dpkg -s sl >/dev/null; fi
   fi
   status_missing
 }

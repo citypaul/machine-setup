@@ -13,11 +13,13 @@ mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
     command -v brew >/dev/null 2>&1 || skip "no Homebrew on this Mac yet (clean machine): bootstrap installs it"
     brew list hello >/dev/null 2>&1 || brew install hello
     [ -d /Applications/Ghostty.app ] || brew install --cask ghostty
-    stat -f %m /Applications/Ghostty.app > "$BATS_FILE_TMPDIR/ghostty.mtime"
+    stat -f %m /Applications/Ghostty.app > "$BATS_RUN_TMPDIR/ghostty.mtime"
   else
     as_root apt-get install -y sl >/dev/null
     dpkg -s sl >/dev/null
   fi
+  # Markers live in the run-wide tmpdir so later test files (40-removal) can read them too.
+  : > "$BATS_RUN_TMPDIR/arranged"
 }
 
 @test "bootstrap sets up a fresh machine: mise installed, groups linked, packages present, state converged" {
@@ -42,19 +44,17 @@ mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
 
 @test "a Homebrew-owned declared cask was counted as installed and left untouched (macOS)" {
   skip_unless_macos
-  [ -f "$BATS_FILE_TMPDIR/ghostty.mtime" ] || skip "no pre-existing Homebrew state on this machine"
-  [ "$(stat -f %m /Applications/Ghostty.app)" = "$(cat "$BATS_FILE_TMPDIR/ghostty.mtime")" ]
+  [ -f "$BATS_RUN_TMPDIR/ghostty.mtime" ] || skip "no pre-existing Homebrew state on this machine"
+  [ "$(stat -f %m /Applications/Ghostty.app)" = "$(cat "$BATS_RUN_TMPDIR/ghostty.mtime")" ]
   run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' bootstrap packages status --json | jq -r '.\"brew-cask\".packages[] | select(.package==\"ghostty\") | .state'"
   [ "$output" = "installed" ]
 }
 
 @test "undeclared software survives bootstrap" {
-  if is_macos; then
-    command -v brew >/dev/null 2>&1 || skip "no pre-existing Homebrew state on this machine"
-    brew list hello >/dev/null
-  else
-    dpkg -s sl >/dev/null
-  fi
+  # Bootstrap installs Homebrew on a clean Mac, so "brew exists now" says nothing about whether
+  # the arrange step ran; the marker does.
+  [ -f "$BATS_RUN_TMPDIR/arranged" ] || skip "no pre-existing state was arranged on this machine"
+  if is_macos; then brew list hello >/dev/null; else dpkg -s sl >/dev/null; fi
 }
 
 @test "the personal-only app is installed" {

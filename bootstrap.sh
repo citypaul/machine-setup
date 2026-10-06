@@ -260,8 +260,15 @@ write_selection
 [ "$select_only" = 0 ] || exit 0
 
 cd "$checkout"   # .miserc files are read from the real cwd before -C applies (ADR 0001 F-07)
+# Hooks and tasks run `mise …` by name; a bare container or fresh account has no ~/.local/bin on PATH yet.
+PATH="$HOME/.local/bin:$PATH"; export PATH
 export MISE_YES=1
-"$MISE" trust --quiet >/dev/null 2>&1 || "$MISE" trust >/dev/null
+# Trust the checkout durably. `mise trust` records nothing when CI=true is set (mise auto-trusts
+# in CI), and a later shell without that variable would then refuse the config (ADR 0001 F-18).
+if ! "$MISE" settings get trusted_config_paths 2>/dev/null | grep -qF "\"$checkout\""; then
+  "$MISE" settings add trusted_config_paths "$checkout" >/dev/null
+fi
+"$MISE" trust --quiet >/dev/null 2>&1 || true
 if [ "$dry_run" = 1 ]; then
   "$MISE" bootstrap --dry-run
   exit 0

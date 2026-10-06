@@ -4,6 +4,7 @@
 load helpers
 
 setup() {
+  require_jq
   require_mise
   fresh_home
   CO="$BATS_TEST_TMPDIR/checkout"
