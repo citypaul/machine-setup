@@ -25,7 +25,8 @@ export PATH="$HOME/.local/share/mise/shims:$HOME/.local/bin:/opt/homebrew/bin:/h
 repo="https://github.com/citypaul/.dotfiles.git"
 # Resolve the tag to its commit ourselves: the installer resolves an annotated tag to the tag
 # object's id, and raw.githubusercontent.com cannot serve files at that id (ADR 0001 F-27).
-commit=$(git ls-remote "$repo" "refs/tags/$version^{}" "refs/tags/$version" | awk 'NR==1 {print $1}')
+# ls-remote sorts by ref name, so the peeled "^{}" line comes second: prefer it when present.
+commit=$(git ls-remote "$repo" "refs/tags/$version^{}" "refs/tags/$version" | awk '/\^\{\}$/ {peeled=$1} !/\^\{\}$/ {plain=$1} END {print (peeled != "" ? peeled : plain)}')
 [ -n "$commit" ] || { echo "claude-skills: tag $version not found in citypaul/.dotfiles" >&2; exit 1; }
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
