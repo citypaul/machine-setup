@@ -1,0 +1,12 @@
+#!/bin/sh
+# Fake mise for the descriptor test: reports the version bootstrap.sh pins, accepts every setup call,
+# and on `bootstrap` records which descriptors beyond stdio it inherited. An installer's daemon (the
+# 1Password CLI's, started by its completion generation) would inherit exactly these.
+case "$1" in
+  --version) echo "${FAKE_MISE_VERSION:-0} fake" ;;
+  bootstrap)
+    open=''
+    for fd in 3 4 5 6 7 8 9; do if (eval "true >&$fd") 2>/dev/null; then open="$open $fd"; fi; done
+    echo "open:${open:- none}" > "$FD_PROBE" ;;
+esac
+exit 0
