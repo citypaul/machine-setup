@@ -282,6 +282,22 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Slice 3 (the §4.5 runtime contract) owns this; gate 8's assertions must
   then run from `$HOME`, not the checkout.
 
+- **E-18** Paul reproduced the hook failure by hand on the Ubuntu VM from a
+  desktop terminal: `sh: 1: mise: not found` inside `mise run
+  remove-packages`. Ubuntu's `~/.profile` adds `~/.local/bin` to PATH only
+  when the directory exists at login, so a terminal opened before the first
+  bootstrap never sees mise. Same root cause as the container (fixed in
+  bootstrap by exporting `~/.local/bin` before running mise).
+
+- **F-20 path_helper beats `.zshenv` in login shells on macOS.** On the
+  `macos-15` runner, `zsh -lc 'node -v'` printed the preinstalled v22: in a
+  login shell `/etc/zprofile` runs `path_helper` after `~/.zshenv`, which
+  moves `/usr/local/bin` ahead of the shims dir; `.zshrc` (and so `mise
+  activate`) is not read by a non-interactive login shell. Interactive and
+  empty-environment shells were already correct. The zsh group gains a
+  `.zprofile` that re-prepends the shims dir and `~/.local/bin`, which is the
+  §4.5 table's login-path mechanism. The Ubuntu container job is green.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
