@@ -12,7 +12,6 @@ dotfile_groups = ["zsh", "ghostty", "mise"]
 "brew-cask:bruno" = { os = "macos" }
 "brew-cask:chatgpt" = { os = "macos" }
 "brew-cask:claude" = { os = "macos" }
-"brew-cask:claude-code@latest" = { os = "macos" }
 "brew-cask:codex" = { os = "macos" }
 "brew-cask:cursor" = { os = "macos" }
 "brew-cask:steipete/tap/codexbar" = { os = "macos" }
