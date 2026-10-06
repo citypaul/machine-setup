@@ -69,9 +69,21 @@ shims="$HOME/.local/share/mise/shims"
 }
 
 @test "the login shell is zsh, so ssh and cron shells read .zshenv and .zprofile" {
-  local shell
-  if is_macos; then shell=$(dscl . -read "/Users/$USER" UserShell | awk '{print $2}'); else shell=$(getent passwd "$USER" | cut -d: -f7); fi
-  [[ "$shell" == */zsh ]]
+  # Run the task here too so its output is visible on failure (bats hides it inside bootstrap).
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run login-shell"
+  [ "$status" -eq 0 ]
+  local user shell; user=$(id -un)
+  if is_macos; then shell=$(dscl . -read "/Users/$user" UserShell | awk '{print $2}'); else shell=$(getent passwd "$user" | cut -d: -f7); fi
+  [[ "$shell" == */zsh ]] || { echo "login shell is $shell; task said: $output"; return 1; }
+}
+
+@test "brewed CLI tools resolve in login and interactive zsh without a brew binary on PATH" {
+  run zsh -lc 'command -v rg gh herdr'
+  [ "$status" -eq 0 ]
+  run zsh -ic 'command -v rg gh herdr'
+  [ "$status" -eq 0 ]
+  run env -i HOME="$HOME" PATH=/usr/bin:/bin zsh -c 'cd && command -v rg'
+  [ "$status" -eq 0 ]
 }
 
 @test "mise-poured TLS clients in the Homebrew prefix can verify certificates" {
@@ -134,12 +146,13 @@ arrange_sshd() {
   fi
 }
 
-@test "agent-browser's Chromium is installed where Chrome for Testing supports the platform" {
+@test "agent-browser's browser is installed where Chrome for Testing supports the platform, and the task is idempotent" {
   run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
   [ "$status" -eq 0 ]
   if [[ "$output" == *"unsupported here"* ]]; then skip "no Chrome for Testing build for this platform"; fi
   [[ "$output" != *"warning:"* ]]
-  local cache
-  if is_macos; then cache="$HOME/Library/Caches/ms-playwright"; else cache="$HOME/.cache/ms-playwright"; fi
-  ls -d "$cache"/chromium* >/dev/null
+  # agent-browser names its own cache; the observable contract is that a second run finds the browser.
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"already"* ]]
 }

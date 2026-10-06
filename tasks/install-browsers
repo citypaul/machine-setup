@@ -17,12 +17,14 @@ cache="${PLAYWRIGHT_BROWSERS_PATH:-}"
 if [ -z "$cache" ]; then
   if [ "$(uname -s)" = Darwin ]; then cache="$HOME/Library/Caches/ms-playwright"; else cache="$HOME/.cache/ms-playwright"; fi
 fi
-if ls -d "$cache"/chromium* >/dev/null 2>&1; then
-  echo "install-browsers: Chromium already present in $cache"
+if ls -d "$cache"/chrom* >/dev/null 2>&1; then
+  echo "install-browsers: browser already present in $cache"
   exit 0
 fi
-echo "install-browsers: installing Chromium for agent-browser"
-if agent-browser install; then
+echo "install-browsers: installing a browser for agent-browser"
+if agent-browser install 2>&1 | tee /dev/stderr | grep -q 'already installed'; then
+  echo "install-browsers: already installed (agent-browser's own cache)"
+elif [ "${PIPESTATUS[0]}" = 0 ]; then
   echo "install-browsers: installed"
 else
   echo "install-browsers: warning: agent-browser install failed (exit $?); re-run 'mise run install-browsers' later"
