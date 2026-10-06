@@ -11,8 +11,9 @@ on:
     branches: [main]
   pull_request:
 
-# Runners prove the mechanisms with the base inventory plus the Conquer role; the desktop role (fifty
-# casks and MacTeX on a Mac) is evidence from the test VMs (ADR 0001 D-32).
+# Runners prove the mechanisms with the base inventory plus the Conquer role (macOS only: the Linux job
+# runs in a container without systemd, where the role's service cannot run, F-43); the desktop role
+# (fifty casks and MacTeX on a Mac) is evidence from the test VMs (ADR 0001 D-32).
 env:
   MACHINE_SETUP_TEST_ROLES: conquer
   MACHINE_SETUP_TEST_MACHINE: ci

@@ -752,14 +752,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
 
 ### 2026-10-07 — main's first CI run with every slice
 
-- **F-43 `status --missing` counts services a machine cannot manage.** In
-  the CI container the Conquer role's `tailscaled` service reads
-  `unavailable … unknown`, so the raw drift check could never pass there
-  after the role was added. `doctor` treats it as converged when, without
-  systemd, services are the only rows `status --missing` prints, and
-  `95-doctor-update` asserts through doctor. The bootstrap test also checked
-  a desktop-only group (Ghostty) and two tests a hard-coded machine id; they
-  now follow `MACHINE_SETUP_TEST_MACHINE`.
+- **F-43 A declared service never converges without systemd.** In the CI
+  container the Conquer role's `tailscaled` reads `unavailable … unknown`,
+  so `status --missing` could never pass there once the role was added.
+  A first attempt taught `doctor` to parse mise's status table and ignore
+  service rows; it assumed the table lists only unconverged rows (it lists
+  all of them) and was fragile even then, so it was removed. Instead the
+  container never takes the role (`60-conquer` skips where systemd is not
+  PID 1; the Ubuntu VM covers it) and `doctor` uses mise's own exit code.
+  The bootstrap test also checked a desktop-only group (Ghostty) and two
+  tests a hard-coded machine id; they now follow `MACHINE_SETUP_TEST_MACHINE`.
 
 ### 2026-10-07 — CI: the macOS job hung after its last test
 

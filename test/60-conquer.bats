@@ -8,6 +8,9 @@ load helpers
 setup() {
   require_mutation
   [ -x "$HOME/.local/bin/mise" ] || skip "bootstrap has not run on this machine"
+  # The role declares the tailscaled service, which can never run without systemd (the CI container):
+  # taking the role there would leave the machine permanently unconverged. The Ubuntu VM covers it.
+  if [ "$(uname -s)" = Linux ] && [ ! -d /run/systemd/system ]; then skip "no systemd here: the Conquer role needs its service (F-43)"; fi
 }
 
 # The roles the test machines take from here on: the VMs add desktop too (80/90 need it); CI sets

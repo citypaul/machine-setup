@@ -55,17 +55,10 @@ fi
 ok "selection: profile=$profile roles='${roles:-}' machine=$machine"
 
 # 3. drift
-# `status --missing` prints only what is not converged. Without systemd (a container, WSL1) a declared
-# service can never converge; when services are all that is left, that is not drift (ADR 0001 F-43).
-drift=$(cd "$checkout" && "$mise_bin" bootstrap status --missing 2>/dev/null); drift_rc=$?
-rest=$(printf '%s\n' "$drift" | grep -v -E '^(service|user_service|systemd)[[:space:]]' | grep -v -E '^[[:space:]]*$' || true)
-if [ "$drift_rc" -eq 0 ]; then
+if (cd "$checkout" && "$mise_bin" bootstrap status --missing >/dev/null 2>&1); then
   ok "drift: none (mise bootstrap status --missing)"
-elif [ "$(uname -s)" = Linux ] && [ ! -d /run/systemd/system ] && [ -n "$drift" ] && [ -z "$rest" ]; then
-  ok "drift: none apart from declared services, which need systemd (F-36)"
 else
-  fail "drift: declared state is not all applied; run $checkout/bootstrap.sh --yes (or mise bootstrap status --missing to see what)"
-  printf '%s\n' "$rest" | head -5 | sed 's/^/doctor:         /'
+  fail "drift: declared state is not all applied; run $checkout/bootstrap.sh --yes (mise bootstrap status --missing shows what)"
 fi
 
 # 4. login shell
