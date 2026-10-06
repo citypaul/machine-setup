@@ -13,8 +13,9 @@ set -eu
 MISE_PIN="${MISE_VERSION:-v2026.10.3}"
 REPO_URL_DEFAULT="https://github.com/citypaul/machine-setup.git"
 CHECKOUT_DEFAULT="${XDG_DATA_HOME:-$HOME/.local/share}/machine-setup"
-# Envs whose tasks read 1Password at run time. Dropped from a run when op is not signed in (plan §4.3 step 5).
-SECRET_ENVS="conquer"
+# Envs whose tasks read 1Password during bootstrap are listed in mise.toml as `secret_envs`; they are
+# dropped from a run when op is not signed in (plan §4.3 step 5). Empty since D6 chose OIDC for Conquer.
+SECRET_ENVS=''
 
 log() { printf 'machine-setup: %s\n' "$*"; }
 die() { printf 'machine-setup: error: %s\n' "$1" >&2; exit "${2:-1}"; }
@@ -257,6 +258,7 @@ if [ "$select_only" = 0 ]; then
   install_mise
 fi
 resolve_checkout
+SECRET_ENVS=$(sed -n 's/^secret_envs = "\(.*\)"$/\1/p' "$checkout/mise.toml" 2>/dev/null | head -1)
 load_saved_selection
 complete_selection
 compute_envs
@@ -278,5 +280,6 @@ if [ "$dry_run" = 1 ]; then
   exit 0
 fi
 log "converging with mise bootstrap"
-stdio_only "$MISE" bootstrap --yes
+# --update refreshes apt metadata so a repository added in this run (pre-packages files) is usable.
+stdio_only "$MISE" bootstrap --update --yes
 log "done. Open a new shell (exec zsh) to pick up the environment."

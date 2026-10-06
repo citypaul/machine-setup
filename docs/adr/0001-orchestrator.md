@@ -428,6 +428,23 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `.zshenv`/`.zprofile`; herdr's `integration status` reports claude and
   codex current.
 
+### 2026-10-06 — slice 4 decisions (Conquer, D6 = OIDC)
+
+- **D-12 No bootstrap-time secret for Conquer.** With OIDC the join is
+  `tailscale up --login-server <url>`, which prints a login URL for a browser;
+  the task prints it and exits 0, converge confirms later. `bootstrap.sh`'s
+  1Password preflight stays, driven by a `secret_envs` var that is empty;
+  the gate-4 tests declare one in their private copy so the mechanism stays
+  proven. The old `op read` join path and its tests are gone.
+- **D-13 Client install.** Linux: Tailscale's apt repository as pre-packages
+  files (signing key vendored in `files/`, identical for Ubuntu and Debian;
+  list templated from `/etc/os-release`), `apt:tailscale`, and bootstrap now
+  passes `--update` so a repository added in the same run has metadata
+  (plan F14). pkgs.tailscale.com serves `resolute` (Ubuntu 26.04), `noble`,
+  `trixie`, `bookworm`. macOS: the Tailscale app (its own daemon) with
+  `~/.local/bin/tailscale` linked to the app's CLI; mise cannot run a root
+  LaunchDaemon for the formula's `tailscaled`.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

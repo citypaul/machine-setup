@@ -1,12 +1,40 @@
-# Role: joins the Conquer network (Tailscale client against a Headscale server, plan §4.6, D6).
-# Needs 1Password at run time; bootstrap.sh drops this env from a run when op is not signed in.
+# Role: a member of the Conquer network, a Tailscale client against a Headscale server (plan.md
+# §4.6, D6: machines join by OIDC browser login, so no key is ever stored or read).
+# Linux: Tailscale's apt repository (signing key vendored in files/, list templated with the distro
+# codename) and the tailscale package, whose daemon the package enables. macOS: the Tailscale app,
+# which runs its own daemon, with its CLI linked into ~/.local/bin.
 [vars]
-headscale_url = "https://headscale.conquer.example"               # D6: real URL pending
-headscale_authkey_ref = "op://Private/Conquer Headscale/pre-auth key"   # D6: real item pending
+headscale_url = "https://headscale.conquer.example"   # D6: the real URL is pending from Paul
+
+[bootstrap.files."/usr/share/keyrings/tailscale-archive-keyring.gpg"]
+source = "files/tailscale-archive-keyring.gpg"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+os = "linux"
+
+[bootstrap.files."/etc/apt/sources.list.d/tailscale.list"]
+content = '''# Tailscale packages (machine-setup, conquer role)
+deb [signed-by=/usr/share/keyrings/tailscale-archive-keyring.gpg] https://pkgs.tailscale.com/stable/{{ exec(command="sh -c '. /etc/os-release && echo $ID'") }} {{ exec(command="sh -c '. /etc/os-release && echo $VERSION_CODENAME'") }} main
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+os = "linux"
+
+[bootstrap.packages]
+"apt:tailscale" = { os = "linux" }
+"brew-cask:tailscale-app" = { os = "macos" }
+
+[dotfiles]
+"~/.local/bin/tailscale" = { source = "/Applications/Tailscale.app/Contents/MacOS/Tailscale", mode = "symlink", variants = [{ os = "macos" }] }
 
 [tasks.tailscale-join]
-description = "Join the Conquer network; the pre-auth key is read from 1Password only at execution time"
-run = '''tasks/tailscale-join --login-server "{{ vars.headscale_url }}" --authkey-ref "{{ vars.headscale_authkey_ref }}"'''
+description = "Join the Conquer network by OIDC login: prints the login URL, never stores a key"
+run = 'tasks/tailscale-join --login-server "{{ vars.headscale_url }}"'
 
 [bootstrap.hooks]
 final = "mise run tailscale-join"

@@ -96,6 +96,9 @@ dotfile_groups = ["zsh", "mise"]
 [vars]
 # Exact reviewed release of citypaul/.dotfiles for CLAUDE.md, skills and agents (plan §4.7).
 claude_skills_version = "v4.18.0"
+# Config environments whose bootstrap needs 1Password signed in; bootstrap.sh drops them from a run
+# when `op whoami` fails and says so. None today: Conquer joins by OIDC (D6).
+secret_envs = ""
 remove_brew_base = "neofetch exa"
 remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero"
 remove_cask_zap_base = "karabiner-elements"
