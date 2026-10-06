@@ -49,3 +49,11 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
 @test "OpenCode configuration was installed" {
   [ -d "$HOME/.config/opencode" ]
 }
+
+@test "omp (Oh My Pi) is a mise tool from its GitHub releases and runs on this OS" {
+  run zsh -lc 'command -v omp'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"/mise/"* ]]
+  run perl -e 'alarm shift; exec @ARGV' 30 zsh -lc 'omp --version'
+  [ "$status" -eq 0 ]
+}

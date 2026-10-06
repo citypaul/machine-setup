@@ -9,6 +9,7 @@
 "apt:tree" = "latest"
 # A C toolchain: rust (via mise) and some npm packages need a linker; macOS gets it from the CLT.
 "apt:build-essential" = "latest"
+"apt:pinentry-curses" = "latest"
 
 # Login shell: zsh, so ssh and cron get .zshenv/.zprofile (plan.md §4.5). Done by tasks/login-shell
 # (post-dotfiles hook below) rather than [bootstrap.user], whose unprivileged chsh needs a password.

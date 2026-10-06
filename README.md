@@ -61,6 +61,7 @@ Flags:
 | `--role <name>` | additive set; repeat the flag or separate with commas (`desktop`, `conquer`) | none |
 | `--machine <id>` | explicit machine id; loads `mise.machine-<id>.toml` if it exists | required the first time |
 | `--os-family <family>` | Linux only: override the detected family for an odd derivative (supported: `debian`) | detected |
+| `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
 | `--repo <url>`, `--ref <ref>` | where to clone from and what to check out | this repo, `main` |
 | `--select-only` | save the selection and stop; installs nothing | off |
@@ -91,6 +92,9 @@ cd ~/.local/share/machine-setup
 | Pick up new config from the repo, then converge | `git pull && ./bootstrap.sh --yes` |
 | See what the removal allowlist would remove, without removing | `~/.local/bin/mise run remove-packages --dry-run` |
 | Join the Conquer network by hand | `~/.local/bin/mise run tailscale-join` |
+| See the git identity this machine renders | `git config --global user.email` |
+| Use a different git email on this machine (later runs keep it; `''` goes back to the default) | `./bootstrap.sh --git-email you@example.com --yes` |
+| Configure YubiKey signing (explains and exits 0 when no key is inserted) | `~/.local/bin/mise run gpg-setup` |
 
 The saved selection lives in two untracked files in the checkout:
 `.miserc.local.toml` (the list of config environments) and `mise.local.toml`
@@ -158,9 +162,9 @@ from the current run and tells you; run `op signin` and re-run to add them.
 ## Tests
 
 The suite is [bats](https://github.com/bats-core/bats-core) files under
-`test/`, one per gate from the spike, run in name order. Files `00` to `04`
-are safe anywhere: they use a fresh `HOME`, a private copy of the checkout and
-fake `op` and `tailscale` binaries. Files `10` to `40` change the machine
+`test/`, one per gate or slice, run in name order. Files `00` to `05` are
+safe anywhere: they use a fresh `HOME`, a private copy of the checkout and
+fake `op` and `tailscale` binaries. Files `10` to `70` change the machine
 they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 
 | File | Proves |
@@ -170,10 +174,14 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `02-secrets` | a locked 1Password drops the Conquer role; the key is read at run time and never printed or stored |
 | `03-merge-claude-settings` | the settings merge keeps foreign hooks, is idempotent and atomic |
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
+| `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
 | `10-bootstrap` | a real bootstrap: mise, packages, casks, pre-existing Homebrew apps left alone |
 | `20-runtime-env` | node resolves in interactive, login and empty-environment shells |
 | `30-drift` | a deleted dotfile or package is reported and repaired |
 | `40-removal` | switching to `work` removes only the allowlisted personal apps |
+| `50-ai-tooling` | skills at the pinned release, the settings merge on a real machine, herdr and OpenCode, the agent CLIs (`claude`, `codex`, `omp`) from mise |
+| `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
+| `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 
 ```bash
 test/run.sh                                    # safe files run, mutating files skip
@@ -215,20 +223,21 @@ in the VM; `tail -f` the newest file to watch one.
 
 ## What it does not do yet
 
-Slice 0 proved the mechanisms on a representative set, not the full
-inventory. Before this is run on a real machine, the remaining slices in
-[the plan](docs/planning/plan.md#5-slices) add:
+Slices 0 to 6 of [the plan](docs/planning/plan.md#5-slices) are built and
+run on the two test VMs: the package inventory and the personal/work split,
+the runtime contract, the Conquer client, the AI tooling, and identity. Still
+to come:
 
-- the full package inventory from the old Ansible repo and the real
-  personal/work split (slice 2);
-- the runtime contract: machine-wide runtimes in the global mise config,
-  retiring nvm, the GUI-app and ssh launch paths (slice 3);
-- the real Conquer join: Tailscale installed, Headscale URL and enrollment
-  method (slice 4);
-- the remaining dotfile groups (`tmux`, `gnupg`, `herdr`, `alacritty`,
-  `zellij`), git and ssh identity, GPG and YubiKey (slices 5 to 8);
+- the Conquer join against the real network: the role installs Tailscale and
+  runs the OIDC login, but the Headscale URL is a placeholder until the
+  details are settled (ADR 0001 D-23);
+- the remaining dotfile groups (`tmux`, `herdr`, `alacritty`, `zellij`) and
+  the macOS extras: `defaults`, the Dock, the gh-stack extension, fzf shell
+  integration, Talat, nvim (slice 7);
+- the Linux desktop set, including native 1Password (slice 8);
 - per-machine files for the real machines, `doctor` and `update` (slice 9);
-- the rehearsed migration of the existing Macs and the rename of the public
+- the rehearsed migration of the existing Macs, moving an existing
+  `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public
   skills repo (slice 10).
 
 ## Where things live

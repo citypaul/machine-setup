@@ -1,0 +1,44 @@
+# Rendered by machine-setup from git/gitconfig.tera (plan.md §4.6). The email is the base var or this
+# machine's `bootstrap.sh --git-email` override; machine-local additions (signing key from gpg-setup)
+# live in ~/.gitconfig.local.
+[user]
+	name = {{ vars.git_name }}
+	email = {{ vars.git_email }}
+[pull]
+	rebase = true
+[core]
+	editor = nvim
+	excludesfile = ~/.global_gitignore
+[fetch]
+	prune = true
+[init]
+	defaultBranch = main
+[push]
+	autoSetupRemote = true
+[alias]
+	co = checkout
+	br = branch
+	ci = commit
+	st = status
+	last = log -1 HEAD
+	unstage = reset HEAD --
+	lg = log --oneline --decorate --graph --all
+	dlog = -c diff.external=difft log --ext-diff
+	dshow = -c diff.external=difft show --ext-diff
+	ddiff = -c diff.external=difft diff
+	dl = -c diff.external=difft log -p --ext-diff
+	ds = -c diff.external=difft show --ext-diff
+	dft = -c diff.external=difft diff
+	amend = commit --amend --no-edit
+	undo = reset HEAD~1 --mixed
+	wip = !git add -A && git commit -m 'WIP'
+	cleanup = "!f() { git rebase -i HEAD~${1:-10}; }; f"
+	fixup = commit --fixup
+	recent = branch --sort=-committerdate --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(color:green)(%(committerdate:relative))%(color:reset) - %(contents:subject) - %(authorname)'
+	aliases = config --get-regexp '^alias\\.'
+	branches = branch -vv
+	gone = !git branch -vv | grep ': gone]' | awk '{print $1}'
+	prune-branches = !git branch -vv | grep ': gone]' | awk '{print $1}' | xargs -r git branch -D
+	main = !git checkout $(git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@')
+[include]
+	path = ~/.gitconfig.local

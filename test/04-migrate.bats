@@ -17,7 +17,7 @@ setup() {
     printf '# old %s\n' "$f" > "$STOW/zsh/$f"
     ln -s ".dotfiles/zsh/$f" "$HOME/$f"      # relative links, as GNU Stow creates them
   done
-  printf '[user]\n\tname = unrelated\n' > "$HOME/.gitconfig"
+  mkdir -p "$HOME/.config" && printf 'keep = me\n' > "$HOME/.config/unrelated.conf"
   MIGRATE=("$REPO_ROOT/tasks/migrate" --checkout "$CO" --stow-dir "$STOW" --skip-prerequisites --yes)
 }
 
@@ -31,7 +31,9 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/ghostty/.config/ghostty/config" ]
   [ "$(readlink "$HOME/.config/mise/conf.d/machine-setup.toml")" = "$CO/mise/.config/mise/conf.d/machine-setup.toml" ]
   [ ! -e "$HOME/.nvm_setup" ]   # declared absent: the old Stow link is removed
-  [ "$(cat "$HOME/.gitconfig")" = "$(printf '[user]\n\tname = unrelated')" ]
+  grep -q 'name = Paul Hammond' "$HOME/.gitconfig"   # rendered from the git group's template
+  [ ! -e "$HOME/.local/share/mise/installs" ]   # hooks run tasks; they must not pull every declared tool into HOME (F-35)
+  [ "$(cat "$HOME/.config/unrelated.conf")" = "keep = me" ]
   [ -f "$(latest_journal)/manifest.before" ]
   [ -f "$(latest_journal)/journal.log" ]
   run bash -c "cd '$CO' && '$(mise_bin)' dot status --missing"
@@ -69,4 +71,17 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   [ "$status" -eq 0 ]
   [ "$(readlink "$HOME/.zsh_profile")" = "$CO/zsh/.zsh_profile" ]
   grep -rq 'edited locally' "$(latest_journal)/saved"
+}
+
+@test "an existing real ~/.gitconfig is a conflict for the rendered template: refused without --force, saved with it" {
+  printf '[user]\n\tname = unrelated\n' > "$HOME/.gitconfig"
+  local before; before=$(snapshot_tree "$HOME")
+  run "${MIGRATE[@]}"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *".gitconfig"* ]]
+  [ "$(snapshot_tree "$HOME")" = "$before" ]
+  run "${MIGRATE[@]}" --force
+  [ "$status" -eq 0 ]
+  grep -q 'name = Paul Hammond' "$HOME/.gitconfig"
+  grep -rq 'name = unrelated' "$(latest_journal)/saved"
 }

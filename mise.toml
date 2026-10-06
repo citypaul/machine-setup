@@ -13,8 +13,36 @@ root = "ghostty"
 [dotfile_groups.mise]
 root = "mise"
 
+# Identity (plan §4.6): git config rendered per profile, GPG files as private copies with this OS's
+# pinentry, ssh config with the 1Password agent where it exists, the YubiKey-aware signing wrapper.
+[dotfile_groups.git]
+root = "git"
+[dotfile_groups.git.entries]
+"~/.gitconfig" = { source = "gitconfig.tera", mode = "template", permissions = "0644" }
+
+[dotfile_groups.gnupg]
+root = "gnupg"
+[dotfile_groups.gnupg.entries]
+"~/.gnupg/gpg.conf" = { mode = "copy", permissions = "0600" }
+"~/.gnupg/gpg-agent.conf" = { source = ".gnupg/gpg-agent.conf.tera", mode = "template", permissions = "0600" }
+
+[dotfile_groups.ssh]
+root = "ssh"
+[dotfile_groups.ssh.entries]
+"~/.ssh/config" = { source = ".ssh/config.tera", mode = "template", permissions = "0600" }
+
+[dotfile_groups.bin]
+root = "bin"
+
 [bootstrap]
-dotfile_groups = ["zsh", "mise"]
+dotfile_groups = ["zsh", "mise", "git", "gnupg", "ssh", "bin"]
+
+[bootstrap.directories."~/.gnupg"]
+mode = "0700"
+[bootstrap.directories."~/.ssh"]
+mode = "0700"
+[bootstrap.directories."~/.ssh/config.d"]
+mode = "0700"
 
 # nvm is retired (slice 3): remove the lazy-loader an older setup linked into the home directory.
 [dotfiles]
@@ -94,6 +122,10 @@ dotfile_groups = ["zsh", "mise"]
 # Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
 # The base lists are the legacy "remove if installed" lists from mac-dev-machine-setup/defaults.yaml.
 [vars]
+# Git identity. One address for every profile; `bootstrap.sh --git-email` overrides it per machine
+# through mise.local.toml (ADR 0001 D-20). Profile files must not set it, or the override cannot win.
+git_name = "Paul Hammond"
+git_email = "paul.hammond@gmail.com"
 # Exact reviewed release of citypaul/.dotfiles for CLAUDE.md, skills and agents (plan §4.7).
 claude_skills_version = "v4.18.0"
 # Config environments whose bootstrap needs 1Password signed in; bootstrap.sh drops them from a run
@@ -131,9 +163,13 @@ description = "Install herdr's Claude Code and Codex integrations (best effort)"
 depends = ["merge-claude-settings", "claude-skills"]
 run = "tasks/herdr-integrations"
 
+[tasks.gpg-setup]
+description = "Import the public GPG keys; configure YubiKey commit signing when a key is inserted"
+run = "tasks/gpg-setup"
+
 [tasks.bootstrap]
 description = "Imperative setup that runs after tools on every bootstrap"
-depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations"]
+depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations", "gpg-setup"]
 run = "true"
 
 [tasks.fix-brew-certs]
@@ -147,3 +183,9 @@ run = "tasks/login-shell"
 [bootstrap.hooks]
 post-packages = ["mise run fix-brew-certs", "mise run remove-packages"]
 post-dotfiles = "mise run login-shell"
+
+[settings]
+# `mise run` installs every tool the config declares before a task unless told otherwise, so the
+# hooks below would pull node, rust, terraform and the npm agents into HOME during the packages and
+# dotfiles phases (and during a migration). The tools phase owns installs (ADR 0001 F-35).
+task.run_auto_install = false

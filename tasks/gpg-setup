@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# GPG and YubiKey signing (mac-dev-machine-setup/gpg.yaml): import the public keys, detect the
+# signing key on the inserted YubiKey, and point git at the YubiKey-aware wrapper through
+# ~/.gitconfig.local. Without a YubiKey it explains and exits 0; converge again with it inserted.
+set -uo pipefail
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin:$PATH"
+here=$(cd "$(dirname "$0")/.." && pwd)
+command -v gpg >/dev/null 2>&1 || { echo "gpg-setup: gpg is not installed yet; converge again"; exit 0; }
+mkdir -p "$HOME/.gnupg" && chmod 700 "$HOME/.gnupg"
+if gpg --batch --import "$here/files/gpg-public-keys.asc" >/dev/null 2>&1; then echo "gpg-setup: public keys imported"; fi
+key=$(gpg --card-status 2>/dev/null | grep '^sec>' | head -1 | awk -F/ '{print $2}' | awk '{print $1}')
+[ -n "$key" ] || key=$(gpg --card-status 2>/dev/null | sed -n 's/^Signature key *\.*: *//p' | tr -d ' ' | head -1)
+if [ -z "$key" ]; then
+  echo "gpg-setup: no YubiKey detected; commit signing is not configured (insert it and run 'mise run gpg-setup')"
+  exit 0
+fi
+git config --file "$HOME/.gitconfig.local" user.signingkey "$key"
+git config --file "$HOME/.gitconfig.local" commit.gpgsign true
+git config --file "$HOME/.gitconfig.local" gpg.program "$HOME/.local/bin/gpg-auto-sign"
+echo "gpg-setup: commits are signed with $key through gpg-auto-sign"
+exit 0
