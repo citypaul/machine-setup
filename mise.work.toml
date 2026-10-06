@@ -1,5 +1,5 @@
 # Work profile: nothing personal is declared, and personal apps found on the machine are removed.
 # The list is every personal-only cask plus the legacy work-only removals (brave-browser, protonvpn).
 [vars]
-remove_cask_profile = "spotify audacity discord dropbox jellyfin protonvpn shottr silentknight tailscale-app brave-browser"
+remove_cask_profile = "spotify audacity discord dropbox jellyfin protonvpn shottr silentknight brave-browser"
 remove_apt_profile = "cmatrix"

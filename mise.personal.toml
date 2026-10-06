@@ -11,6 +11,5 @@
 "brew-cask:protonvpn" = { os = "macos", env = ["desktop"] }
 "brew-cask:shottr" = { os = "macos", env = ["desktop"] }
 "brew-cask:silentknight" = { os = "macos", env = ["desktop"] }
-"brew-cask:tailscale-app" = { os = "macos", env = ["desktop"] }
 # Spike stand-in for the personal Linux desktop set (plan D7, slice 8).
 "apt:cmatrix" = { os = "linux" }
