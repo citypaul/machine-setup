@@ -74,13 +74,19 @@ shims="$HOME/.local/share/mise/shims"
   [[ "$shell" == */zsh ]]
 }
 
-@test "a mise-poured curl in the Homebrew prefix can verify TLS certificates" {
+@test "mise-poured TLS clients in the Homebrew prefix can verify certificates" {
   local prefix
   if is_macos; then prefix=/opt/homebrew; else prefix=/home/linuxbrew/.linuxbrew; fi
-  [ -x "$prefix/bin/curl" ] || skip "no brewed curl here"
-  run "$prefix/bin/curl" -fsS -o /dev/null -w '%{http_code}' https://github.com
-  [ "$status" -eq 0 ]
-  [ "$output" = "200" ]
+  # curl is keg-only on macOS (provided by the OS), so probe wget there; both link brewed OpenSSL.
+  if [ -x "$prefix/bin/curl" ]; then
+    run "$prefix/bin/curl" -fsS -o /dev/null -w '%{http_code}' https://github.com
+    [ "$status" -eq 0 ] && [ "$output" = "200" ]
+  elif [ -x "$prefix/bin/wget" ]; then
+    run "$prefix/bin/wget" -q --spider https://github.com
+    [ "$status" -eq 0 ]
+  else
+    skip "no brewed TLS client linked in $prefix/bin"
+  fi
 }
 
 @test "node resolves over ssh to localhost" {
