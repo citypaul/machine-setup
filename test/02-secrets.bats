@@ -27,9 +27,10 @@ with_op() { export PATH="$FIXTURES/bin/op-$1:$PATH"; }
 
 @test "bootstrap keeps the conquer env when 1Password is signed in" {
   with_op unlocked
+  local os; if is_macos; then os=macos; else os=linux; fi
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "personal,conquer,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
 }
 
 
@@ -39,5 +40,6 @@ with_op() { export PATH="$FIXTURES/bin/op-$1:$PATH"; }
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
   [[ "$output" != *"1Password"* ]]
-  [ "$(env_list_of "$CO")" = "personal,conquer,machine-studio" ]
+  local os; if is_macos; then os=macos; else os=linux; fi
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
 }
