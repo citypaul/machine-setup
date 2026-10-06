@@ -36,6 +36,20 @@ on that machine afterwards:
 cd ~/.local/share/machine-setup && MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh
 ```
 
+## Checking a machine by hand
+
+On a machine that has been bootstrapped (the checkout is `~/machine-setup` on
+the test VMs, `~/.local/share/machine-setup` after the one-liner):
+
+```bash
+cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes                       # converge with the saved selection
+cd ~/machine-setup && ~/.local/bin/mise bootstrap status --missing             # drift check: exit 0 = as declared
+rm ~/.zshrc && cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes        # break a dotfile, converge repairs it
+cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --profile work --yes         # switch profile: personal apps removed
+cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --profile personal --yes     # and back
+cd ~/machine-setup && MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh               # the whole suite
+```
+
 ## Tests
 
 The suite is [bats](https://github.com/bats-core/bats-core) files under

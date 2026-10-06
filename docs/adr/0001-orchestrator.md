@@ -254,9 +254,33 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
 - **E-15** Gate 1 on the clean Mac after the ownership fix: `bootstrap.sh
   --profile work` ran the allowlist hook, which removed the mise-poured
   Spotify (bundle and Caskroom entry) and left 1Password, Ghostty and VS Code
-  in place; `--profile personal` re-poured Spotify in 17 s. The
+  in place; `--profile personal` re-poured Spotify in 17 s
+  (`test/40-removal.bats`: 2/2 on the second run, after the marker fix). The
   Homebrew-owned cask and undeclared-formula cases run on the `macos-15` CI
   runner, which has pre-existing Homebrew state.
+
+- **E-16** Final full suite on the macOS VM, now with Homebrew present
+  (`20261006T122831-full.log`): 50 pass, 0 fail, 2 skip (Linux-only; ssh
+  path). Every gate has an executed pass on the clean Mac.
+- **E-17** PR CI, `ubuntu:24.04` container: 49/50. Only the
+  empty-environment shell test failed: the node shim, run from the checkout
+  as working directory, reported `mise.machine-studio.toml` "not trusted"
+  although bootstrap had run `mise trust`. Diagnosis in F-18.
+
+- **F-18 Trust is skipped under CI=true.** Reproduced locally: with
+  `CI=true`, `mise trust` prints "No untrusted config files found" and writes
+  no entry under `~/.local/state/mise/trusted-configs`; a later process
+  without `CI` refuses the env-specific files ("not trusted"). bootstrap now
+  adds the checkout to the global `trusted_config_paths` setting (guarded
+  against duplicates: `settings add` appends blindly) and keeps `mise trust`
+  for the interactive case.
+- **F-19 `[tools]` in the checkout only apply with the checkout as cwd.**
+  The runtime tests pass because bats runs from the checkout; from `$HOME`
+  the node shim has no version to resolve. Machine-wide runtimes belong in
+  the global config (`~/.config/mise/config.toml`, which bootstrap now
+  creates for F-18), managed as a dotfile group or written by bootstrap.
+  Slice 3 (the §4.5 runtime contract) owns this; gate 8's assertions must
+  then run from `$HOME`, not the checkout.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
