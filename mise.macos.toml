@@ -2,8 +2,14 @@
 [bootstrap.brew]
 adopt = true   # keep an existing app bundle in place instead of replacing it (protects TCC grants)
 
+# macOS-only CLI formulae, and the casks every Mac gets regardless of role: the password manager
+# and its CLI, the terminal, the editor. The rest of the GUI inventory is the desktop role.
 [bootstrap.packages]
-"brew:tree" = "latest"
+"brew:colima" = "latest"
+"brew:mas" = "latest"
+"brew:mole" = "latest"
+"brew:pinentry-mac" = "latest"
 "brew-cask:1password" = "latest"
+"brew-cask:1password-cli" = "latest"
 "brew-cask:ghostty" = "latest"
 "brew-cask:visual-studio-code" = "latest"

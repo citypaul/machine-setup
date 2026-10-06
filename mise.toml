@@ -12,23 +12,96 @@ root = "ghostty"
 [bootstrap]
 dotfile_groups = ["zsh"]
 
+# CLI tools for every machine, Homebrew bottles poured by mise on both OSes (plan D4).
+# Ported from mac-dev-machine-setup/Brewfile.cli. Not here on purpose: agent-browser, gemini-cli
+# and herdr (they pull Homebrew's node; slices 3 and 5 give them the npm backend), terraform
+# (a mise tool below, the tap formula would be a source build), omp and quien (obscure taps,
+# deferred: ADR 0001).
 [bootstrap.packages]
-"brew:jq" = "latest"
-"brew:ripgrep" = "latest"
-"brew:fzf" = "latest"
+"brew:act" = "latest"
+"brew:adr-tools" = "latest"
+"brew:age" = "latest"
+"brew:asciinema" = "latest"
+"brew:awscli" = "latest"
 "brew:bat" = "latest"
+"brew:bfg" = "latest"
+"brew:broot" = "latest"
+"brew:bun" = "latest"
+"brew:curl" = "latest"
+"brew:deno" = "latest"
+"brew:difftastic" = "latest"
+"brew:dua-cli" = "latest"
+"brew:entr" = "latest"
 "brew:eza" = "latest"
+"brew:fd" = "latest"
+"brew:forgejo-cli" = "latest"
+"brew:fswatch" = "latest"
+"brew:fzf" = "latest"
+"brew:gh" = "latest"
+"brew:gifsicle" = "latest"
+"brew:git-filter-repo" = "latest"
+"brew:git-sizer" = "latest"
+"brew:glances" = "latest"
+"brew:glow" = "latest"
+"brew:gnupg" = "latest"
+"brew:go" = "latest"
+"brew:gource" = "latest"
+"brew:graphicsmagick" = "latest"
+"brew:graphviz" = "latest"
+"brew:htop" = "latest"
+"brew:hurl" = "latest"
+"brew:imagemagick" = "latest"
+"brew:jira-cli" = "latest"
+"brew:jq" = "latest"
+"brew:lazydocker" = "latest"
+"brew:lazygit" = "latest"
+"brew:mosh" = "latest"
+"brew:navi" = "latest"
+"brew:ollama" = "latest"
+"brew:opencode" = "latest"
+"brew:pnpm" = "latest"
+"brew:podman" = "latest"
+"brew:pwgen" = "latest"
+"brew:ripgrep" = "latest"
+"brew:shellcheck" = "latest"
+"brew:sops" = "latest"
+"brew:starship" = "latest"
+"brew:task" = "latest"
+"brew:taskwarrior-tui" = "latest"
+"brew:tldr" = "latest"
+"brew:tmux" = "latest"
+"brew:tree" = "latest"
+"brew:vhs" = "latest"
+"brew:watchman" = "latest"
+"brew:wget" = "latest"
+"brew:worktrunk" = "latest"
+"brew:yarn" = "latest"
+"brew:ykman" = "latest"
+"brew:yt-dlp" = "latest"
+"brew:zellij" = "latest"
+"brew:zoxide" = "latest"
+"brew:zsh-syntax-highlighting" = "latest"
 
 [tools]
 node = "24"
+terraform = "latest"
 
 # Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
+# The base lists are the legacy "remove if installed" lists from mac-dev-machine-setup/defaults.yaml.
+[vars]
+remove_brew_base = "neofetch exa"
+remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero"
+remove_cask_zap_base = "karabiner-elements"
+remove_mas_base = "457622435"   # Yoink
+
 # Extra arguments to `mise run remove-packages` (for example --dry-run) are appended by mise.
 [tasks.remove-packages]
 description = "Remove packages on this machine's removal allowlist; never prunes"
 run = '''tasks/remove-packages \
   --brew "{{ vars.remove_brew_base | default(value='') }} {{ vars.remove_brew_profile | default(value='') }} {{ vars.remove_brew_machine | default(value='') }}" \
   --cask "{{ vars.remove_cask_base | default(value='') }} {{ vars.remove_cask_profile | default(value='') }} {{ vars.remove_cask_machine | default(value='') }}" \
+  --zap "{{ vars.remove_cask_zap_base | default(value='') }} {{ vars.remove_cask_zap_profile | default(value='') }} {{ vars.remove_cask_zap_machine | default(value='') }}" \
+  --mas "{{ vars.remove_mas_base | default(value='') }} {{ vars.remove_mas_profile | default(value='') }} {{ vars.remove_mas_machine | default(value='') }}" \
   --apt "{{ vars.remove_apt_base | default(value='') }} {{ vars.remove_apt_profile | default(value='') }} {{ vars.remove_apt_machine | default(value='') }}"'''
 
 [tasks.merge-claude-settings]

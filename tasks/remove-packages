@@ -3,14 +3,18 @@
 # when they are installed, with the manager that owns them. It never prunes and never touches anything
 # that is not listed, so software the user installed by hand survives a converge.
 #
-#   remove-packages [--brew "a b"] [--cask "a b"] [--apt "a b"] [--dry-run]
+#   remove-packages [--brew "a b"] [--cask "a b"] [--zap "a b"] [--mas "id id"] [--apt "a b"] [--dry-run]
+#
+# --zap casks are removed with Homebrew's `--zap` (their data too); --mas ids are App Store apps.
 set -euo pipefail
 
-brew_list='' cask_list='' apt_list='' dry=0
+brew_list='' cask_list='' zap_list='' mas_list='' apt_list='' dry=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --brew) brew_list=$2; shift 2 ;;
     --cask) cask_list=$2; shift 2 ;;
+    --zap) zap_list=$2; shift 2 ;;
+    --mas) mas_list=$2; shift 2 ;;
     --apt) apt_list=$2; shift 2 ;;
     --dry-run) dry=1; shift ;;
     *) echo "remove-packages: unknown argument: $1" >&2; exit 2 ;;
@@ -36,6 +40,8 @@ plan() { if [ "$dry" = 1 ]; then say "would remove $1 $2 ($3)"; else say "removi
 say "allowlist (apt): ${apt_list:-<none>}"
 say "allowlist (brew): ${brew_list:-<none>}"
 say "allowlist (cask): ${cask_list:-<none>}"
+say "allowlist (cask, zap): ${zap_list:-<none>}"
+say "allowlist (mas): ${mas_list:-<none>}"
 
 if [ "$os" = Linux ]; then
   for p in $apt_list; do
@@ -58,28 +64,46 @@ for f in $brew_list; do
   fi
 done
 
+remove_cask() { # remove_cask <name> <zap:0|1>
+  local c=$1 zap=$2 caskroom="$prefix/Caskroom/$1" how="brew uninstall --cask"
+  [ -d "$caskroom" ] || return 0
+  [ "$zap" = 1 ] && how="brew uninstall --cask --zap"
+  # Ownership comes from the Caskroom metadata, not from `brew list --cask`: Homebrew lists every
+  # Caskroom directory, mise-poured ones included, but can only uninstall casks it has `.metadata`
+  # for (ADR 0001 F-04, F-17). mise records its pour in <version>/.mise-cask.toml.
+  if [ -d "$caskroom/.metadata" ] && [ -n "$brew_bin" ]; then
+    plan cask "$c" "Homebrew-owned, $how"
+    if [ "$dry" = 0 ]; then
+      if [ "$zap" = 1 ]; then "$brew_bin" uninstall --cask --zap --quiet "$c" >/dev/null; else "$brew_bin" uninstall --cask --quiet "$c" >/dev/null; fi
+    fi
+  elif [ -n "$(find "$caskroom" -mindepth 2 -maxdepth 2 -name .mise-cask.toml -print -quit)" ]; then
+    plan cask "$c" "mise-owned, removing the app bundles its receipt links to"
+    if [ "$dry" = 0 ]; then
+      find "$caskroom" -mindepth 2 -maxdepth 2 -name '*.app' -type l | while read -r link; do
+        target=$(readlink "$link")
+        case "$target" in /Applications/*.app) rm -rf "$target" ;; esac
+      done
+      rm -rf "$caskroom"
+    fi
+  else
+    say "skipping cask $c: Caskroom entry exists but neither Homebrew nor mise claims it"
+  fi
+}
+
 if [ "$os" = Darwin ]; then
-  for c in $cask_list; do
-    [ -n "$prefix" ] || break
-    caskroom="$prefix/Caskroom/$c"
-    [ -d "$caskroom" ] || continue
-    # Ownership comes from the Caskroom metadata, not from `brew list --cask`: Homebrew lists every
-    # Caskroom directory, mise-poured ones included, but can only uninstall casks it has `.metadata`
-    # for (ADR 0001 F-04, F-17). mise records its pour in <version>/.mise-cask.toml.
-    if [ -d "$caskroom/.metadata" ] && [ -n "$brew_bin" ]; then
-      plan cask "$c" "Homebrew-owned, brew uninstall --cask"
-      [ "$dry" = 1 ] || "$brew_bin" uninstall --cask --quiet "$c" >/dev/null
-    elif [ -n "$(find "$caskroom" -mindepth 2 -maxdepth 2 -name .mise-cask.toml -print -quit)" ]; then
-      plan cask "$c" "mise-owned, removing the app bundles its receipt links to"
-      if [ "$dry" = 0 ]; then
-        find "$caskroom" -mindepth 2 -maxdepth 2 -name '*.app' -type l | while read -r link; do
-          target=$(readlink "$link")
-          case "$target" in /Applications/*.app) rm -rf "$target" ;; esac
-        done
-        rm -rf "$caskroom"
-      fi
-    else
-      say "skipping cask $c: Caskroom entry exists but neither Homebrew nor mise claims it"
+  if [ -n "$prefix" ]; then
+    for c in $cask_list; do remove_cask "$c" 0; done
+    for c in $zap_list; do remove_cask "$c" 1; done
+  fi
+  # App Store apps: `mas uninstall` needs root (the legacy Ansible task did the same).
+  mas_bin=''
+  command -v mas >/dev/null 2>&1 && mas_bin=$(command -v mas)
+  [ -z "$mas_bin" ] && [ -n "$prefix" ] && [ -x "$prefix/bin/mas" ] && mas_bin="$prefix/bin/mas"
+  for id in $mas_list; do
+    [ -n "$mas_bin" ] || { say "skipping App Store id $id: mas is not installed"; continue; }
+    if "$mas_bin" list 2>/dev/null | grep -qE "^$id "; then
+      plan "App Store app" "$id" "mas uninstall"
+      [ "$dry" = 1 ] || as_root "$mas_bin" uninstall "$id" >/dev/null
     fi
   done
 fi

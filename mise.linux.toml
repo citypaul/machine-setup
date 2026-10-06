@@ -1,5 +1,5 @@
 # Linux layer (selected automatically by auto_env). System packages come from apt; CLI tools from
-# Homebrew bottles poured by mise into /home/linuxbrew/.linuxbrew (plan D4).
+# Homebrew bottles poured by mise into /home/linuxbrew/.linuxbrew (plan D4, declared in mise.toml).
 [bootstrap.packages]
 "apt:zsh" = "latest"
 "apt:git" = "latest"

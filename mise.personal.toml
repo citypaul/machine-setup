@@ -1,5 +1,15 @@
-# Personal profile: apps that never appear on a work machine.
+# Personal profile: apps that never appear on a work machine (mac-dev-machine-setup/Brewfile.personal
+# plus Spotify, which Paul named as personal-only). Spotify is unconditional so CI and the VMs
+# exercise the personal/work switch; the rest arrive with the desktop role.
 [bootstrap.packages]
 "brew-cask:spotify" = { os = "macos" }
+"brew-cask:audacity" = { os = "macos", env = ["desktop"] }
+"brew-cask:discord" = { os = "macos", env = ["desktop"] }
+"brew-cask:dropbox" = { os = "macos", env = ["desktop"] }
+"brew-cask:jellyfin" = { os = "macos", env = ["desktop"] }
+"brew-cask:protonvpn" = { os = "macos", env = ["desktop"] }
+"brew-cask:shottr" = { os = "macos", env = ["desktop"] }
+"brew-cask:silentknight" = { os = "macos", env = ["desktop"] }
+"brew-cask:tailscale-app" = { os = "macos", env = ["desktop"] }
 # Spike stand-in for the personal Linux desktop set (plan D7, slice 8).
 "apt:cmatrix" = { os = "linux" }

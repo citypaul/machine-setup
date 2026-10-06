@@ -1,3 +1,68 @@
-# Role: a machine with a GUI terminal. Roles state the complete group list (lists replace).
+# Role: a machine with a GUI. Roles state the complete group list (lists replace).
+# On macOS this is the GUI inventory from mac-dev-machine-setup/Brewfile.gui, the fonts, and the
+# App Store apps; Linux desktop apps arrive in slice 8 (plan D7). Not selected in CI or on the test
+# VMs by default: the representative apps in mise.macos.toml cover the mechanism.
 [bootstrap]
 dotfile_groups = ["zsh", "ghostty"]
+
+[bootstrap.packages]
+"brew-cask:alacritty" = { os = "macos" }
+"brew-cask:audio-hijack" = { os = "macos" }
+"brew-cask:balsamiq-wireframes" = { os = "macos" }
+"brew-cask:brave-browser" = { os = "macos" }
+"brew-cask:bruno" = { os = "macos" }
+"brew-cask:chatgpt" = { os = "macos" }
+"brew-cask:claude" = { os = "macos" }
+"brew-cask:claude-code@latest" = { os = "macos" }
+"brew-cask:codex" = { os = "macos" }
+"brew-cask:cursor" = { os = "macos" }
+"brew-cask:steipete/tap/codexbar" = { os = "macos" }
+"brew-cask:deskpad" = { os = "macos" }
+"brew-cask:docker-desktop" = { os = "macos" }
+"brew-cask:fantastical" = { os = "macos" }
+"brew-cask:fluidvoice" = { os = "macos" }
+"brew-cask:firefox" = { os = "macos" }
+"brew-cask:google-chrome" = { os = "macos" }
+"brew-cask:httpie-desktop" = { os = "macos" }
+"brew-cask:imageoptim" = { os = "macos" }
+"brew-cask:iterm2" = { os = "macos" }
+"brew-cask:knockknock" = { os = "macos" }
+"brew-cask:loopback" = { os = "macos" }
+"brew-cask:maccy" = { os = "macos" }
+"brew-cask:mactex" = { os = "macos" }
+"brew-cask:meetingbar" = { os = "macos" }
+"brew-cask:obsidian" = { os = "macos" }
+"brew-cask:pearcleaner" = { os = "macos" }
+"brew-cask:podman-desktop" = { os = "macos" }
+"brew-cask:postman" = { os = "macos" }
+"brew-cask:proxyman" = { os = "macos" }
+"brew-cask:raycast" = { os = "macos" }
+"brew-cask:redis-insight" = { os = "macos" }
+"brew-cask:responsively" = { os = "macos" }
+"brew-cask:sourcetree" = { os = "macos" }
+"brew-cask:shortcat" = { os = "macos" }
+"brew-cask:stats" = { os = "macos" }
+"brew-cask:tableplus" = { os = "macos" }
+"brew-cask:vlc" = { os = "macos" }
+"brew-cask:vorssaint" = { os = "macos" }
+"brew-cask:waves-central" = { os = "macos" }
+"brew-cask:zed" = { os = "macos" }
+"brew-cask:zoom" = { os = "macos" }
+# Fonts (mac-dev-machine-setup/ansible/tasks/fonts.yaml); mise pours font casks on Linux too.
+"brew-cask:font-fira-code" = "latest"
+"brew-cask:font-geist" = "latest"
+"brew-cask:font-hack-nerd-font" = "latest"
+"brew-cask:font-iosevka" = "latest"
+"brew-cask:font-iosevka-nerd-font" = "latest"
+"brew-cask:font-jetbrains-mono" = "latest"
+"brew-cask:font-monaspace" = "latest"
+"brew-cask:font-monaspice-nerd-font" = "latest"   # Nerd Fonts ships Monaspace as Monaspice
+"brew-cask:font-monocraft" = "latest"
+# App Store apps (Brewfile.app-store); need `mas` (mise.macos.toml) and a signed-in App Store.
+"mas:441258766" = { os = "macos" }   # Magnet
+"mas:411643860" = { os = "macos" }   # DaisyDisk
+"mas:1091189122" = { os = "macos" }  # Bear
+"mas:1532419400" = { os = "macos" }  # MeetingBar
+"mas:803453959" = { os = "macos" }   # Slack
+"mas:571213070" = { os = "macos" }   # DaVinci Resolve
+"mas:1497506650" = { os = "macos" }  # Yubico Authenticator
