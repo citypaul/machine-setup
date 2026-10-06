@@ -1,5 +1,11 @@
 name: ci
 
+# One run per pull request or branch: a new push replaces the queued run instead of adding to the
+# macOS runner queue (47 stale runs were waiting on 2026-10-06).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 on:
   push:
     branches: ["**"]

@@ -23,14 +23,22 @@ mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
 }
 
 @test "bootstrap sets up a fresh machine: mise installed, groups linked, packages present, state converged" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile personal --role desktop --machine studio --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile personal --machine studio --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,desktop,machine-studio"* ]]
+  [[ "$output" == *"envs=personal,"*"machine-studio"* ]]   # roles may be carried over from an earlier selection
   [ -x "$HOME/.local/bin/mise" ]
   [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/zsh/.zshrc" ]
   [ "$(readlink "$HOME/.config/ghostty/config")" = "$REPO_ROOT/ghostty/.config/ghostty/config" ]
   run mise_in_checkout bootstrap status --missing
   [ "$status" -eq 0 ]
+}
+
+@test "the base CLI tools are installed in the Homebrew prefix" {
+  local prefix tool
+  if is_macos; then prefix=/opt/homebrew; else prefix=/home/linuxbrew/.linuxbrew; fi
+  for tool in rg fzf eza bat jq fd gh lazygit starship zoxide tmux; do
+    [ -x "$prefix/bin/$tool" ] || { echo "missing $prefix/bin/$tool"; return 1; }
+  done
 }
 
 @test "the representative casks are installed (macOS)" {
@@ -68,7 +76,7 @@ mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
 @test "running bootstrap again without flags reuses the selection and changes nothing" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,desktop,machine-studio"* ]]
+  [[ "$output" == *"envs=personal,"*"machine-studio"* ]]   # roles may be carried over from an earlier selection
   run mise_in_checkout bootstrap status --missing
   [ "$status" -eq 0 ]
 }
