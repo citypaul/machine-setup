@@ -36,8 +36,8 @@ current_profile() { sed -n 's/^profile = "\(.*\)"$/\1/p' "$REPO_ROOT/mise.local.
 }
 
 @test "GPG configuration is private, uses this OS's pinentry, and has the public keys imported" {
-  [ "$(stat -f %Lp "$HOME/.gnupg" 2>/dev/null || stat -c %a "$HOME/.gnupg")" = "700" ]
-  [ "$(stat -f %Lp "$HOME/.gnupg/gpg-agent.conf" 2>/dev/null || stat -c %a "$HOME/.gnupg/gpg-agent.conf")" = "600" ]
+  [ "$(file_mode "$HOME/.gnupg")" = "700" ]
+  [ "$(file_mode "$HOME/.gnupg/gpg-agent.conf")" = "600" ]
   local pinentry; pinentry=$(sed -n 's/^pinentry-program //p' "$HOME/.gnupg/gpg-agent.conf")
   [ -x "$pinentry" ] || { echo "pinentry $pinentry missing"; return 1; }
   grep -q 'keyid-format 0xlong' "$HOME/.gnupg/gpg.conf"
@@ -58,7 +58,7 @@ current_profile() { sed -n 's/^profile = "\(.*\)"$/\1/p' "$REPO_ROOT/mise.local.
 }
 
 @test "ssh config is private, includes a local drop-in directory, and points at the 1Password agent on every machine" {
-  [ "$(stat -f %Lp "$HOME/.ssh/config" 2>/dev/null || stat -c %a "$HOME/.ssh/config")" = "600" ]
+  [ "$(file_mode "$HOME/.ssh/config")" = "600" ]
   grep -q 'Include ~/.ssh/config.d/\*' "$HOME/.ssh/config"
   [ -d "$HOME/.ssh/config.d" ]
   if is_macos; then
