@@ -124,3 +124,20 @@ prerequisites_present() {
   [ "$status" -eq 0 ]
   [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
 }
+
+@test "--git-email is saved with the selection, kept by later runs, and dropped by an empty value" {
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine studio --select-only --yes
+  [ "$status" -eq 0 ]
+  ! grep -q '^git_email' "$CO/mise.local.toml"   # no override: the base default applies
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email paul@example.com --select-only --yes
+  [ "$status" -eq 0 ]
+  grep -q '^git_email = "paul@example.com"$' "$CO/mise.local.toml"
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --select-only --yes
+  [ "$status" -eq 0 ]
+  grep -q '^git_email = "paul@example.com"$' "$CO/mise.local.toml"
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email '' --select-only --yes
+  [ "$status" -eq 0 ]
+  ! grep -q '^git_email' "$CO/mise.local.toml"
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email 'a"b@example.com' --select-only --yes
+  [ "$status" -eq 2 ]
+}
