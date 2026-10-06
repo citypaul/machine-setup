@@ -683,6 +683,29 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   community build over TLS from GitHub, the same standing as a Homebrew
   cask; a signed repository would replace it.
 
+### 2026-10-06 — slice 9 decisions (machine layer, doctor, update)
+
+- **D-33 Machine ids.** `studio` is Paul's Mac Studio (personal, desktop):
+  the full group list and its own Dock, the desktop list plus Spotify and
+  Brave, which the personal profile guarantees. Talat and Slack stay
+  unpinned there: mise refuses a Dock layout whose apps do not exist and
+  both arrive after the Dock phase (a task; the opt-in App Store role). The
+  two test VMs are `vm` (full desktop list) and the runners `ci` (base
+  list); the mutating tests read `MACHINE_SETUP_TEST_MACHINE` (default
+  `vm`) and CI sets `ci`, next to the roles variable from D-32. Real
+  machines beyond studio get their files at cutover (slice 10).
+- **D-34 `doctor` makes the checks mise does not**: mise and its pin, the
+  saved selection, drift (`status --missing`), the login shell, 1Password
+  sign-in, the Conquer state when the role is selected, the GPG card and
+  signing key, the skills pin, and whether services can be managed. One
+  line per check; `FAIL` means run something first and sets exit 1, `WARN`
+  means it works but something is left to do by hand. The two gates that
+  stop everything else (no mise, no selection) end the report early.
+- **D-35 `update` upgrades on purpose.** Converge never upgrades; `update`
+  shows mise's package and tool upgrade plan, applies it only with `--yes`
+  (or a yes at a terminal), and reports drift afterwards. mise's own pin
+  and the skills pin change through the repo, never here.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

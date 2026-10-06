@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# The checks `mise bootstrap status` does not make (plan.md §4.4, ADR 0001 D-34): mise and its pin, the
+# saved selection, drift, the login shell, 1Password, the Conquer join, the GPG card, the skills pin.
+# One line per check: OK, WARN (works, something to do by hand) or FAIL (run something first); a
+# summary line last; exit 1 when anything failed. Usage: tasks/doctor [--checkout <dir>]
+set -uo pipefail
+# stdio only for everything this runs: the 1Password CLI and gpg start daemons that keep every
+# descriptor they inherit, which hangs a caller waiting on one (ADR 0001 F-41).
+exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-
+checkout=$(cd "$(dirname "$0")/.." && pwd)
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --checkout) checkout=$2; shift 2 ;;
+    -h|--help) echo "usage: doctor [--checkout <dir>]"; exit 0 ;;
+    *) echo "doctor: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+fails=0 warns=0 checks=0
+ok()   { checks=$((checks+1)); printf 'doctor: OK    %s\n' "$*"; }
+warn() { checks=$((checks+1)); warns=$((warns+1)); printf 'doctor: WARN  %s\n' "$*"; }
+fail() { checks=$((checks+1)); fails=$((fails+1)); printf 'doctor: FAIL  %s\n' "$*"; }
+info() { printf 'doctor: info  %s\n' "$*"; }
+finish() {
+  printf 'doctor: %d checks, %d failed, %d warnings\n' "$checks" "$fails" "$warns"
+  [ "$fails" -eq 0 ]
+}
+bounded() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+export PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
+
+# 1. mise, at the pinned version
+mise_bin=${MISE_BIN:-}
+[ -n "$mise_bin" ] && [ -x "$mise_bin" ] || mise_bin=$(command -v mise 2>/dev/null || true)
+[ -n "$mise_bin" ] || { [ -x "$HOME/.local/bin/mise" ] && mise_bin="$HOME/.local/bin/mise"; }
+# shellcheck disable=SC2016  # a literal ${ in the pattern
+pin=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-\(v[^}]*\)}"$/\1/p' "$checkout/bootstrap.sh" 2>/dev/null)
+if [ -z "$mise_bin" ]; then
+  fail "mise: not installed; run $checkout/bootstrap.sh"
+  finish; exit 1
+fi
+mise_version=$("$mise_bin" --version 2>/dev/null | awk '{print $1}')
+if [ -n "$pin" ] && [ "v$mise_version" != "$pin" ]; then
+  warn "mise: $mise_version installed, bootstrap pins $pin (re-run bootstrap.sh to re-pin)"
+else
+  ok "mise: $mise_version at $mise_bin"
+fi
+
+# 2. the saved selection
+sel="$checkout/mise.local.toml"
+saved() { sed -n "s/^$1 = \"\(.*\)\"\$/\1/p" "$sel" 2>/dev/null | head -1; }
+profile=$(saved profile); roles=$(saved roles); machine=$(saved machine)
+if [ -z "$profile" ] || [ -z "$machine" ]; then
+  fail "selection: none saved in $checkout; run $checkout/bootstrap.sh --profile … --machine … first"
+  finish; exit 1
+fi
+ok "selection: profile=$profile roles='${roles:-}' machine=$machine"
+
+# 3. drift
+if (cd "$checkout" && "$mise_bin" bootstrap status --missing >/dev/null 2>&1); then
+  ok "drift: none (mise bootstrap status --missing)"
+else
+  fail "drift: declared state is not all applied; run $checkout/bootstrap.sh --yes (or mise bootstrap status --missing to see what)"
+fi
+
+# 4. login shell
+user=$(id -un)
+if [ "$(uname -s)" = Darwin ]; then shell=$(dscl . -read "/Users/$user" UserShell 2>/dev/null | awk '{print $2}'); else shell=$(getent passwd "$user" | cut -d: -f7); fi
+case "$shell" in */zsh) ok "login shell: $shell" ;; *) warn "login shell: ${shell:-unknown}; mise run login-shell (needs sudo) or chsh -s \$(command -v zsh)" ;; esac
+
+# 5. 1Password
+if command -v op >/dev/null 2>&1; then
+  if op whoami >/dev/null 2>&1; then ok "1Password: signed in (op whoami)"; else warn "1Password: CLI present but not signed in; roles that need a secret are skipped until 'op signin'"; fi
+else
+  info "1Password: CLI not installed (no role needs it today)"
+fi
+
+# 6. Conquer, when the role is selected
+case " $roles " in
+  *" conquer "*)
+    if command -v tailscale >/dev/null 2>&1; then
+      state=$(bounded 10 tailscale status --json 2>/dev/null | sed -n 's/.*"BackendState": *"\([A-Za-z]*\)".*/\1/p' | head -1)
+      case "$state" in
+        Running) ok "Tailscale: connected" ;;
+        NeedsLogin) warn "Tailscale: needs a login; run mise run tailscale-join" ;;
+        "") warn "Tailscale: the daemon did not answer (on a Mac, open Tailscale.app once); then mise run tailscale-join" ;;
+        *) warn "Tailscale: $state; run mise run tailscale-join" ;;
+      esac
+    else
+      warn "Tailscale: not installed yet; converge again"
+    fi ;;
+esac
+
+# 7. GPG card and signing
+if command -v gpg >/dev/null 2>&1; then
+  if bounded 10 gpg --card-status >/dev/null 2>&1; then
+    key=$(git config --global user.signingkey 2>/dev/null || true)
+    if [ -n "$key" ]; then ok "GPG: a card is present and git signs with $key"; else warn "GPG: a card is present but git has no signing key; run mise run gpg-setup"; fi
+  else
+    info "GPG: no card inserted (signing is configured when one is)"
+  fi
+fi
+
+# 8. the skills pin
+pinned=$(sed -n 's/^claude_skills_version = "\(.*\)"$/\1/p' "$checkout/mise.toml" 2>/dev/null)
+marker="$HOME/.claude/.machine-setup-skills-version"
+if [ -n "$pinned" ]; then
+  if [ -f "$marker" ] && [ "$(cat "$marker")" = "$pinned" ]; then ok "skills: at $pinned"; else warn "skills: installed '$(cat "$marker" 2>/dev/null || echo none)', pinned $pinned; converge installs the pin"; fi
+fi
+
+# 9. where services cannot be managed
+if [ "$(uname -s)" = Linux ] && [ ! -d /run/systemd/system ]; then info "services: no systemd here, declared services are installed but not started (F-36)"; fi
+
+finish

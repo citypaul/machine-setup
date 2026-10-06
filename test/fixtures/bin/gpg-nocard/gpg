@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fake gpg for doctor's safe tests: no smartcard inserted, so a real agent or card is never touched.
+case "$*" in
+  *--card-status*) echo "gpg: selecting card failed: No such device" >&2; exit 2 ;;
+  *) exit 0 ;;
+esac

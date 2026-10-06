@@ -193,6 +193,14 @@ run = "tasks/gpg-setup"
 description = "Install Talat from its release feed, once (macOS, Apple Silicon, desktop role)"
 run = "tasks/talat '{{ vars.roles | default(value='') }}'"
 
+[tasks.doctor]
+description = "The checks mise does not make: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin"
+run = "tasks/doctor"
+
+[tasks.update]
+description = "Upgrade on purpose: show the plan, then upgrade declared packages and tools with --yes"
+run = "tasks/update"
+
 [tasks.gh-extensions]
 description = "Install the gh extensions (gh-stack) once gh is signed in"
 run = "tasks/gh-extensions"

@@ -15,6 +15,7 @@ on:
 # casks and MacTeX on a Mac) is evidence from the test VMs (ADR 0001 D-32).
 env:
   MACHINE_SETUP_TEST_ROLES: conquer
+  MACHINE_SETUP_TEST_MACHINE: ci
 
 jobs:
   linux:

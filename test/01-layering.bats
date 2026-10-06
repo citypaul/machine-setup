@@ -134,3 +134,9 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
     head -1 "$k" | grep -q -- '-----BEGIN PGP PUBLIC KEY BLOCK-----' || { echo "$k is not armored"; return 1; }
   done
 }
+
+@test "the machine files: studio and the test VMs state the full desktop group list, the CI runners the base list" {
+  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
+  [ "$(groups_for personal,desktop,machine-vm)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
+  [ "$(groups_for personal,machine-ci)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
+}

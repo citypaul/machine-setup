@@ -99,6 +99,9 @@ cd ~/.local/share/machine-setup
 | Install the gh extensions once `gh auth login` has run | `~/.local/bin/mise run gh-extensions` |
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
+| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin | `~/.local/bin/mise run doctor` (exit `1` when something needs running) |
+| See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
+| Upgrade declared packages and tools on purpose | `~/.local/bin/mise run update -- --yes` |
 
 The saved selection lives in two untracked files in the checkout:
 `.miserc.local.toml` (the list of config environments) and `mise.local.toml`
@@ -118,7 +121,7 @@ and for the same key the later file wins:
 | `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
 | `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
 | `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile), `mise.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
-| `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions |
+| `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `studio` (Paul's Mac Studio, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
 
 Two rules that are not obvious:
 
@@ -168,7 +171,7 @@ from the current run and tells you; run `op signin` and re-run to add them.
 The suite is [bats](https://github.com/bats-core/bats-core) files under
 `test/`, one per gate or slice, run in name order. Files `00` to `05` are
 safe anywhere: they use a fresh `HOME`, a private copy of the checkout and
-fake `op` and `tailscale` binaries. Files `10` to `90` change the machine
+fake `op` and `tailscale` binaries. Files `10` to `95` change the machine
 they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 
 | File | Proves |
@@ -178,6 +181,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `02-secrets` | a locked 1Password drops the Conquer role; the key is read at run time and never printed or stored |
 | `03-merge-claude-settings` | the settings merge keeps foreign hooks, is idempotent and atomic |
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
+| `06-doctor-update` | doctor fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
 | `10-bootstrap` | a real bootstrap: mise, packages, casks, pre-existing Homebrew apps left alone |
 | `20-runtime-env` | node resolves in interactive, login and empty-environment shells |
@@ -187,6 +191,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 | `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Talat |
+| `95-doctor-update` | doctor passes on a converged machine; update --dry-run leaves it converged |
 | `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code and Brave from their vendors' repositories, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
 ```bash
@@ -215,7 +220,7 @@ rsync -a --delete --exclude=.cache --exclude=.miserc.local.toml --exclude=mise.l
 Then, inside the VM:
 
 ```bash
-cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine studio --yes   # first time
+cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine vm --yes       # first time
 cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes                                                      # converge
 cd ~/machine-setup && ~/.local/bin/mise bootstrap status --missing                                           # drift check
 rm ~/.zshrc && cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes && ls -l ~/.zshrc                     # break, repair
@@ -237,8 +242,9 @@ to come:
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the
   details are settled (ADR 0001 D-23);
-- per-machine Dock lists: the desktop role pins one generic list, so Spotify,
-  Brave, Slack and Talat are not pinned until machine ids are real (slice 9);
+- the Dock on `studio` pins Spotify and Brave with the desktop list, but not
+  Talat or Slack: mise refuses a Dock whose apps do not exist yet, and both
+  arrive after the Dock phase (a task, the App Store role);
 - anything needing admin rights or extra permissions on a Mac: the
   automatic software-update check, the terminal's App Management
   permission and the Notification Center banner time (Full Disk Access)
@@ -247,7 +253,6 @@ to come:
   (Ubuntu's own snap) are not declared; 1Password's desktop app exists for
   x86_64 only (arm64 gets the CLI), and its SSH agent is switched on in the
   app's settings by hand;
-- per-machine files for the real machines, `doctor` and `update` (slice 9);
 - the rehearsed migration of the existing Macs, moving an existing
   `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public
   skills repo (slice 10).

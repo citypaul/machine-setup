@@ -1,3 +1,31 @@
-# Machine: studio. The machine file states the complete group list for this machine.
+# Machine: studio, Paul's Mac Studio (personal profile, desktop role). The machine file states the
+# complete group list and this machine's exceptions (ADR 0001 D-33).
 [bootstrap]
 dotfile_groups = ["zsh", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]
+
+# This machine's Dock: the desktop role's list plus the personal apps that exist here (Spotify and
+# Brave come with the personal profile). Every app must exist when the Dock phase runs, so Talat,
+# which a later task installs, stays unpinned (D-33).
+[bootstrap.macos.dock]
+apps = [
+  "/Applications/Spotify.app",
+  "/Applications/Fantastical.app",
+  "/Applications/Alacritty.app",
+  "/Applications/Ghostty.app",
+  "/Applications/Cursor.app",
+  "/Applications/Audio Hijack.app",
+  "/Applications/Loopback.app",
+  "/Applications/Brave Browser.app",
+  "/Applications/Google Chrome.app",
+  "/Applications/Firefox.app",
+  "/Applications/ResponsivelyApp.app",
+  "/Applications/DeskPad.app",
+  "/Applications/Bruno.app",
+  "/Applications/TablePlus.app",
+  "/Applications/Sourcetree.app",
+  "/Applications/Raycast.app",
+  "/Applications/ChatGPT.app",
+  "/Applications/Claude.app",
+  "/Applications/FluidVoice.app",
+  "/Applications/Obsidian.app",
+]
