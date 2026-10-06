@@ -1,0 +1,11 @@
+# Role: Mac App Store apps (mac-dev-machine-setup/Brewfile.app-store). Opt in with --role appstore
+# once the Mac is signed in to the App Store: `mas install` blocks indefinitely otherwise (ADR 0001
+# F-30), so these never ride along with the desktop role. Needs `mas` (mise.macos.toml).
+[bootstrap.packages]
+"mas:441258766" = { os = "macos" }   # Magnet
+"mas:411643860" = { os = "macos" }   # DaisyDisk
+"mas:1091189122" = { os = "macos" }  # Bear
+"mas:1532419400" = { os = "macos" }  # MeetingBar
+"mas:803453959" = { os = "macos" }   # Slack
+"mas:571213070" = { os = "macos" }   # DaVinci Resolve
+"mas:1497506650" = { os = "macos" }  # Yubico Authenticator

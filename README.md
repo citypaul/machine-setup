@@ -108,7 +108,8 @@ and for the same key the later file wins:
 | `mise.toml` | always | dotfile groups, base packages, runtimes, tasks |
 | `mise.macos.toml`, `mise.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
 | `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
-| `mise.desktop.toml`, `mise.conquer.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join |
+| `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
+| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role, e.g. `mise.conquer-linux.toml` |
 | `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions |
 
 Two rules that are not obvious:

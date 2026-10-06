@@ -457,6 +457,12 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   uses `perl -e 'alarm'` (portable, macOS has no GNU timeout) and
   `sudo -n env PATH=…` so the same binary (or a test fake) is used.
 
+- **F-30 `mas install` blocks on a Mac not signed in to the App Store.** The
+  clean macOS VM's desktop bootstrap hung for minutes in `sudo mas install
+  --force …` after installing all 42 casks and 9 fonts; mise cannot skip it.
+  **D-15:** App Store apps are their own opt-in `appstore` role, selected
+  once a Mac is signed in; the desktop role never carries them.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
