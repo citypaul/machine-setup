@@ -27,7 +27,8 @@ setup() {
 @test "the Tailscale app is installed and its CLI linked (macOS)" {
   skip_unless_macos
   [ -d /Applications/Tailscale.app ]
-  [ "$(readlink "$HOME/.local/bin/tailscale")" = "/Applications/Tailscale.app/Contents/MacOS/Tailscale" ]
+  grep -q '/Applications/Tailscale.app/Contents/MacOS/Tailscale' "$HOME/.local/bin/tailscale"
+  [ -x "$HOME/.local/bin/tailscale" ]
 }
 
 @test "the join task is a no-op when already connected" {

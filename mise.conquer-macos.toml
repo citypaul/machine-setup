@@ -3,5 +3,7 @@
 [bootstrap.packages]
 "brew-cask:tailscale-app" = "latest"
 
+# A wrapper, not a symlink: the app's CLI aborts ("bundleIdentifier is unknown to the registry") when
+# it is not launched through its real path inside the bundle (ADR 0001 F-32).
 [dotfiles]
-"~/.local/bin/tailscale" = { source = "/Applications/Tailscale.app/Contents/MacOS/Tailscale", mode = "symlink" }
+"~/.local/bin/tailscale" = { content = "#!/bin/sh\nexec /Applications/Tailscale.app/Contents/MacOS/Tailscale \"$@\"\n", permissions = "0755" }

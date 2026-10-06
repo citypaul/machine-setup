@@ -33,7 +33,7 @@ fi
 echo "tailscale-join: requesting a login from $login_server"
 # `tailscale up` blocks until the login completes; give it 20 s to print the URL (perl's alarm is
 # portable; GNU timeout is not on macOS).
-out=$(perl -e 'alarm shift; exec @ARGV' 20 "${up_prefix[@]}" tailscale up --login-server "$login_server" 2>&1 || true)
+out=$(perl -e 'alarm shift; exec @ARGV' 20 ${up_prefix[@]+"${up_prefix[@]}"} tailscale up --login-server "$login_server" 2>&1 || true)
 url=$(printf '%s\n' "$out" | grep -oE 'https://[^[:space:]]+' | head -1)
 if [ -n "$url" ]; then
   echo "tailscale-join: open this URL in a browser to finish joining (--login-server $login_server):"
