@@ -750,6 +750,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
 
+### 2026-10-07 — executed: slices 2 to 9 on main
+
+- **E-26** With PR #13 merged, CI on `main` runs the whole suite on both
+  runners (the ubuntu:24.04 container in about four minutes, the macos-15
+  runner in about eleven) and exits on its own. On the test VMs, with the
+  same code: macOS VM 1 passed 116 of 116 (9 Linux-only skips), including
+  the macOS extras, the Dock and Talat; Ubuntu VM 2 passed 114 of 116 with
+  the two hard-coded machine ids PR #13 fixed, then the affected files 33
+  of 33, including the whole Linux desktop set. Logs:
+  `~/Downloads/machine-setup-runs/` on the host.
+
 ### 2026-10-07 — main's first CI run with every slice
 
 - **F-43 A declared service never converges without systemd.** In the CI

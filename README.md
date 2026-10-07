@@ -234,10 +234,11 @@ in the VM; `tail -f` the newest file to watch one.
 
 ## What it does not do yet
 
-Slices 0 to 6 of [the plan](docs/planning/plan.md#5-slices) are built and
-run on the two test VMs: the package inventory and the personal/work split,
-the runtime contract, the Conquer client, the AI tooling, and identity. Still
-to come:
+Slices 0 to 9 of [the plan](docs/planning/plan.md#5-slices) are on `main`,
+with CI green on both runners and the full suite green on both test VMs:
+the package inventory and the personal/work split, the runtime contract,
+the Conquer client, the AI tooling, identity, the macOS extras, the Linux
+desktop set, machine files, `doctor` and `update`. Still to come:
 
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the
