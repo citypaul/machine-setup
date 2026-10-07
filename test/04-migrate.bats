@@ -85,3 +85,18 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   grep -q 'name = Paul Hammond' "$HOME/.gitconfig"
   grep -rq 'name = unrelated' "$(latest_journal)/saved"
 }
+
+@test "a checkout inside the home directory, which mise reports as ~/ paths, is planned and migrated" {
+  # Found in the first rehearsal on the macOS VM: with the checkout at ~/machine-setup, mise prints the
+  # group sources as ~/machine-setup/zsh, and the plan found 0 targets.
+  local co="$HOME/machine-setup"
+  copy_checkout "$co"
+  select_envs "$co" personal desktop studio >/dev/null
+  run "$REPO_ROOT/tasks/migrate" --checkout "$co" --stow-dir "$STOW" --skip-prerequisites --yes --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"No such file"* ]]
+  [[ "$output" =~ \ ([1-9][0-9]*)\ targets\ from ]]
+  run "$REPO_ROOT/tasks/migrate" --checkout "$co" --stow-dir "$STOW" --skip-prerequisites --yes
+  [ "$status" -eq 0 ]
+  [ "$(readlink "$HOME/.zshrc")" = "$co/zsh/.zshrc" ]
+}

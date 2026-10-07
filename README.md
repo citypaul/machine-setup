@@ -158,6 +158,57 @@ tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles             # do it; orig
 A real file where a link should go stops the migration; `--force` saves it in
 the journal first and then replaces it.
 
+### Rehearsing the migration on a VM
+
+Run this on the macOS VM before touching a real Mac. Snapshot the VM after
+step 2 so the rehearsal can be repeated. Steps 1 and 2 recreate the old
+setup the way it is on Paul's Mac: Oh My Zsh as a real checkout, and only the
+eight Stow packages that are live there, not everything `./install.sh` stows.
+
+1. Install the Command Line Tools and Homebrew, then Stow and Oh My Zsh:
+
+   ```bash
+   brew install stow && git clone https://github.com/ohmyzsh/ohmyzsh.git ~/.oh-my-zsh
+   ```
+
+2. Clone the old dotfiles and stow the live packages:
+
+   ```bash
+   git clone https://github.com/citypaul/.dotfiles ~/.dotfiles && cd ~/.dotfiles && stow zsh tmux gnupg alacritty zellij .oh-my-zsh ghostty herdr
+   ```
+
+3. With a copy of this repo at `~/machine-setup`, save the selection and
+   install the pinned mise (the selection step installs nothing):
+
+   ```bash
+   cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine vm --select-only --yes
+   ```
+
+   ```bash
+   curl -fsSL https://mise.run | MISE_VERSION=v2026.10.3 MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
+   ```
+
+4. Dry run, then the migration, then a converge and `doctor`:
+
+   ```bash
+   cd ~/machine-setup && tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles --dry-run
+   ```
+
+   ```bash
+   cd ~/machine-setup && tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles
+   ```
+
+   ```bash
+   cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes && ~/.local/bin/mise run doctor
+   ```
+
+5. Restore the snapshot and rehearse a failure: the run must roll back and
+   leave every file and link as it was.
+
+   ```bash
+   cd ~/machine-setup && MACHINE_SETUP_MIGRATE_FAIL_AT=verify tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles
+   ```
+
 ## Secrets and 1Password
 
 No secret is ever written to this repo, to a rendered file, to a dry run or to
