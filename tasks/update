@@ -7,6 +7,14 @@ set -uo pipefail
 # Upgrades run with stdin, stdout and stderr only: a cask upgrade can start a daemon (the 1Password
 # CLI's completion generation) that keeps every descriptor it inherits (ADR 0001 F-41).
 stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
+# launchd starts macOS processes, Terminal's shells among them, with a soft limit of 256 open files;
+# mise's npm installs open more and fail with "Too many open files" (ADR 0001 F-55). Raise the soft
+# limit for the upgrades to 10240, or to the hard limit when that is lower. Never lower it.
+raise_open_files() {
+  soft=$(ulimit -Sn 2>/dev/null) || return 0
+  [ "$soft" = unlimited ] || [ "$soft" -ge 10240 ] || ulimit -Sn 10240 2>/dev/null || ulimit -Sn "$(ulimit -Hn)" 2>/dev/null || true
+}
+raise_open_files
 checkout=$(cd "$(dirname "$0")/.." && pwd)
 dry_run=0 yes=0
 while [ $# -gt 0 ]; do

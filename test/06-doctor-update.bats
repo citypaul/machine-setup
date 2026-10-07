@@ -75,6 +75,16 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [ "$status" -eq 2 ]
 }
 
+@test "update raises a low soft open-file limit to 10240 before mise upgrades anything" {
+  # The same launchd limit as bootstrap's (ADR 0001 F-55): `mise run update` from a Terminal starts
+  # mise upgrade with 256.
+  select_envs "$CO" personal - studio >/dev/null
+  export NOFILE_PROBE="$BATS_TEST_TMPDIR/nofile"
+  MISE_BIN="$FIXTURES/bin/fd-probe/mise" run sh -c 'ulimit -Sn 256 && exec "$@"' sh "$CO/tasks/update" --dry-run
+  [ "$status" -eq 0 ]
+  [ "$(cat "$NOFILE_PROBE")" = 10240 ]
+}
+
 @test "update without --yes and without a terminal applies nothing and says how to" {
   with_mise
   select_envs "$CO" personal - studio >/dev/null

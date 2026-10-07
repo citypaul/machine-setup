@@ -225,6 +225,15 @@ complete_selection() {
 # descriptor it inherited, so a caller waiting for EOF on one never finishes: bats keeps its output
 # pipe on 3 and on copies above 9 (ADR 0001 F-41). Perl closes them all; dash cannot name fds above 9.
 stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
+# launchd starts macOS processes, Terminal's shells among them, with a soft limit of 256 open files;
+# mise's npm installs open more and fail with "Too many open files" (ADR 0001 F-55). Raise the soft
+# limit for this run to 10240, or to the hard limit when that is lower. Never lower it.
+# shellcheck disable=SC3045  # ulimit -S/-H: not POSIX, but dash, bash, zsh and busybox sh have them;
+# a shell without them skips the raise.
+raise_open_files() {
+  soft=$(ulimit -Sn 2>/dev/null) || return 0
+  [ "$soft" = unlimited ] || [ "$soft" -ge 10240 ] || ulimit -Sn 10240 2>/dev/null || ulimit -Sn "$(ulimit -Hn)" 2>/dev/null || true
+}
 op_signed_in() { have op && stdio_only op whoami >/dev/null 2>&1; }
 compute_envs() {
   envs=$profile
@@ -286,6 +295,7 @@ write_selection
 [ "$select_only" = 0 ] || exit 0
 
 cd "$checkout"   # .miserc files are read from the real cwd before -C applies (ADR 0001 F-07)
+raise_open_files
 # Hooks and tasks run `mise …` by name; a bare container or fresh account has no ~/.local/bin on PATH yet.
 PATH="$HOME/.local/bin:$PATH"; export PATH
 export MISE_YES=1

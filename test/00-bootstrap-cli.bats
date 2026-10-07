@@ -113,6 +113,34 @@ prerequisites_present() {
   [ "$(cat "$FD_PROBE")" = "open: none" ]
 }
 
+# launchd starts macOS processes, Terminal's shells among them, with a soft limit of 256 open files,
+# and mise's npm installs failed with "Too many open files" under it on the macOS VM (ADR 0001 F-55).
+# with_fake_mise; then `limits <ulimit commands>` runs bootstrap under them and prints the soft limit
+# mise bootstrap started with.
+with_fake_mise() {
+  prerequisites_present || skip "prerequisites missing here; this test must not install them"
+  mkdir -p "$HOME/.local/bin"
+  cp "$FIXTURES/bin/fd-probe/mise" "$HOME/.local/bin/mise"
+  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-v\([^}]*\)}"$/\1/p' "$REPO_ROOT/bootstrap.sh")
+  export NOFILE_PROBE="$BATS_TEST_TMPDIR/nofile"
+}
+limits() {
+  rm -f "$NOFILE_PROBE"
+  sh -c "$1"' && exec "$@"' sh "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes >/dev/null 2>&1 || return 1
+  cat "$NOFILE_PROBE"
+}
+
+@test "bootstrap raises a low soft open-file limit to 10240 for mise, and never lowers a higher one" {
+  with_fake_mise
+  [ "$(limits 'ulimit -Sn 256')" = 10240 ]
+  [ "$(limits 'ulimit -Sn 20000')" = 20000 ]
+}
+
+@test "bootstrap raises the soft open-file limit only as far as a hard limit below 10240" {
+  with_fake_mise
+  [ "$(limits 'ulimit -Sn 256 && ulimit -Hn 4096')" = 4096 ]
+}
+
 @test "the 1Password sign-in check runs op with stdio only" {
   { true >&3; } 2>/dev/null || skip "no descriptor 3 to leak in this harness"
   sed -i.bak 's/^secret_envs = ".*"$/secret_envs = "conquer"/' "$CO/mise.toml"

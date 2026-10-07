@@ -808,6 +808,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   is the whole repair. `doctor` now fails on any attached image from mise's
   `system-brew/casks` cache and prints that command; an upstream mise issue
   (detach on interruption, or name the cause) needs Paul's go-ahead.
+- **F-55 macOS starts processes with a soft limit of 256 open files, and
+  mise's npm installs need more.** The fourth rehearsal run's first converge
+  after the migration installed the global tools and failed on
+  `npm:task-master-ai` with "Too many open files (os error 24)" from mise's
+  npm installer. The run came from a LaunchAgent, which gets launchd's
+  default (`launchctl limit maxfiles`: 256 soft, unlimited hard); apps
+  launchd starts, Terminal among them, get the same, while VMPal's exec
+  shell had 2560, which is why earlier runs never hit it. `bootstrap.sh` and
+  `update` now raise the soft limit to 10240 for their run (to the hard
+  limit when that is lower, never lowering a higher one). Interactive
+  shells keep the default; raising it there is a separate choice for Paul.
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append
