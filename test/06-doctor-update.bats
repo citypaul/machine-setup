@@ -96,3 +96,30 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   SHELL="$login" run "$CO/tasks/doctor"
   [[ "$output" != *"SHELL is"* ]] || false
 }
+
+@test "doctor fails on a cask image an interrupted install left attached, and gives the detach command" {
+  # Found on the macOS VM: a converge stopped mid-install left ProtonVPN's image attached, and every
+  # later converge failed with a bare "hdiutil … exited with code 1" (ADR 0001 F-54).
+  with_mise
+  select_envs "$CO" personal - studio >/dev/null
+  PATH="$FIXTURES/bin/hdiutil-cask-attached:$PATH" run "$CO/tasks/doctor"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"FAIL  cask image: protonvpn-6.5.1-021fecae1a9e-ProtonVPN_mac_v6.5.1.dmg is still attached"* ]] || false
+  [[ "$output" == *"hdiutil detach /dev/disk7"* ]] || false
+  [[ "$output" == *"FAIL  cask image: shottr-1.9-4c2e-Shottr-1.9.dmg is still attached"*"hdiutil detach /dev/disk9"* ]] || false
+  [[ "$output" != *"disk10"* ]] || false   # an APFS image's synthesized container is not the one to detach
+  # Only images from mise's cask cache: not the system's, not a Homebrew download.
+  [[ "$output" != *"disk5"* && "$output" != *"disk6"* && "$output" != *"disk8"* ]] || false
+}
+
+@test "doctor reports no cask image attached when none from mise's cache is, and skips the check without hdiutil" {
+  with_mise
+  select_envs "$CO" personal - studio >/dev/null
+  PATH="$FIXTURES/bin/hdiutil-clean:$PATH" run "$CO/tasks/doctor"
+  [[ "$output" == *"OK    cask images: none left attached"* ]] || false
+  [[ "$output" != *"FAIL  cask image"* ]] || false
+  if ! command -v hdiutil >/dev/null; then
+    run "$CO/tasks/doctor"
+    [[ "$output" != *"cask image"* ]] || false
+  fi
+}
