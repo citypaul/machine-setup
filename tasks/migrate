@@ -35,7 +35,8 @@ export PATH="$mise_dir:$PATH:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
 
 # 1. Plan: every file the selected groups deploy, from mise's effective configuration.
 roots=()
-while IFS= read -r r; do [ -n "$r" ] && roots+=("$r"); done < <(cd "$checkout" && "$mise_bin" dot status --json 2>/dev/null | jq -r '.files[] | select(.mode=="symlink-each") | .source')
+# mise prints paths under the home directory as ~/…; expand them (a checkout at ~/machine-setup).
+while IFS= read -r r; do [ -n "$r" ] && roots+=("${r/#\~/$HOME}"); done < <(cd "$checkout" && "$mise_bin" dot status --json 2>/dev/null | jq -r '.files[] | select(.mode=="symlink-each") | .source')
 [ ${#roots[@]} -gt 0 ] || die 1 "no dotfile groups are selected in $checkout (run bootstrap.sh --select-only first)"
 targets=() sources=()
 for root in "${roots[@]}"; do
@@ -45,6 +46,7 @@ for root in "${roots[@]}"; do
   done < <(find "$root" -type f -print0 | sort -z)
 done
 say "stow dir: $stow_dir; ${#targets[@]} targets from ${#roots[@]} groups"
+[ ${#targets[@]} -gt 0 ] || die 1 "the selected groups list no files under ${roots[*]}; is --checkout the machine-setup checkout?"
 
 # Targets that mise renders or copies (template and copy entries) are learned from a dry run: they
 # are not linked by the swap, but an existing real file there is just as much a conflict.
@@ -57,7 +59,7 @@ done < <(cd "$checkout" && "$mise_bin" dot apply --dry-run 2>/dev/null | sed -n 
 # 2. Conflicts: a real file or directory where a link or a rendered file will go stops the
 #    migration unless --force.
 conflicts=()
-for t in "${targets[@]}" ${rendered[@]+"${rendered[@]}"}; do
+for t in ${targets[@]+"${targets[@]}"} ${rendered[@]+"${rendered[@]}"}; do
   case "$t" in *.tera) continue ;; esac
   if [ -e "$t" ] && [ ! -L "$t" ]; then conflicts+=("$t"); fi
 done
@@ -79,7 +81,7 @@ describe() {
   elif [ -e "$p" ]; then printf 'file %s %s\n' "$(cksum < "$p" | cut -d' ' -f1)" "$(file_mode "$p")"
   else echo absent; fi
 }
-for t in "${targets[@]}" ${rendered[@]+"${rendered[@]}"}; do printf '%s\t%s\n' "$t" "$(describe "$t")"; done > "$journal/manifest.before"
+for t in ${targets[@]+"${targets[@]}"} ${rendered[@]+"${rendered[@]}"}; do printf '%s\t%s\n' "$t" "$(describe "$t")"; done > "$journal/manifest.before"
 : > "$journal/journal.log"
 record() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$journal/journal.log"; }
 say "journal: $journal"

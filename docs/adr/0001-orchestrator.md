@@ -750,6 +750,35 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
 
+### 2026-10-07 — slice 10: the first migration rehearsal (macOS VM)
+
+- **F-44 A checkout under the home directory broke the migration plan.**
+  Paul's first rehearsal stopped at "0 targets from 11 groups" and then
+  "targets[@]: unbound variable": with the checkout at `~/machine-setup`,
+  `mise dot status --json` reports the group sources as `~/machine-setup/zsh`,
+  and `find` was handed the literal `~`. The tests never saw it because
+  their checkout sits beside the test HOME, not inside it. `tasks/migrate`
+  expands the `~`, stops with a clear message when a plan lists no files, and
+  guards its array expansions for bash 3.2 (D-19); `04-migrate` now also
+  migrates a checkout inside HOME. Nothing was written: the dry run stopped
+  first.
+- **The rehearsal's "before" state must match Paul's Mac, not
+  `./install.sh`.** On the Mac only eight Stow packages are live (`zsh`,
+  `tmux`, `gnupg`, `alacritty`, `zellij`, `.oh-my-zsh`, `ghostty`, `herdr`);
+  `claude` and `opencode` are not stowed (`~/.claude` is a real directory
+  the skills installer writes, its linked skills point into
+  `~/.agents/skills`), and `~/.oh-my-zsh` is a real Oh My Zsh checkout with
+  one custom plugin linked in. On a fresh VM, `install.sh` stows all ten and
+  GNU Stow folds `~/.claude` and `~/.oh-my-zsh` into whole-directory links to
+  the repo, a layout the Mac never had (and one where the skills installer
+  and the `~/.oh-my-zsh` repo declaration would write into, or refuse, the
+  dotfiles clone). The README's rehearsal steps install Oh My Zsh first and
+  stow only the eight live packages.
+- A dry run against a copy of the real `~/.dotfiles` in a throwaway home
+  plans 20 targets from 11 groups with no conflicts; the Stow links outside
+  machine-setup's groups (the `.oh-my-zsh` plugin, retired in D-29) are left
+  pointing into `~/.dotfiles`, which the cutover removes with the old repo.
+
 ### 2026-10-07 — executed: slices 2 to 9 on main
 
 - **E-26** With PR #13 merged, CI on `main` runs the whole suite on both
