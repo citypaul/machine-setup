@@ -304,6 +304,10 @@ desktop set, machine files, `doctor` and `update`. Still to come:
   automatic software-update check, the terminal's App Management
   permission and the Notification Center banner time (Full Disk Access)
   are not managed;
+- Ghostty needs OpenGL 4.3; a VM whose virtual GPU offers less (the VMPal
+  test VMs offer 4.1) closes it at once. The `vm` machine starts it with Mesa's
+  software renderer instead (`LIBGL_ALWAYS_SOFTWARE=1`); real hardware keeps
+  the GPU;
 - on a Linux desktop: Cursor (no supported Linux arm64 channel) and Firefox
   (Ubuntu's own snap) are not declared; 1Password's desktop app exists for
   x86_64 only (arm64 gets the CLI), and its SSH agent is switched on in the

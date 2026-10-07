@@ -140,3 +140,15 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   [ "$(groups_for personal,desktop,machine-vm)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
   [ "$(groups_for personal,machine-ci)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
 }
+
+@test "on the test VMs' Linux, Ghostty launches with software rendering; nowhere else is it overridden (F-50)" {
+  # The VM's virtual GPU offers OpenGL 4.1 and Ghostty needs 4.3, so it closed its window at once.
+  local entry='~/.local/share/applications/com.mitchellh.ghostty.desktop'
+  run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-vm,machine-vm-linux dot status --json"
+  [ "$status" -eq 0 ]
+  printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 1' >/dev/null
+  grep -q 'Exec=env LIBGL_ALWAYS_SOFTWARE=1 ghostty' "$CO/mise.machine-vm-linux.toml"
+  run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-studio dot status --json"
+  [ "$status" -eq 0 ]
+  printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 0' >/dev/null
+}
