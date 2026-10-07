@@ -1,9 +1,14 @@
 #!/bin/sh
 # Wraps the real mise ($REAL_MISE) for the migration tests. The prerequisites step
 # (`mise bootstrap --only …`) installs nothing here; it only fails if ~/.gnupg is still a folded
-# link, because the real files phase refuses to manage a directory that is a link (ADR 0001 F-52).
+# link, because the real files phase refuses to manage a directory that is a link (ADR 0001 F-52),
+# or always when FAKE_PREREQ_FAIL is set (a package that fails to install, F-53).
 if [ "$1" = bootstrap ] && [ "$2" = --only ]; then
+  if [ -n "${FAKE_PREREQ_FAIL:-}" ]; then echo "mise ERROR $FAKE_PREREQ_FAIL" >&2; exit 1; fi
   if [ -L "$HOME/.gnupg" ]; then echo "mise ERROR refusing to replace non-directory path $HOME/.gnupg" >&2; exit 1; fi
   exit 0
+fi
+if [ "$1" = dot ] && [ "$2" = apply ] && [ "${3:-}" = --yes ] && [ -n "${FAKE_APPLY_FAIL:-}" ]; then
+  echo "mise ERROR $FAKE_APPLY_FAIL" >&2; exit 1
 fi
 exec "$REAL_MISE" "$@"

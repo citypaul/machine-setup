@@ -138,6 +138,8 @@ rollback() {
   done
   say "rolled back: nothing from this migration remains"
 }
+# The ERR trap covers simple commands; a failing ( … ) subshell is handled explicitly with `|| on_error`,
+# because macOS's bash 3.2 exits under set -e without running the trap for one (ADR 0001 F-53).
 on_error() { rollback; exit 1; }
 trap on_error ERR
 fail_injected() { say "injected failure $1"; return 1; }
@@ -158,7 +160,7 @@ done
 # files phase manages directories such as ~/.gnupg and refuses one that is still a folded link
 # (ADR 0001 F-52). A failure here rolls the unfold back.
 if [ "$skip_prereqs" = 0 ]; then
-  (cd "$checkout" && "$mise_bin" bootstrap --only files,packages,tools --yes)
+  (cd "$checkout" && "$mise_bin" bootstrap --only files,packages,tools --yes) || { say "installing prerequisites failed"; on_error; }
 fi
 
 
@@ -197,7 +199,7 @@ for t in ${rendered[@]+"${rendered[@]}"}; do
   fi
 done
 touch "$journal/apply-marker"
-(cd "$checkout" && "$mise_bin" dot apply --yes >/dev/null)
+(cd "$checkout" && "$mise_bin" dot apply --yes >/dev/null) || { say "mise dot apply failed"; on_error; }
 # Journal what apply created (rendered templates, copies, their directories) so rollback removes it.
 while IFS= read -r p; do
   [ -n "$p" ] || continue
@@ -209,7 +211,7 @@ done < <(find "$HOME" -newer "$journal/apply-marker" \( -type f -o -type l -o -t
 
 # 7. Verify: everything mise manages is in place and an interactive shell still starts.
 if [ "${MACHINE_SETUP_MIGRATE_FAIL_AT:-}" = verify ]; then fail_injected "during verification"; fi
-(cd "$checkout" && "$mise_bin" dot status --missing >/dev/null)
+(cd "$checkout" && "$mise_bin" dot status --missing >/dev/null) || { say "verification: mise dot status --missing reports something missing"; on_error; }
 if command -v zsh >/dev/null 2>&1; then zsh -ic 'exit 0' >/dev/null 2>&1; fi
 
 trap - ERR
