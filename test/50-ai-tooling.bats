@@ -14,7 +14,7 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
 
 @test "the skills installer ran pinned to the declared release and left CLAUDE.md and the skills behind" {
   local v; v=$(pinned_version)
-  [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || false
   [ -f "$HOME/.claude/CLAUDE.md" ]
   [ -d "$HOME/.claude/skills/tdd" ]
   [ -d "$HOME/.claude/skills/testing" ]
@@ -24,13 +24,13 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
 @test "running the skills task again at the same pin does nothing" {
   run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run claude-skills"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already at"* ]]
+  [[ "$output" == *"already at"* ]] || false
 }
 
 @test "claude and codex CLIs resolve from the home directory via mise, not Homebrew" {
   run zsh -lc 'command -v claude && command -v codex'
   [ "$status" -eq 0 ]
-  [[ "$output" == *"/.local/share/mise/"* ]]
+  [[ "$output" == *"/.local/share/mise/"* ]] || false
 }
 
 @test "herdr is installed and its Claude Code integration is in place" {
@@ -38,7 +38,7 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
   [ "$status" -eq 0 ]
   run stdio_only zsh -lc 'herdr integration status'
   [ "$status" -eq 0 ]
-  [[ "$output" == *claude* ]]
+  [[ "$output" == *claude* ]] || false
 }
 
 @test "the settings merge kept herdr's hook alongside ours on a real machine" {
@@ -53,7 +53,7 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
 @test "omp (Oh My Pi) is a mise tool from its GitHub releases and runs on this OS" {
   run zsh -lc 'command -v omp'
   [ "$status" -eq 0 ]
-  [[ "$output" == *"/mise/"* ]]
+  [[ "$output" == *"/mise/"* ]] || false
   run perl -e 'alarm shift; exec @ARGV' 30 zsh -lc 'omp --version'
   [ "$status" -eq 0 ]
 }

@@ -20,7 +20,7 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
 @test "adding the conquer role converges and installs the Tailscale client" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --role "$test_roles" --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *",conquer,"* ]]
+  [[ "$output" == *",conquer,"* ]] || false
   if is_macos; then
     # The app's CLI blocks on every command, `version` included, until the app has been opened once
     # and its VPN configuration approved (ADR 0001 F-38); read the installed version from the bundle.
@@ -49,15 +49,15 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
   export PATH="$FIXTURES/bin/tailscale-connected:$PATH"
   run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already connected"* ]]
+  [[ "$output" == *"already connected"* ]] || false
 }
 
 @test "the join task prints the OIDC login URL and stops when the network needs a login" {
   export PATH="$FIXTURES/bin/tailscale-needs-login:$PATH"
   run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"https://login.example/register/abc"* ]]
-  [[ "$output" == *"--login-server https://"* ]]
+  [[ "$output" == *"https://login.example/register/abc"* ]] || false
+  [[ "$output" == *"--login-server https://"* ]] || false
 }
 
 @test "the join task returns within its timeouts and says so when the daemon never answers" {
@@ -66,5 +66,5 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
   run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
   [ "$status" -eq 0 ]
   [ $(( $(date +%s) - started )) -lt 50 ]
-  [[ "$output" == *"did not answer"* ]]
+  [[ "$output" == *"did not answer"* ]] || false
 }

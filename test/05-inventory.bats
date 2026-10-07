@@ -40,5 +40,5 @@ all_package_keys() { cat "$REPO_ROOT"/mise*.toml | sed -n -E 's/^"([a-z-]+:[^"]+
 
 @test "the skills installer is pinned to an exact release tag, never a moving ref" {
   run sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO_ROOT/mise.toml"
-  [[ "$output" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+  [[ "$output" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || false
 }

@@ -90,6 +90,14 @@ file_mode() {
 # 3.2 leaves inheritable, and waits for EOF on it (ADR 0001 F-41).
 stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
 mise_in_checkout() { (cd "$REPO_ROOT" && stdio_only "$HOME/.local/bin/mise" "$@"); }
+# True when mise reports nothing unconverged. When something is, mise's status table goes to the
+# test's output, so a failing test names what was missing.
+converged() {
+  local table
+  table=$(mise_in_checkout bootstrap status --missing 2>&1) && return 0
+  printf '%s\n' "$table"
+  return 1
+}
 
 # Where bootstrap keeps the per-machine selection inside a checkout.
 env_list_of() { sed -n 's/^env = \[\(.*\)\]$/\1/p' "$1/.miserc.local.toml" | tr -d '" ' ; }

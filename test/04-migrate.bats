@@ -44,7 +44,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   local before; before=$(snapshot_tree "$HOME")
   MACHINE_SETUP_MIGRATE_FAIL_AFTER_WRITES=3 run "${MIGRATE[@]}"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"rolled back"* ]]
+  [[ "$output" == *"rolled back"* ]] || false
   [ "$(snapshot_tree "$HOME")" = "$before" ]
 }
 
@@ -52,7 +52,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   local before; before=$(snapshot_tree "$HOME")
   MACHINE_SETUP_MIGRATE_FAIL_AT=verify run "${MIGRATE[@]}"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"rolled back"* ]]
+  [[ "$output" == *"rolled back"* ]] || false
   [ "$(snapshot_tree "$HOME")" = "$before" ]
 }
 
@@ -61,7 +61,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   local before; before=$(snapshot_tree "$HOME")
   run "${MIGRATE[@]}"
   [ "$status" -ne 0 ]
-  [[ "$output" == *".zsh_profile"* ]]
+  [[ "$output" == *".zsh_profile"* ]] || false
   [ "$(snapshot_tree "$HOME")" = "$before" ]
 }
 
@@ -78,7 +78,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   local before; before=$(snapshot_tree "$HOME")
   run "${MIGRATE[@]}"
   [ "$status" -ne 0 ]
-  [[ "$output" == *".gitconfig"* ]]
+  [[ "$output" == *".gitconfig"* ]] || false
   [ "$(snapshot_tree "$HOME")" = "$before" ]
   run "${MIGRATE[@]}" --force
   [ "$status" -eq 0 ]
@@ -94,8 +94,8 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   select_envs "$co" personal desktop studio >/dev/null
   run "$REPO_ROOT/tasks/migrate" --checkout "$co" --stow-dir "$STOW" --skip-prerequisites --yes --dry-run
   [ "$status" -eq 0 ]
-  [[ "$output" != *"No such file"* ]]
-  [[ "$output" =~ \ ([1-9][0-9]*)\ targets\ from ]]
+  [[ "$output" != *"No such file"* ]] || false
+  [[ "$output" =~ \ ([1-9][0-9]*)\ targets\ from ]] || false
   run "$REPO_ROOT/tasks/migrate" --checkout "$co" --stow-dir "$STOW" --skip-prerequisites --yes
   [ "$status" -eq 0 ]
   [ "$(readlink "$HOME/.zshrc")" = "$co/zsh/.zshrc" ]

@@ -52,7 +52,7 @@ hook_commands() { jq -r ".hooks.$1[].hooks[].command" "$TARGET"; }
   cp "$TARGET" "$BATS_TEST_TMPDIR/before.json"
   run "${MERGE[@]}"
   [ "$status" -ne 0 ]
-  [[ "$output" == *"settings.json"* ]]
+  [[ "$output" == *"settings.json"* ]] || false
   cmp -s "$TARGET" "$BATS_TEST_TMPDIR/before.json"
   [ -z "$(find "$HOME/.claude" -name '*.tmp*' -o -name '.settings*' | head -1)" ]
 }

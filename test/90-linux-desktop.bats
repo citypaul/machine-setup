@@ -23,7 +23,7 @@ setup() {
     run zsh -lc 'command -v 1password'
     [ "$status" -eq 0 ]
   else
-    ! dpkg -s 1password >/dev/null 2>&1   # no arm64 build of the desktop app (D-30)
+    ! dpkg -s 1password >/dev/null 2>&1 || false   # no arm64 build of the desktop app (D-30)
   fi
 }
 
@@ -35,7 +35,7 @@ setup() {
   [ "$status" -eq 0 ]
   run mise_in_checkout run ghostty-linux
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already installed"* ]]
+  [[ "$output" == *"already installed"* ]] || false
 }
 
 @test "Docker Engine is installed, its daemon runs where systemd does, and the user is in the docker group" {

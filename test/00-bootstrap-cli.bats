@@ -17,7 +17,7 @@ setup() {
   skip_unless_linux
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family rhel --profile work --machine studio --select-only --yes
   [ "$status" -eq 2 ]
-  [[ "$output" == *"unsupported"* ]]
+  [[ "$output" == *"unsupported"* ]] || false
   [ ! -e "$CO/.miserc.local.toml" ]
   [ ! -e "$CO/mise.local.toml" ]
 }
@@ -26,33 +26,33 @@ setup() {
   skip_unless_macos
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family debian --profile work --machine studio --select-only --yes
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--os-family"* ]]
+  [[ "$output" == *"--os-family"* ]] || false
 }
 
 @test "an unknown profile is rejected with exit 2" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile gaming --machine studio --select-only --yes
   [ "$status" -eq 2 ]
-  [[ "$output" == *"profile"* ]]
+  [[ "$output" == *"profile"* ]] || false
   [ ! -e "$CO/.miserc.local.toml" ]
 }
 
 @test "a non-interactive run with no saved selection and no --profile fails with exit 2 and names the flag" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --machine studio --select-only --yes </dev/null
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--profile"* ]]
+  [[ "$output" == *"--profile"* ]] || false
 }
 
 @test "a non-interactive run with no --machine fails with exit 2 and names the flag" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --select-only --yes </dev/null
   [ "$status" -eq 2 ]
-  [[ "$output" == *"--machine"* ]]
+  [[ "$output" == *"--machine"* ]] || false
 }
 
 @test "--select-only records profile, roles, machine, dotfiles.root and the env list without running mise" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
   local os; if is_macos; then os=macos; else os=linux; fi
-  [[ "$output" == *"envs=personal,$(desktop_envs),conquer,conquer-$os,machine-studio"* ]]
+  [[ "$output" == *"envs=personal,$(desktop_envs),conquer,conquer-$os,machine-studio"* ]] || false
   [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-studio" ]
   grep -q '^profile = "personal"$' "$CO/mise.local.toml"
   grep -q '^roles = "desktop conquer"$' "$CO/mise.local.toml"
@@ -71,18 +71,18 @@ setup() {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine studio --select-only --yes
   [ "$status" -eq 0 ]
   if is_macos; then
-    [[ "$output" == *"os=macos"* ]]
+    [[ "$output" == *"os=macos"* ]] || false
   else
-    [[ "$output" == *"os=linux"*"family=debian"* ]]
+    [[ "$output" == *"os=linux"*"family=debian"* ]] || false
   fi
-  [[ "$output" == *"arch="* ]]
+  [[ "$output" == *"arch="* ]] || false
 }
 
 @test "re-running without flags reuses the saved selection" {
   "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine studio --select-only --yes >/dev/null
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --select-only --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,$(desktop_envs),machine-studio"* ]]
+  [[ "$output" == *"envs=personal,$(desktop_envs),machine-studio"* ]] || false
 }
 
 @test "changing only --profile keeps the saved roles and machine" {
@@ -132,7 +132,7 @@ prerequisites_present() {
 @test "--git-email is saved with the selection, kept by later runs, and dropped by an empty value" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  ! grep -q '^git_email' "$CO/mise.local.toml"   # no override: the base default applies
+  ! grep -q '^git_email' "$CO/mise.local.toml" || false   # no override: the base default applies
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email paul@example.com --select-only --yes
   [ "$status" -eq 0 ]
   grep -q '^git_email = "paul@example.com"$' "$CO/mise.local.toml"
@@ -141,7 +141,7 @@ prerequisites_present() {
   grep -q '^git_email = "paul@example.com"$' "$CO/mise.local.toml"
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email '' --select-only --yes
   [ "$status" -eq 0 ]
-  ! grep -q '^git_email' "$CO/mise.local.toml"
+  ! grep -q '^git_email' "$CO/mise.local.toml" || false
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email 'a"b@example.com' --select-only --yes
   [ "$status" -eq 2 ]
 }

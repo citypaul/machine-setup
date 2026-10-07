@@ -24,7 +24,7 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   run mise_in_checkout bootstrap macos defaults status --missing
   [ "$status" -eq 0 ]
   run ls -lOd "$HOME/Library"
-  [[ "$output" != *"hidden"* ]]
+  [[ "$output" != *"hidden"* ]] || false
 }
 
 @test "the desktop role pins the declared apps in the Dock, in order" {
@@ -32,8 +32,8 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   run defaults read com.apple.dock persistent-apps
   [ "$status" -eq 0 ]
   local labels; labels=$(printf '%s\n' "$output" | sed -n 's/.*"file-label" = "\{0,1\}\([^";]*\)"\{0,1\};/\1/p' | tr '\n' ',')
-  [[ "$labels" == "Fantastical,Alacritty,Ghostty,Cursor,"* ]]
-  [[ "$labels" == *"Claude,FluidVoice,Obsidian,"* ]]
+  [[ "$labels" == "Fantastical,Alacritty,Ghostty,Cursor,"* ]] || false
+  [[ "$labels" == *"Claude,FluidVoice,Obsidian,"* ]] || false
 }
 
 @test "the desktop role installs the iTerm2 dynamic profile and the Alacritty theme the config imports" {
@@ -52,11 +52,11 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   codesign -dv /Applications/Talat.app 2>&1 | grep -qx 'TeamIdentifier=X37TLUX6CW'
   run mise_in_checkout run talat
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already installed"* ]]
+  [[ "$output" == *"already installed"* ]] || false
 }
 
 @test "the talat task does nothing without the desktop role or on another platform" {
   run "$REPO_ROOT/tasks/talat" ""
   [ "$status" -eq 0 ]
-  [[ "$output" == *"skipping"* ]]
+  [[ "$output" == *"skipping"* ]] || false
 }

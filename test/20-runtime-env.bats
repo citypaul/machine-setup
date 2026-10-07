@@ -16,19 +16,19 @@ shims="$HOME/.local/share/mise/shims"
 @test "node 24 resolves from the home directory in an interactive zsh" {
   run zsh -ic 'node -v'
   [ "$status" -eq 0 ]
-  [[ "$output" == *v24.* ]]
+  [[ "$output" == *v24.* ]] || false
 }
 
 @test "node 24 resolves from the home directory in a login zsh" {
   run zsh -lc 'node -v'
   [ "$status" -eq 0 ]
-  [[ "$output" == *v24.* ]]
+  [[ "$output" == *v24.* ]] || false
 }
 
 @test "node 24 resolves in a non-interactive zsh started with an empty environment (the ssh/cron path)" {
   run env -i HOME="$HOME" PATH=/usr/bin:/bin zsh -c 'cd && node -v'
   [ "$status" -eq 0 ]
-  [[ "$output" == *v24.* ]]
+  [[ "$output" == *v24.* ]] || false
 }
 
 @test "a directory with .nvmrc switches node to that version, installing it when missing" {
@@ -36,21 +36,21 @@ shims="$HOME/.local/share/mise/shims"
   mkdir -p "$d" && echo 22 > "$d/.nvmrc"
   run zsh -ic "cd '$d' && node -v"
   [ "$status" -eq 0 ]
-  [[ "$output" == *v22.* ]]
+  [[ "$output" == *v22.* ]] || false
 }
 
 @test "nvm is retired: no ~/.nvm, no nvm stub functions, no .nvm_setup link" {
   [ ! -d "$HOME/.nvm" ]
   [ ! -e "$HOME/.nvm_setup" ]
   run zsh -ic 'whence -w nvm node'
-  [[ "$output" != *"nvm: function"* ]]
-  [[ "$output" != *"node: function"* ]]
+  [[ "$output" != *"nvm: function"* ]] || false
+  [[ "$output" != *"node: function"* ]] || false
 }
 
 @test "agent-browser and gemini come from the npm backend, not from Homebrew's node" {
   run zsh -lc 'command -v agent-browser && command -v gemini'
   [ "$status" -eq 0 ]
-  [[ "$output" == *"/.local/share/mise/"* ]]
+  [[ "$output" == *"/.local/share/mise/"* ]] || false
   local prefix
   if is_macos; then prefix=/opt/homebrew; else prefix=/home/linuxbrew/.linuxbrew; fi
   [ ! -e "$prefix/opt/node" ]
@@ -59,7 +59,7 @@ shims="$HOME/.local/share/mise/shims"
 @test "terraform and cargo resolve from the home directory" {
   run zsh -lc 'terraform version -json >/dev/null && cargo --version'
   [ "$status" -eq 0 ]
-  [[ "$output" == cargo* ]]
+  [[ "$output" == cargo* ]] || false
 }
 
 @test "the old pnpm globals are installed as mise tools" {
@@ -107,7 +107,7 @@ shims="$HOME/.local/share/mise/shims"
   fi
   run ssh -o BatchMode=yes localhost 'node -v'
   [ "$status" -eq 0 ]
-  [[ "$output" == *v24.* ]]
+  [[ "$output" == *v24.* ]] || false
 }
 
 # Start an ssh server that accepts this user's own key. Linux: openssh-server from apt (root or sudo);
@@ -135,14 +135,14 @@ arrange_sshd() {
   if is_macos; then
     run launchctl getenv PATH
     [ "$status" -eq 0 ]
-    [[ "$output" == *"$shims"* ]]
+    [[ "$output" == *"$shims"* ]] || false
   else
     [ -f "$HOME/.config/environment.d/mise.conf" ]
     grep -q 'mise/shims' "$HOME/.config/environment.d/mise.conf"
     systemctl --user show-environment >/dev/null 2>&1 || skip "no user systemd session here (container)"
     # environment.d applies at the next login; the session-path hook covers the running session.
     run systemctl --user show-environment
-    [[ "$output" == *"mise/shims"* ]]
+    [[ "$output" == *"mise/shims"* ]] || false
   fi
 }
 
@@ -150,19 +150,19 @@ arrange_sshd() {
   run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
   [ "$status" -eq 0 ]
   if [[ "$output" == *"unsupported here"* ]]; then skip "no Chrome for Testing build for this platform"; fi
-  [[ "$output" != *"warning:"* ]]
+  [[ "$output" != *"warning:"* ]] || false
   # agent-browser names its own cache; the observable contract is that a second run finds the browser.
   run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"already"* ]]
+  [[ "$output" == *"already"* ]] || false
 }
 
 @test "fzf key bindings and zsh-autosuggestions load in an interactive zsh (slice 7)" {
   run zsh -ic 'bindkey'
   [ "$status" -eq 0 ]
-  [[ "$output" == *"fzf-history-widget"* ]]
+  [[ "$output" == *"fzf-history-widget"* ]] || false
   run zsh -ic 'typeset -f _zsh_autosuggest_start >/dev/null && echo loaded'
-  [[ "$output" == *"loaded"* ]]
+  [[ "$output" == *"loaded"* ]] || false
 }
 
 @test "Oh My Zsh, the NvChad config and neovim are present (declared repos and a formula)" {
@@ -173,7 +173,7 @@ arrange_sshd() {
   [ "$(git -C "$HOME/.config/nvim" rev-parse HEAD)" = "$pin" ]
   run zsh -lc 'nvim --version'
   [ "$status" -eq 0 ]
-  [[ "$output" == NVIM* ]]
+  [[ "$output" == NVIM* ]] || false
 }
 
 @test "tmux, zellij and herdr configs are linked from their groups" {
@@ -187,8 +187,8 @@ arrange_sshd() {
   [ "$status" -eq 0 ]
   if zsh -lc 'gh auth status' >/dev/null 2>&1; then
     run zsh -lc 'gh extension list'
-    [[ "$output" == *"gh-stack"* ]]
+    [[ "$output" == *"gh-stack"* ]] || false
   else
-    [[ "$output" == *"gh auth login"* ]]
+    [[ "$output" == *"gh auth login"* ]] || false
   fi
 }

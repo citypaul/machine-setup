@@ -20,7 +20,7 @@ with_op() { export PATH="$FIXTURES/bin/op-$1:$PATH"; }
   with_op locked
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"1Password"*"conquer"* ]]
+  [[ "$output" == *"1Password"*"conquer"* ]] || false
   [ "$(env_list_of "$CO")" = "personal,machine-studio" ]
   grep -q '^roles = "conquer"$' "$CO/mise.local.toml"
 }
@@ -39,7 +39,7 @@ with_op() { export PATH="$FIXTURES/bin/op-$1:$PATH"; }
   sed -i.bak 's/^secret_envs = "conquer"$/secret_envs = ""/' "$CO/mise.toml" && rm -f "$CO/mise.toml.bak"
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
   [ "$status" -eq 0 ]
-  [[ "$output" != *"1Password"* ]]
+  [[ "$output" != *"1Password"* ]] || false
   local os; if is_macos; then os=macos; else os=linux; fi
   [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
 }
