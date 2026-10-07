@@ -26,7 +26,7 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
     # and its VPN configuration approved (ADR 0001 F-38); read the installed version from the bundle.
     [ -n "$(defaults read /Applications/Tailscale.app/Contents/Info CFBundleShortVersionString)" ]
   else
-    run zsh -lc 'tailscale version'
+    run zsh -lc 'tailscale version' 3>&-
     [ "$status" -eq 0 ]
   fi
 }
@@ -47,14 +47,14 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
 
 @test "the join task is a no-op when already connected" {
   export PATH="$FIXTURES/bin/tailscale-connected:$PATH"
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join" 3>&-
   [ "$status" -eq 0 ]
   [[ "$output" == *"already connected"* ]]
 }
 
 @test "the join task prints the OIDC login URL and stops when the network needs a login" {
   export PATH="$FIXTURES/bin/tailscale-needs-login:$PATH"
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join" 3>&-
   [ "$status" -eq 0 ]
   [[ "$output" == *"https://login.example/register/abc"* ]]
   [[ "$output" == *"--login-server https://"* ]]
@@ -63,7 +63,7 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
 @test "the join task returns within its timeouts and says so when the daemon never answers" {
   export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
   local started; started=$(date +%s)
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join" 3>&-
   [ "$status" -eq 0 ]
   [ $(( $(date +%s) - started )) -lt 50 ]
   [[ "$output" == *"did not answer"* ]]

@@ -70,7 +70,7 @@ shims="$HOME/.local/share/mise/shims"
 
 @test "the login shell is zsh, so ssh and cron shells read .zshenv and .zprofile" {
   # Run the task here too so its output is visible on failure (bats hides it inside bootstrap).
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run login-shell"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run login-shell" 3>&-
   [ "$status" -eq 0 ]
   local user shell; user=$(id -un)
   if is_macos; then shell=$(dscl . -read "/Users/$user" UserShell | awk '{print $2}'); else shell=$(getent passwd "$user" | cut -d: -f7); fi
@@ -147,12 +147,12 @@ arrange_sshd() {
 }
 
 @test "agent-browser's browser is installed where Chrome for Testing supports the platform, and the task is idempotent" {
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers" 3>&-
   [ "$status" -eq 0 ]
   if [[ "$output" == *"unsupported here"* ]]; then skip "no Chrome for Testing build for this platform"; fi
   [[ "$output" != *"warning:"* ]]
   # agent-browser names its own cache; the observable contract is that a second run finds the browser.
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers" 3>&-
   [ "$status" -eq 0 ]
   [[ "$output" == *"already"* ]]
 }

@@ -77,7 +77,9 @@ file_mode() {
 }
 
 # Run the installed mise from the checkout, where the config and the saved selection live.
-mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@"); }
+# Commands run with descriptor 3 closed: a daemon they start (gpg-agent, scdaemon, op) keeps every
+# descriptor it inherits, and bats waits for EOF on fd 3 before it exits (ADR 0001 F-41).
+mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@" 3>&-); }
 
 # Where bootstrap keeps the per-machine selection inside a checkout.
 env_list_of() { sed -n 's/^env = \[\(.*\)\]$/\1/p' "$1/.miserc.local.toml" | tr -d '" ' ; }

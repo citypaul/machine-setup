@@ -775,3 +775,11 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   (CI); the VMs had it already. `bootstrap.sh` runs `mise bootstrap` and
   `op whoami` with stdio only (`stdio_only`), and two tests in
   `00-bootstrap-cli` prove neither inherits a descriptor beyond stdio.
+  The same hang returned on PR #13's macOS job (116 of 116 passed in ten
+  minutes, then nothing) with `gpg-agent` and `scdaemon` orphaned: tests
+  that ran `gpg-setup`, `gpg` and other tasks directly under bats started
+  the agent with fd 3 open. Test helpers and those direct calls now close
+  fd 3 (`3>&-`, bats' documented idiom), and `test/run.sh` guards the
+  run: once every planned test has reported, bats gets 60 seconds to exit,
+  then the runner lists the usual daemons and fails. A synthetic leak
+  fails in eight seconds instead of an hour.

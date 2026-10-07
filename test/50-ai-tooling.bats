@@ -22,7 +22,7 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
 }
 
 @test "running the skills task again at the same pin does nothing" {
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run claude-skills"
+  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run claude-skills" 3>&-
   [ "$status" -eq 0 ]
   [[ "$output" == *"already at"* ]]
 }
@@ -36,7 +36,7 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
 @test "herdr is installed and its Claude Code integration is in place" {
   run zsh -lc 'command -v herdr'
   [ "$status" -eq 0 ]
-  run zsh -lc 'herdr integration status'
+  run zsh -lc 'herdr integration status' 3>&-
   [ "$status" -eq 0 ]
   [[ "$output" == *claude* ]]
 }
