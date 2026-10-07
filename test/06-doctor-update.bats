@@ -82,3 +82,17 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [ "$status" -eq 0 ]
   [[ "$output" == *"--yes"* ]]
 }
+
+@test "doctor warns when this session's SHELL is not the login shell, so terminals that read SHELL get the wrong one" {
+  # Found on the fresh Ubuntu VM: the install made zsh the login shell, but the desktop session kept
+  # SHELL=/bin/bash, so Ghostty and Alacritty opened bash without the aliases or fzf (ADR 0001 F-51).
+  with_mise
+  local login
+  if is_macos; then login=$(dscl . -read "/Users/$(id -un)" UserShell | awk '{print $2}'); else login=$(getent passwd "$(id -un)" | cut -d: -f7); fi
+  [[ "$login" == */zsh ]] || skip "the login shell here is $login, not zsh"
+  select_envs "$CO" personal - studio >/dev/null
+  SHELL=/bin/sh run "$CO/tasks/doctor"
+  [[ "$output" == *"WARN"*"SHELL is /bin/sh"*"log out and back in"* ]] || false
+  SHELL="$login" run "$CO/tasks/doctor"
+  [[ "$output" != *"SHELL is"* ]] || false
+}
