@@ -134,3 +134,14 @@ fold_ghostty() {
   [ "$(readlink "$HOME/.config/ghostty")" = "../.dotfiles/ghostty/.config/ghostty" ]
   [ "$(snapshot_tree "$HOME")" = "$before" ]
 }
+
+@test "prerequisites run after folded directories are unfolded, so mise can manage ~/.gnupg as a directory" {
+  # Found in the macOS rehearsal: the prerequisites' files phase met ~/.gnupg still folded into the
+  # Stow dir and refused, 28 minutes in (ADR 0001 F-52).
+  mkdir -p "$STOW/gnupg/.gnupg"
+  printf 'keyid-format 0xlong\n' > "$STOW/gnupg/.gnupg/gpg.conf"
+  ln -s ".dotfiles/gnupg/.gnupg" "$HOME/.gnupg"
+  REAL_MISE=$(mise_bin) MISE_BIN="$FIXTURES/bin/mise-prereq-probe/mise" run "$REPO_ROOT/tasks/migrate" --checkout "$CO" --stow-dir "$STOW" --yes
+  [ "$status" -eq 0 ]
+  [ -d "$HOME/.gnupg" ] && [ ! -L "$HOME/.gnupg" ]
+}
