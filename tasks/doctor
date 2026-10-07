@@ -65,6 +65,12 @@ fi
 user=$(id -un)
 if [ "$(uname -s)" = Darwin ]; then shell=$(dscl . -read "/Users/$user" UserShell 2>/dev/null | awk '{print $2}'); else shell=$(getent passwd "$user" | cut -d: -f7); fi
 case "$shell" in */zsh) ok "login shell: $shell" ;; *) warn "login shell: ${shell:-unknown}; mise run login-shell (needs sudo) or chsh -s \$(command -v zsh)" ;; esac
+# A desktop session keeps the SHELL it started with; terminals that read it (Ghostty, Alacritty) start
+# that shell until the next login (ADR 0001 F-51).
+case "$shell:${SHELL:-}" in
+  */zsh:|*/zsh:*/zsh) ;;
+  */zsh:*) warn "session: SHELL is $SHELL, not your login shell $shell; log out and back in so terminals that read SHELL (Ghostty, Alacritty) start zsh" ;;
+esac
 
 # 5. 1Password
 if command -v op >/dev/null 2>&1; then

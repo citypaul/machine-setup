@@ -783,6 +783,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `|| false`. The two new tests do; the rest of the suite is swept
   separately.
 
+### 2026-10-07 — after the first install on a desktop
+
+- **F-51 A desktop session keeps its SHELL and PATH until the next login.**
+  On the fresh Ubuntu VM, after the install had made zsh the login shell,
+  Ghostty and Alacritty still opened bash (they start `$SHELL`, and GNOME's
+  session had `SHELL=/bin/bash`), so Paul saw no aliases and no fzf; the
+  default terminal, which reads the account's shell, was fine. Obsidian's
+  launcher (a per-user Flatpak) also waited for a new session. A reboot
+  fixed both. The install now ends by asking for a log-out, and `doctor`
+  warns when the session's `SHELL` is not the login shell.
+
 ### 2026-10-07 — fresh VMs: the one-line install on a vanilla Ubuntu desktop
 
 - **F-45 A fresh Ubuntu desktop has no curl, and `sh -c "$(curl …)"` then
