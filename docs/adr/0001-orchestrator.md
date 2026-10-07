@@ -805,6 +805,27 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   nothing; checked on both paths and with an unreachable URL (exit 1).
   `bootstrap.sh` installs curl itself once it runs.
 
+- **E-27** Reinstalled Ubuntu 26.04.1 VM, vanilla: the one-line install
+  (wget path) finished in 497 s with exit 0; the full suite then passed every
+  test that touches the machine (the Linux desktop set, doctor, update
+  included) and failed 20 safe tests, all in `01-layering` and `04-migrate`.
+- **F-46 The suite looked for mise after a test had moved HOME.** On a fresh
+  machine mise is in `~/.local/bin` but not yet on the suite's PATH, so the
+  helpers' last fallback, `$HOME/.local/bin/mise`, was the one that mattered,
+  and it ran after `fresh_home` had pointed HOME at a test directory; the
+  migrate task, started under that HOME, failed the same way. CI never saw
+  it (mise is not installed when those files run there) and the old VMs had
+  mise on the session PATH. The helpers record the path while HOME is real
+  and export the mise they find as `MISE_BIN`; reproduced with a stand-in
+  home (16 failures), now 29 of 29.
+- **F-47 `mise dot status` reads `~/Desktop`, which macOS guards.** The macOS
+  rehearsal, run from a LaunchAgent, hung in the migration's dry run:
+  `tccd` logged `AUTHREQ_PROMPTING … kTCCServiceSystemPolicyDesktopFolder,
+  subject=…/mise`, and mise sat in `read_dir` waiting for the dialog. From
+  Terminal on a real Mac the same first read asks once for Terminal (or the
+  terminal in use); an unattended run (launchd, cron) would wait forever.
+  Noted for the cutover: grant the terminal Desktop access first, or click
+  Allow when asked.
 ### 2026-10-07 — slice 10: the first migration rehearsal (macOS VM)
 
 - **F-44 A checkout under the home directory broke the migration plan.**

@@ -4,16 +4,24 @@ REPO_ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 export REPO_ROOT
 FIXTURES="$REPO_ROOT/test/fixtures"
 
+# The mise bootstrap installs, located with the real HOME: helpers load before setup, and fresh_home
+# later points HOME at a test directory (on a fresh machine mise is not on PATH yet, so this lookup was
+# the one that mattered, and it ran after HOME had moved).
+bootstrap_mise="$HOME/.local/bin/mise"
+
 # Path of the mise executable: $MISE_BIN, else one on PATH, else the one bootstrap installs.
 # `type -P` looks only at executables, never at the `mise` shell function defined below.
 mise_bin() {
   if [ -n "${MISE_BIN:-}" ]; then printf '%s\n' "$MISE_BIN"; return 0; fi
   local found
   if found=$(type -P mise 2>/dev/null) && [ -n "$found" ]; then printf '%s\n' "$found"; return 0; fi
-  if [ -x "$HOME/.local/bin/mise" ]; then printf '%s\n' "$HOME/.local/bin/mise"; return 0; fi
+  if [ -x "$bootstrap_mise" ]; then printf '%s\n' "$bootstrap_mise"; return 0; fi
   return 1
 }
 mise() { "$(mise_bin)" "$@"; }
+# Pin that mise for everything the suite starts: tasks and bootstrap scripts honour MISE_BIN, and they
+# run under a test HOME where ~/.local/bin/mise does not exist.
+if [ -z "${MISE_BIN:-}" ] && found_mise=$(mise_bin); then export MISE_BIN="$found_mise"; fi
 
 is_macos() { [ "$(uname -s)" = Darwin ]; }
 is_linux() { [ "$(uname -s)" = Linux ]; }
