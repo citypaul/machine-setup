@@ -788,6 +788,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   the folds too. A mise wrapper in `04-migrate` fails the run if
   prerequisites meet a folded `~/.gnupg`. On Paul's Mac `~/.gnupg` is a real
   directory, so this exact failure would not have happened there.
+- **F-53 On macOS a failing subshell skipped the migration's rollback.** The
+  third rehearsal run's real migration unfolded the directories and then
+  failed installing prerequisites (a cached cask image that `hdiutil` could
+  not attach), and exited 1 without rolling back: the folded directories
+  stayed unfolded. macOS's bash 3.2 exits under `set -e` without running the
+  ERR trap when a `( … )` subshell fails (bash 5 runs it), and the
+  migration's three mise calls in the write phase (prerequisites,
+  `dot apply`, the verification) were subshells. Each now rolls back
+  explicitly with `|| on_error`; two new tests fail a prerequisites install
+  and a `dot apply` through a mise wrapper and require an exact rollback.
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append
