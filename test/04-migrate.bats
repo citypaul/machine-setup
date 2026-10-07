@@ -100,3 +100,37 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   [ "$status" -eq 0 ]
   [ "$(readlink "$HOME/.zshrc")" = "$co/zsh/.zshrc" ]
 }
+
+# GNU Stow "folds" a directory that did not exist yet into one link to the package directory. Found in
+# the macOS rehearsal: ~/.config/ghostty, ~/.config/zellij and the Library Ghostty folder are folded on
+# Paul's Mac, and a file inside one looked like a real file, so the migration refused (ADR 0001 F-48).
+fold_ghostty() {
+  mkdir -p "$STOW/ghostty/.config/ghostty"
+  printf '# old ghostty config\n' > "$STOW/ghostty/.config/ghostty/config"
+  printf '# a theme machine-setup does not manage\n' > "$STOW/ghostty/.config/ghostty/extra-theme"
+  ln -s "../.dotfiles/ghostty/.config/ghostty" "$HOME/.config/ghostty"   # relative, as Stow folds it
+}
+
+@test "a directory Stow folded into one link is unfolded: managed files are replaced, the rest stay reachable" {
+  fold_ghostty
+  run "${MIGRATE[@]}" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"unfold"*".config/ghostty"* ]] || false
+  [ -L "$HOME/.config/ghostty" ]                       # a dry run changes nothing
+  run "${MIGRATE[@]}"
+  [ "$status" -eq 0 ]
+  [ -d "$HOME/.config/ghostty" ] && [ ! -L "$HOME/.config/ghostty" ]
+  [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/ghostty/.config/ghostty/config" ]
+  grep -q 'a theme machine-setup does not manage' "$HOME/.config/ghostty/extra-theme"
+  [[ "$output" == *"still linked into the old Stow dir"*"extra-theme"* ]] || false
+}
+
+@test "a failure after unfolding restores the folded directory link exactly" {
+  fold_ghostty
+  local before; before=$(snapshot_tree "$HOME")
+  MACHINE_SETUP_MIGRATE_FAIL_AT=verify run "${MIGRATE[@]}"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"rolled back"* ]] || false
+  [ "$(readlink "$HOME/.config/ghostty")" = "../.dotfiles/ghostty/.config/ghostty" ]
+  [ "$(snapshot_tree "$HOME")" = "$before" ]
+}
