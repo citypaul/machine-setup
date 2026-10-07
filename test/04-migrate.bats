@@ -145,3 +145,26 @@ fold_ghostty() {
   [ "$status" -eq 0 ]
   [ -d "$HOME/.gnupg" ] && [ ! -L "$HOME/.gnupg" ]
 }
+
+@test "a failure while installing prerequisites rolls the unfold back and leaves the old setup exactly as it was" {
+  # Found in the macOS rehearsal: a cask that would not install failed the prerequisites, and the
+  # migration exited without rolling back, leaving the folded directories unfolded (ADR 0001 F-53).
+  fold_ghostty
+  local before; before=$(snapshot_tree "$HOME")
+  FAKE_PREREQ_FAIL="cask failed to install" REAL_MISE=$(mise_bin) MISE_BIN="$FIXTURES/bin/mise-prereq-probe/mise" run "$REPO_ROOT/tasks/migrate" --checkout "$CO" --stow-dir "$STOW" --yes
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"rolled back"* ]] || false
+  [ "$(readlink "$HOME/.config/ghostty")" = "../.dotfiles/ghostty/.config/ghostty" ]
+  [ "$(snapshot_tree "$HOME")" = "$before" ]
+}
+
+@test "a failure in mise dot apply rolls back too (a failing subshell must not skip the rollback)" {
+  # macOS's bash 3.2 exits under set -e without running the ERR trap when a ( … ) subshell fails, so
+  # the migration's mise calls roll back explicitly (ADR 0001 F-53).
+  fold_ghostty
+  local before; before=$(snapshot_tree "$HOME")
+  FAKE_APPLY_FAIL="apply failed" REAL_MISE=$(mise_bin) MISE_BIN="$FIXTURES/bin/mise-prereq-probe/mise" run "$REPO_ROOT/tasks/migrate" --checkout "$CO" --stow-dir "$STOW" --skip-prerequisites --yes
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"rolled back"* ]] || false
+  [ "$(snapshot_tree "$HOME")" = "$before" ]
+}
