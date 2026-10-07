@@ -750,6 +750,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
 
+### 2026-10-07 — Ghostty on the Ubuntu test VM
+
+- **F-50 Ghostty needs OpenGL 4.3; the VMPal VM's virtual GPU offers 4.1.**
+  On the reinstalled Ubuntu VM Ghostty opened and closed at once: it logged
+  "loaded OpenGL 4.1" and "Ghostty requires OpenGL 4.3", and the surface
+  failed. With Mesa's software renderer (`LIBGL_ALWAYS_SOFTWARE=1`) it gets
+  OpenGL 4.5 and stays up. `mise.machine-vm-linux.toml`, which bootstrap
+  selects next to `machine-vm` on Linux only, installs a user launcher entry
+  with that override; real hardware keeps the system entry and the GPU.
+
 ### 2026-10-07 — fresh VMs: the one-line install on a vanilla Ubuntu desktop
 
 - **F-45 A fresh Ubuntu desktop has no curl, and `sh -c "$(curl …)"` then

@@ -1,0 +1,16 @@
+# Machine vm, Linux only (selected automatically next to machine-vm, ADR 0001 D-14). The VMPal test VM's
+# virtual GPU offers OpenGL 4.1 and Ghostty needs 4.3, so Ghostty closed its window at once (F-50).
+# A user launcher entry, which overrides the system one by name, starts it with Mesa's software
+# renderer (OpenGL 4.5). Real hardware keeps the system entry and the GPU.
+[dotfiles]
+"~/.local/share/applications/com.mitchellh.ghostty.desktop" = { content = """
+[Desktop Entry]
+Type=Application
+Name=Ghostty
+Comment=A terminal emulator (software rendering: this VM's GPU offers OpenGL 4.1, Ghostty needs 4.3)
+Exec=env LIBGL_ALWAYS_SOFTWARE=1 ghostty
+Icon=com.mitchellh.ghostty
+Terminal=false
+Categories=System;TerminalEmulator;
+StartupWMClass=com.mitchellh.ghostty
+""", permissions = "0644" }
