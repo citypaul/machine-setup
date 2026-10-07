@@ -1,8 +1,10 @@
 #!/bin/sh
 # machine-setup bootstrap: one command sets up this machine, and the same command converges it later.
 #
-#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh)" -- \
+#   u=https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh
+#   sh -c "$(curl -fsSL $u 2>/dev/null || wget -qO- $u 2>/dev/null || echo 'echo could not download bootstrap.sh >&2; exit 1')" -- \
 #       --profile personal --role desktop --machine studio
+#   (curl on macOS, wget on a fresh Ubuntu desktop, which has no curl until this script installs it)
 #
 # Flags select config environments (plan.md §4.9): --profile personal|work, --role <r> (repeatable,
 # additive), --machine <id>. The OS is detected; the Linux distro family comes from /etc/os-release,
@@ -24,7 +26,8 @@ have() { command -v "$1" >/dev/null 2>&1; }
 usage() {
   cat <<'USAGE'
 usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>] [--os-family <family>]
-                    [--dir <checkout>] [--repo <url>] [--ref <ref>] [--select-only] [--dry-run] [--yes]
+                    [--git-email <addr>] [--dir <checkout>] [--repo <url>] [--ref <ref>]
+                    [--select-only] [--dry-run] [--yes]
 
   --profile      personal or work; decides which apps and configs load
   --role         additive role, e.g. desktop, conquer (repeat the flag or separate with commas)

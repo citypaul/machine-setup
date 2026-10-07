@@ -750,6 +750,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
 
+### 2026-10-07 — fresh VMs: the one-line install on a vanilla Ubuntu desktop
+
+- **F-45 A fresh Ubuntu desktop has no curl, and `sh -c "$(curl …)"` then
+  exits 0.** On the reinstalled Ubuntu 26.04.1 VM (wget and perl present; no
+  git, no curl) the README's one-liner printed `curl: not found` and ran an
+  empty script, which succeeds, so nothing happened and nothing said so.
+  The one-liner now downloads with curl or wget and, when neither works,
+  runs `echo could not download bootstrap.sh >&2; exit 1` instead of
+  nothing; checked on both paths and with an unreachable URL (exit 1).
+  `bootstrap.sh` installs curl itself once it runs.
+
 ### 2026-10-07 — slice 10: the first migration rehearsal (macOS VM)
 
 - **F-44 A checkout under the home directory broke the migration plan.**

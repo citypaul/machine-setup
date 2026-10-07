@@ -32,12 +32,15 @@ It is not yet safe to run on a machine you care about: see
 
 ## Set up a machine
 
-On a disposable machine (a VM or a CI runner), with nothing installed, not
-even git or the Xcode Command Line Tools:
+On a machine with nothing installed, not even git or the Xcode Command Line
+Tools:
 
 ```bash
-sh -c "$(curl -fsSL https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh)" -- --profile personal --role desktop --machine studio --yes
+u=https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh; sh -c "$(curl -fsSL $u 2>/dev/null || wget -qO- $u 2>/dev/null || echo 'echo could not download bootstrap.sh >&2; exit 1')" -- --profile personal --role desktop --machine studio --yes
 ```
+
+It downloads the script with `curl` (macOS) or `wget` (a fresh Ubuntu desktop
+has no curl) and stops with an error if it cannot download either way.
 
 What happens, in order:
 
