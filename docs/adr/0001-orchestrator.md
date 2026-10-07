@@ -777,6 +777,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   restores the folded link exactly. The rehearsal's "ROLLBACK EXACT" before
   this fix was vacuous: the injected failure never ran, the conflict check
   stopped first.
+- **F-52 The migration installed prerequisites before unfolding.** The
+  second rehearsal run unfolded and rolled back exactly (1,017 paths, 12
+  links identical), then the real migration failed 28 minutes in: its
+  prerequisites (`mise bootstrap --only files,packages,tools`) ran before the
+  unfold, and the files phase refused to manage `~/.gnupg` as a directory
+  while it was still a folded link ("refusing to replace non-directory path
+  /Users/paul/.gnupg"). It rolled back cleanly. The unfold now runs first,
+  inside the rollback, so a failure while installing prerequisites restores
+  the folds too. A mise wrapper in `04-migrate` fails the run if
+  prerequisites meet a folded `~/.gnupg`. On Paul's Mac `~/.gnupg` is a real
+  directory, so this exact failure would not have happened there.
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append
