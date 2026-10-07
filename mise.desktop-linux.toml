@@ -2,7 +2,7 @@
 # set comes from the vendors' apt repositories: their signing keys are vendored under files/ (ASCII
 # armored, F-29; fingerprints in ADR 0001 D-30) and pre-packages files add the sources. Alacritty is
 # Ubuntu's package, Ghostty comes from the ghostty-ubuntu builds through a task (no repository, D-31),
-# Obsidian is a Flatpak from Flathub (the pre-packages hook installs flatpak and adds the remote).
+# Obsidian is a per-user Flatpak from Flathub (the pre-packages hook installs flatpak and adds the remote).
 # Not declared (D-30): Cursor has no supported Linux arm64 channel; Firefox is Ubuntu's own snap.
 [bootstrap.directories."/etc/apt/keyrings"]
 mode = "0755"
@@ -90,7 +90,7 @@ phase = "pre-packages"
 "apt:docker-buildx-plugin" = "latest"
 "apt:docker-compose-plugin" = "latest"
 "apt:flatpak" = "latest"
-"flatpak:md.obsidian.Obsidian" = "latest"
+"flatpak-user:md.obsidian.Obsidian" = "latest"   # user scope: a system install needs polkit, which an unattended run lacks (F-42)
 
 [bootstrap.services.docker]
 state = "running"

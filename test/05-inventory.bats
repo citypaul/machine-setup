@@ -8,7 +8,7 @@ all_package_keys() { cat "$REPO_ROOT"/mise*.toml | sed -n -E 's/^"([a-z-]+:[^"]+
 @test "every declared package key names a manager this setup uses" {
   local key bad=()
   for key in $(all_package_keys); do
-    case "$key" in brew:*|brew-cask:*|apt:*|mas:*|flatpak:*) ;; *) bad+=("$key") ;; esac
+    case "$key" in brew:*|brew-cask:*|apt:*|mas:*|flatpak:*|flatpak-user:*) ;; *) bad+=("$key") ;; esac
   done
   [ ${#bad[@]} -eq 0 ] || { printf 'unexpected manager: %s\n' "${bad[@]}"; return 1; }
 }
@@ -21,7 +21,8 @@ all_package_keys() { cat "$REPO_ROOT"/mise*.toml | sed -n -E 's/^"([a-z-]+:[^"]+
     kind=${key%%:*}; name=${key#*:}
     case "$name" in */*/*) continue ;; esac   # tap-qualified names have no API entry
     if [ "$kind" = brew ]; then url="https://formulae.brew.sh/api/formula/$name.json"; else url="https://formulae.brew.sh/api/cask/$name.json"; fi
-    curl -fsI --max-time 15 "$url" >/dev/null 2>&1 || bad+=("$key")
+    # Retries: one dropped request among ~150 failed a CI run for a formula that exists (ollama, 2026-10-07).
+    curl -fsI --max-time 15 --retry 3 --retry-delay 2 --retry-all-errors "$url" >/dev/null 2>&1 || bad+=("$key")
     n=$((n + 1))
   done
   [ "$n" -gt 0 ]

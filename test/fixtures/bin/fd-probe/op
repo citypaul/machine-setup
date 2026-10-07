@@ -1,7 +1,9 @@
-#!/bin/sh
-# Fake op whose `whoami` records which descriptors beyond stdio it inherited (the real CLI starts a
-# daemon that keeps them open), then reports "not signed in".
-open=''
-for fd in 3 4 5 6 7 8 9; do if (eval "true >&$fd") 2>/dev/null; then open="$open $fd"; fi; done
-echo "open:${open:- none}" > "$FD_PROBE"
-exit 1
+#!/usr/bin/env perl
+# Fake op whose `whoami` records every descriptor above 2 it inherited (the real CLI starts a daemon
+# that keeps them open), then reports "not signed in".
+use strict; use warnings; use POSIX ();
+my @open = grep { my $d = POSIX::dup($_); defined $d and POSIX::close($d) == 0 } 3 .. 1023;
+open(my $probe, '>', $ENV{FD_PROBE}) or die "fd-probe: $!\n";
+print {$probe} 'open: ', (@open ? join(' ', @open) : 'none'), "\n";
+close $probe;
+exit 1;

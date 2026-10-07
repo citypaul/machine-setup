@@ -477,7 +477,10 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   its VPN configuration was never approved), and a whole converge hung with
   it. Every CLI call in `tasks/tailscale-join` is now bounded by an alarm;
   on macOS a silent daemon gets the instruction to open the app once. A
-  fake whose daemon never answers covers it in `60-conquer`.
+  fake whose daemon never answers covers it in `60-conquer`. The block covers
+  every command, `version` included: the Conquer test sat 50 minutes in
+  `tailscale version` on the macOS VM, so the test reads the app bundle's
+  version instead and nothing runs the CLI unbounded.
 - **D-32 CI runners take the Conquer role, not the desktop role.** With
   `60-conquer` adding `desktop,conquer`, every macOS job would install the
   whole GUI set (fifty casks, MacTeX: about 50 minutes on the macOS VM,
@@ -635,13 +638,15 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   plugin file never matched the loader, so it never loaded), the two cask
   receipt scripts (mise owns casks and repairs drift itself, E-13/E-25);
   `ensure-mac-permissions` moves to slice 9's `doctor`.
-- **F-39 A `[bootstrap.repos]` ref that names both a tag and a branch must
-  be written in full.** NvChad has a tag and a branch called `v2.0`; git
-  resolves the bare name to the tag, so mise compared the branch checkout
-  with the tag's commit and reported `differs` after every converge
-  (`ref_is_current` in `src/system/repos.rs`), which failed six drift
-  checks on the Ubuntu VM. `refs/heads/v2.0` names the branch and reads as
-  `current`; a commit SHA does too (both tried on the VM).
+- **F-39 Pin `[bootstrap.repos]` to a commit.** NvChad has a tag and a branch
+  called `v2.0`, so `ref = "v2.0"` resolved to the tag and read `differs`
+  after every converge on the Ubuntu VM. `refs/heads/v2.0` read as current
+  there only because that old checkout had a local branch: a fresh clone of
+  it (CI) is a detached HEAD, which mise compares by local branch name, so it
+  read `differs` forever and failed every later drift check
+  (`ref_is_current` in `src/system/repos.rs`). A full commit SHA compares by
+  SHA and is current everywhere; NvChad is pinned to
+  `3091ea58359bb85f087499bd73fbc0a57a935c34`, the v2.0 commit on Paul's Mac.
 - **F-40 A sandboxed app's preferences need Full Disk Access.** Writing
   `com.apple.notificationcenterui` (the banner time from `osx.yaml`) failed
   with "failed to synchronize macOS preference domain … may require Full
@@ -666,7 +671,7 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   1Password's arm64 repository publishes `1password-cli` only (the first
   Ubuntu VM converge failed with "Unable to locate package 1password"),
   so the desktop app is declared for `linux/x64` and the CLI everywhere.
-  Alacritty is Ubuntu's own package. Obsidian is a system Flatpak from
+  Alacritty is Ubuntu's own package. Obsidian is a per-user Flatpak from
   Flathub (aarch64 and x86_64): mise installs neither flatpak nor the
   remote, so a `pre-packages` hook does. Docker's daemon is a declared
   service and a task puts the user in the `docker` group. Not declared:
@@ -675,6 +680,12 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   as a snap already). Mozilla's apt repository has no arm64 packages
   (checked: 404), so Brave is the declared browser. Repositories were
   checked for Ubuntu 26.04 (`resolute`) on arm64 before being declared.
+- **F-42 A system Flatpak needs polkit; an unattended run has none.** The
+  first desktop converge on the Ubuntu VM failed at "Flatpak system
+  operation GetRevokefsFd not allowed for user": `flatpak install --system`
+  asks polkit, and a run from a script or ssh has no session to answer.
+  Obsidian is a `flatpak-user:` entry and the Flathub remote is added in
+  user scope, which need no privilege.
 - **D-31 Ghostty on Ubuntu is a task, not a package entry.** There is no
   repository; Ghostty's docs point at the `ghostty-ubuntu` builds (one
   `.deb` per release and architecture). `tasks/ghostty-linux` resolves the
@@ -739,6 +750,19 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Unattended bootstrap in the VMs therefore needs Paul to grant passwordless
   sudo to the VM user himself, and the VMs fetch the repo from GitHub.
 
+### 2026-10-07 — main's first CI run with every slice
+
+- **F-43 A declared service never converges without systemd.** In the CI
+  container the Conquer role's `tailscaled` reads `unavailable … unknown`,
+  so `status --missing` could never pass there once the role was added.
+  A first attempt taught `doctor` to parse mise's status table and ignore
+  service rows; it assumed the table lists only unconverged rows (it lists
+  all of them) and was fragile even then, so it was removed. Instead the
+  container never takes the role (`60-conquer` skips where systemd is not
+  PID 1; the Ubuntu VM covers it) and `doctor` uses mise's own exit code.
+  The bootstrap test also checked a desktop-only group (Ghostty) and two
+  tests a hard-coded machine id; they now follow `MACHINE_SETUP_TEST_MACHINE`.
+
 ### 2026-10-07 — CI: the macOS job hung after its last test
 
 - **F-41 A daemon started during a run holds the test runner's pipe.**
@@ -751,3 +775,20 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   (CI); the VMs had it already. `bootstrap.sh` runs `mise bootstrap` and
   `op whoami` with stdio only (`stdio_only`), and two tests in
   `00-bootstrap-cli` prove neither inherits a descriptor beyond stdio.
+  The same hang returned on PR #13's macOS job (116 of 116 passed in ten
+  minutes, then nothing). Reproduced on the macOS VM with its daemons
+  stopped and inspected as root: the process holding the write end of the
+  pipe bats was reading was `op daemon`, on **fd 12**, not 3. bats runs each
+  test inside a redirected group, and macOS's bash 3.2 saves the original
+  descriptors above 9 without marking them close-on-exec, so every command
+  a test starts inherits a copy of bats' output pipe there; Linux's bash 5
+  marks them, which is why only macOS hung. (An `scdaemon` holding a pipe on
+  fd 3 was a false lead: its fds 3 and 4 are its own internal pipe.) The
+  fix closes every descriptor above 2, not 3 to 9: `stdio_only` is a Perl
+  exec wrapper (dash cannot name descriptors above 9; Perl ships with macOS
+  and is essential on Debian) in `bootstrap.sh`, `doctor`, `update` and the
+  test helpers, and the bootstrap tests hold fd 13 open to prove it.
+  `test/run.sh` also guards the run: once every planned test has reported,
+  bats gets 60 seconds to exit, then the runner names every process
+  holding the pipe bats is waiting on (lsof on macOS, /proc on Linux) and
+  fails; a synthetic leak fails in nine seconds and names the holder.

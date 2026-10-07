@@ -70,7 +70,7 @@ shims="$HOME/.local/share/mise/shims"
 
 @test "the login shell is zsh, so ssh and cron shells read .zshenv and .zprofile" {
   # Run the task here too so its output is visible on failure (bats hides it inside bootstrap).
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run login-shell"
+  run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run login-shell"
   [ "$status" -eq 0 ]
   local user shell; user=$(id -un)
   if is_macos; then shell=$(dscl . -read "/Users/$user" UserShell | awk '{print $2}'); else shell=$(getent passwd "$user" | cut -d: -f7); fi
@@ -147,12 +147,12 @@ arrange_sshd() {
 }
 
 @test "agent-browser's browser is installed where Chrome for Testing supports the platform, and the task is idempotent" {
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
+  run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
   [ "$status" -eq 0 ]
   if [[ "$output" == *"unsupported here"* ]]; then skip "no Chrome for Testing build for this platform"; fi
   [[ "$output" != *"warning:"* ]]
   # agent-browser names its own cache; the observable contract is that a second run finds the browser.
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
+  run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run install-browsers"
   [ "$status" -eq 0 ]
   [[ "$output" == *"already"* ]]
 }
@@ -168,7 +168,9 @@ arrange_sshd() {
 @test "Oh My Zsh, the NvChad config and neovim are present (declared repos and a formula)" {
   [ -f "$HOME/.oh-my-zsh/oh-my-zsh.sh" ]
   [ -f "$HOME/.config/nvim/init.lua" ]
-  [ "$(git -C "$HOME/.config/nvim" branch --show-current)" = "v2.0" ]
+  local pin; pin=$(sed -n 's|^"~/.config/nvim" = { url = "[^"]*", ref = "\([0-9a-f]\{40\}\)".*|\1|p' "$REPO_ROOT/mise.toml")
+  [ -n "$pin" ]
+  [ "$(git -C "$HOME/.config/nvim" rev-parse HEAD)" = "$pin" ]
   run zsh -lc 'nvim --version'
   [ "$status" -eq 0 ]
   [[ "$output" == NVIM* ]]

@@ -8,6 +8,9 @@ load helpers
 setup() {
   require_mutation
   [ -x "$HOME/.local/bin/mise" ] || skip "bootstrap has not run on this machine"
+  # The role declares the tailscaled service, which can never run without systemd (the CI container):
+  # taking the role there would leave the machine permanently unconverged. The Ubuntu VM covers it.
+  if [ "$(uname -s)" = Linux ] && [ ! -d /run/systemd/system ]; then skip "no systemd here: the Conquer role needs its service (F-43)"; fi
 }
 
 # The roles the test machines take from here on: the VMs add desktop too (80/90 need it); CI sets
@@ -18,8 +21,14 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --role "$test_roles" --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *",conquer,"* ]]
-  run zsh -lc 'tailscale version'
-  [ "$status" -eq 0 ]
+  if is_macos; then
+    # The app's CLI blocks on every command, `version` included, until the app has been opened once
+    # and its VPN configuration approved (ADR 0001 F-38); read the installed version from the bundle.
+    [ -n "$(defaults read /Applications/Tailscale.app/Contents/Info CFBundleShortVersionString)" ]
+  else
+    run stdio_only zsh -lc 'tailscale version'
+    [ "$status" -eq 0 ]
+  fi
 }
 
 @test "the Tailscale daemon is running (Linux)" {
@@ -38,14 +47,14 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
 
 @test "the join task is a no-op when already connected" {
   export PATH="$FIXTURES/bin/tailscale-connected:$PATH"
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
   [ "$status" -eq 0 ]
   [[ "$output" == *"already connected"* ]]
 }
 
 @test "the join task prints the OIDC login URL and stops when the network needs a login" {
   export PATH="$FIXTURES/bin/tailscale-needs-login:$PATH"
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
   [ "$status" -eq 0 ]
   [[ "$output" == *"https://login.example/register/abc"* ]]
   [[ "$output" == *"--login-server https://"* ]]
@@ -54,7 +63,7 @@ test_roles="${MACHINE_SETUP_TEST_ROLES:-desktop,conquer}"
 @test "the join task returns within its timeouts and says so when the daemon never answers" {
   export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
   local started; started=$(date +%s)
-  run bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
+  run stdio_only bash -c "cd '$REPO_ROOT' && '$HOME/.local/bin/mise' run tailscale-join"
   [ "$status" -eq 0 ]
   [ $(( $(date +%s) - started )) -lt 50 ]
   [[ "$output" == *"did not answer"* ]]

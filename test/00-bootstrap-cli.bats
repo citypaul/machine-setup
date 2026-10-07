@@ -93,8 +93,9 @@ setup() {
 }
 
 # A daemon started during a run (the 1Password CLI starts one when its cask generates completions)
-# inherits every descriptor the run had. bats waits for EOF on fd 3, so a held descriptor hung the
-# macOS CI job after its last test until the timeout (ADR 0001 F-41). mise and op must get stdio only.
+# inherits every descriptor the run had. bats keeps its output pipe on fd 3 and on copies above 9,
+# and waits for EOF on it, so a held descriptor hung the macOS CI job after its last test until the
+# timeout (ADR 0001 F-41). mise and op must get stdio only; the tests hold fd 13 open to prove it.
 prerequisites_present() {
   if is_macos; then xcode-select -p >/dev/null 2>&1 && [ -x /opt/homebrew/bin/brew ]
   else command -v git >/dev/null && command -v curl >/dev/null && [ -e /etc/ssl/certs/ca-certificates.crt ]; fi
@@ -107,7 +108,7 @@ prerequisites_present() {
   cp "$FIXTURES/bin/fd-probe/mise" "$HOME/.local/bin/mise"
   export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-v\([^}]*\)}"$/\1/p' "$REPO_ROOT/bootstrap.sh")
   export FD_PROBE="$BATS_TEST_TMPDIR/fd-probe"
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes 13>"$BATS_TEST_TMPDIR/held"
   [ "$status" -eq 0 ]
   [ "$(cat "$FD_PROBE")" = "open: none" ]
 }
@@ -116,7 +117,7 @@ prerequisites_present() {
   { true >&3; } 2>/dev/null || skip "no descriptor 3 to leak in this harness"
   sed -i.bak 's/^secret_envs = ".*"$/secret_envs = "conquer"/' "$CO/mise.toml"
   export PATH="$FIXTURES/bin/fd-probe:$PATH" FD_PROBE="$BATS_TEST_TMPDIR/fd-probe"
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes 13>"$BATS_TEST_TMPDIR/held"
   [ "$status" -eq 0 ]
   [ "$(cat "$FD_PROBE")" = "open: none" ]
 }

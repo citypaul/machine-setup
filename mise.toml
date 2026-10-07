@@ -63,10 +63,10 @@ mode = "0700"
 
 # Checkouts the shell and editor configs expect (mac-dev-machine-setup zsh.yaml, nvim.yaml). mise clones
 # them when missing and otherwise leaves them alone; URLs match the checkouts already on Paul's Macs.
-# NvChad's v2.0 branch is what the existing config runs; it is frozen upstream (ADR 0001 D-29).
+# NvChad is pinned to the v2.0 commit the existing config runs; that branch is frozen upstream (ADR 0001 D-29).
 [bootstrap.repos]
 "~/.oh-my-zsh" = { url = "https://github.com/ohmyzsh/ohmyzsh.git" }
-"~/.config/nvim" = { url = "https://github.com/NvChad/NvChad", ref = "refs/heads/v2.0" }   # full form: a bare branch name never reads as current (F-39)
+"~/.config/nvim" = { url = "https://github.com/NvChad/NvChad", ref = "3091ea58359bb85f087499bd73fbc0a57a935c34" }   # the v2.0 commit Paul runs; a branch ref never reads as current on a fresh clone (F-39)
 
 # CLI tools for every machine, Homebrew bottles poured by mise on both OSes (plan D4).
 # Ported from mac-dev-machine-setup/Brewfile.cli. Not here on purpose: agent-browser, gemini-cli
