@@ -760,6 +760,29 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   selects next to `machine-vm` on Linux only, installs a user launcher entry
   with that override; real hardware keeps the system entry and the GPU.
 
+### 2026-10-07 — the macOS rehearsal on a fresh VM
+
+- **F-48 GNU Stow folds directories, and the migration took their files for
+  real ones.** Where a directory did not exist when a package was stowed,
+  Stow links the whole directory (`~/.config/ghostty -> ../.dotfiles/
+  ghostty/.config/ghostty`). The rehearsal's dry run refused five such
+  targets as "real files"; on Paul's Mac three are folded (both Ghostty
+  config folders and `~/.config/zellij`; his `~/.gnupg` and
+  `~/.config/herdr` are real directories). `tasks/migrate` now detects a
+  link into the Stow dir among a target's parents, does not count files
+  under it as conflicts, and before the swap unfolds it the way Stow does:
+  a real directory with the folded one's permissions and one journaled link
+  per entry. Managed files are then replaced as usual; anything else stays
+  linked into the old Stow dir and is listed at the end; a rollback
+  restores the folded link exactly. The rehearsal's "ROLLBACK EXACT" before
+  this fix was vacuous: the injected failure never ran, the conflict check
+  stopped first.
+- **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
+  nor `! cmd` under any bash.** A test for the fold rollback passed with
+  status 3 and no "rolled back" in its output. bats documents both: append
+  `|| false`. The two new tests do; the rest of the suite is swept
+  separately.
+
 ### 2026-10-07 — fresh VMs: the one-line install on a vanilla Ubuntu desktop
 
 - **F-45 A fresh Ubuntu desktop has no curl, and `sh -c "$(curl …)"` then

@@ -56,11 +56,39 @@ while IFS= read -r p; do
   rendered+=("${p/#\~/$HOME}")
 done < <(cd "$checkout" && "$mise_bin" dot apply --dry-run 2>/dev/null | sed -n -E 's/^render .* -> (~\/[^ ]+).*/\1/p; s/^cp .* (~\/[^ ]+)$/\1/p' | sort -u)
 
+# GNU Stow "folds" a directory that did not exist yet into one link to the package directory
+# (~/.config/ghostty -> ../.dotfiles/ghostty/.config/ghostty). A target under such a link is not a
+# real file of the user's; the swap unfolds the directory first, as Stow itself does (ADR 0001 F-48).
+stow_real=$(cd "$stow_dir" 2>/dev/null && pwd -P || true)
+fold_point() {   # the ancestor of $1 below HOME that is a link into the Stow dir, if any
+  local rest=${1#"$HOME"/} p=$HOME part real
+  [ -n "$stow_real" ] || return 1
+  while [ "${rest#*/}" != "$rest" ]; do
+    part=${rest%%/*}; rest=${rest#*/}; p="$p/$part"
+    if [ -L "$p" ]; then
+      real=$(cd "$p" 2>/dev/null && pwd -P) || return 1
+      case "$real/" in "$stow_real"/*) printf '%s\n' "$p"; return 0 ;; esac
+      return 1
+    fi
+  done
+  return 1
+}
+folds=()
+for t in ${targets[@]+"${targets[@]}"} ${rendered[@]+"${rendered[@]}"}; do
+  f=$(fold_point "$t") || continue
+  case " ${folds[*]+"${folds[*]}"} " in *" $f "*) ;; *) folds+=("$f") ;; esac
+done
+if [ ${#folds[@]} -gt 0 ]; then
+  say "Stow folded these directories into single links; the migration will unfold them first:"
+  for f in "${folds[@]}"; do printf '  %s -> %s\n' "$f" "$(readlink "$f")"; done
+fi
+
 # 2. Conflicts: a real file or directory where a link or a rendered file will go stops the
-#    migration unless --force.
+#    migration unless --force. A file reached through a folded directory is not one.
 conflicts=()
 for t in ${targets[@]+"${targets[@]}"} ${rendered[@]+"${rendered[@]}"}; do
   case "$t" in *.tera) continue ;; esac
+  fold_point "$t" >/dev/null && continue
   if [ -e "$t" ] && [ ! -L "$t" ]; then conflicts+=("$t"); fi
 done
 if [ ${#conflicts[@]} -gt 0 ] && [ "$force" = 0 ]; then
@@ -105,7 +133,9 @@ rollback() {
   reverse_lines "$journal/journal.log" | while IFS=$'\t' read -r op path detail; do
     case "$op" in
       link) { [ -L "$path" ] || [ -f "$path" ]; } && rm -f "$path" ;;
-      saved-link) ln -sfn "$detail" "$path" ;;
+      saved-link)
+        if [ -d "$path" ] && [ ! -L "$path" ]; then rmdir "$path" 2>/dev/null || say "cannot restore $path: it is not empty"; fi
+        [ -d "$path" ] && [ ! -L "$path" ] || ln -sfn "$detail" "$path" ;;
       saved-file) cp -p "$journal/saved/$detail" "$path" ;;
       mkdir) rmdir "$path" 2>/dev/null ;;
     esac
@@ -115,6 +145,18 @@ rollback() {
 on_error() { rollback; exit 1; }
 trap on_error ERR
 fail_injected() { say "injected failure $1"; return 1; }
+
+# Unfold: a real directory with the folded one's permissions, and one link per entry, as Stow does.
+for d in ${folds[@]+"${folds[@]}"}; do
+  src=$(cd "$d" && pwd -P); mode=$(file_mode "$src")
+  record saved-link "$d" "$(readlink "$d")"; rm "$d"
+  mkdir "$d"; record mkdir "$d"; chmod "$mode" "$d"
+  for e in "$src"/* "$src"/.[!.]* "$src"/..?*; do
+    [ -e "$e" ] || [ -L "$e" ] || continue
+    ln -s "$e" "$d/${e##*/}"; record link "$d/${e##*/}" "$e"
+  done
+  say "unfolded $d"
+done
 
 writes=0
 for i in "${!targets[@]}"; do
@@ -167,5 +209,16 @@ if [ "${MACHINE_SETUP_MIGRATE_FAIL_AT:-}" = verify ]; then fail_injected "during
 if command -v zsh >/dev/null 2>&1; then zsh -ic 'exit 0' >/dev/null 2>&1; fi
 
 trap - ERR
+leftover=()
+for d in ${folds[@]+"${folds[@]}"}; do
+  for e in "$d"/* "$d"/.[!.]* "$d"/..?*; do
+    [ -L "$e" ] || continue
+    case "$(readlink "$e")" in "$stow_real"/*|"$stow_dir"/*) leftover+=("$e") ;; esac
+  done
+done
+if [ ${#leftover[@]} -gt 0 ]; then
+  say "still linked into the old Stow dir (move these before you delete it):"
+  printf '  %s\n' "${leftover[@]}"
+fi
 say "migrated ${#targets[@]} targets into $checkout; originals are kept in $journal/saved"
 say "the old Stow dir $stow_dir was not touched; remove it yourself once you are happy"
