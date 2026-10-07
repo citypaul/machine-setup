@@ -11,8 +11,8 @@ setup() {
 @test "doctor passes on a converged machine (warnings allowed)" {
   run "$REPO_ROOT/tasks/doctor"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"OK"*"drift"* ]]
-  [[ "$output" == *"OK"*"login shell"* ]]
+  [[ "$output" == *"OK"*"drift"* ]] || false
+  [[ "$output" == *"OK"*"login shell"* ]] || false
 }
 
 @test "update --dry-run on a converged machine leaves it converged" {
@@ -20,5 +20,5 @@ setup() {
   [ "$status" -eq 0 ]
   run "$REPO_ROOT/tasks/doctor"   # doctor's drift check knows which services a machine can manage
   [ "$status" -eq 0 ]
-  [[ "$output" == *"OK"*"drift"* ]]
+  [[ "$output" == *"OK"*"drift"* ]] || false
 }

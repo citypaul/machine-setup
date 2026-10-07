@@ -26,15 +26,15 @@ packages_for() {
 @test "the machine file is loaded by its env name, also when mise is invoked from outside the checkout" {
   run mise -C "$CO" -E personal,desktop,machine-studio config ls
   [ "$status" -eq 0 ]
-  [[ "$output" == *"mise.machine-studio.toml"* ]]
+  [[ "$output" == *"mise.machine-studio.toml"* ]] || false
 }
 
 @test "the saved selection is honoured from inside the checkout" {
   run bash -c "cd '$CO' && '$(mise_bin)' config ls"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"mise.personal.toml"* ]]
-  [[ "$output" == *"mise.desktop.toml"* ]]
-  [[ "$output" == *"mise.machine-studio.toml"* ]]
+  [[ "$output" == *"mise.personal.toml"* ]] || false
+  [[ "$output" == *"mise.desktop.toml"* ]] || false
+  [[ "$output" == *"mise.machine-studio.toml"* ]] || false
 }
 
 @test "machine-studio deploys both the zsh and the ghostty groups" {
@@ -62,17 +62,17 @@ packages_for() {
   local app
   if is_macos; then app=spotify; else app=cmatrix; fi
   packages_for personal | grep -qx "$app"
-  ! packages_for work | grep -qx "$app"
+  ! packages_for work | grep -qx "$app" || false
 }
 
 @test "the removal allowlist composes across the profile and machine layers" {
   run bash -c "cd '$CO' && '$(mise_bin)' -E work,machine-studio run remove-packages --dry-run"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"spotify"* && "$output" == *"discord"* && "$output" == *"jellyfin"* ]]
-  [[ "$output" == *"cmatrix"* ]]
+  [[ "$output" == *"spotify"* && "$output" == *"discord"* && "$output" == *"jellyfin"* ]] || false
+  [[ "$output" == *"cmatrix"* ]] || false
   run bash -c "cd '$CO' && '$(mise_bin)' -E personal,machine-studio run remove-packages --dry-run"
   [ "$status" -eq 0 ]
-  [[ "$output" != *"spotify"* ]]
+  [[ "$output" != *"spotify"* ]] || false
 }
 
 # Package keys declared in one layer file, e.g. brew-cask:spotify, apt:cmatrix.
@@ -111,8 +111,8 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 
 @test "work-only removals do not apply to the personal profile" {
   local plan; plan=$(removal_plan_for personal,machine-studio)
-  [[ "$plan" != *"brave-browser"* ]]
-  [[ "$plan" != *"protonvpn"* ]]
+  [[ "$plan" != *"brave-browser"* ]] || false
+  [[ "$plan" != *"protonvpn"* ]] || false
 }
 
 @test "the Linux desktop overlay declares the GUI set from the vendors' repositories for both profiles (D7)" {
@@ -125,7 +125,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   if [ "$(uname -m)" = x86_64 ]; then grep -qx 1password <<<"$pk"; else ! grep -qx 1password <<<"$pk"; fi
   pk=$(packages_for work,desktop,desktop-linux)
   grep -qx code <<<"$pk"
-  ! grep -qx spotify <<<"$pk"
+  ! grep -qx spotify <<<"$pk" || false
 }
 
 @test "every vendor apt key vendored under files/ is an ASCII-armored public key, so mise can deploy it (F-29)" {

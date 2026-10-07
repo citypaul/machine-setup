@@ -23,7 +23,7 @@ as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
 @test "bootstrap sets up a fresh machine: mise installed, groups linked, packages present, state converged" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile personal --machine "${MACHINE_SETUP_TEST_MACHINE:-vm}" --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]]   # roles may be carried over from an earlier selection
+  [[ "$output" == *"envs=personal,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]] || false   # roles may be carried over from an earlier selection
   [ -x "$HOME/.local/bin/mise" ]
   [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/zsh/.zshrc" ]
   [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/tmux/.tmux.conf" ]   # a group every machine list has
@@ -77,7 +77,7 @@ as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
 @test "running bootstrap again without flags reuses the selection and changes nothing" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]]   # roles may be carried over from an earlier selection
+  [[ "$output" == *"envs=personal,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]] || false   # roles may be carried over from an earlier selection
   run mise_in_checkout bootstrap status --missing
   [ "$status" -eq 0 ]
 }

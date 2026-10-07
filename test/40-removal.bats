@@ -9,30 +9,29 @@ setup() {
   [ -x "$HOME/.local/bin/mise" ] || skip "bootstrap has not run on this machine"
 }
 
-status_missing() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" bootstrap status --missing >/dev/null 2>&1); }
 
 @test "switching to the work profile removes the personal apps and leaves undeclared software alone" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile work --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=work,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]]   # roles may be carried over from an earlier selection
+  [[ "$output" == *"envs=work,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]] || false   # roles may be carried over from an earlier selection
   if is_macos; then
     [ ! -d /Applications/Spotify.app ]
     [ -d /Applications/1Password.app ]
     [ -d /Applications/Ghostty.app ]
     [ -d "/Applications/Visual Studio Code.app" ]
   else
-    ! dpkg -s cmatrix >/dev/null 2>&1
+    ! dpkg -s cmatrix >/dev/null 2>&1 || false
   fi
   # Undeclared software survives: only checkable when 10-bootstrap arranged some in this run.
   if [ -f "$BATS_RUN_TMPDIR/arranged" ]; then
     if is_macos; then brew list hello >/dev/null; else dpkg -s sl >/dev/null; fi
   fi
-  status_missing
+  converged
 }
 
 @test "switching back to personal reinstalls the personal apps" {
   run "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --profile personal --yes
   [ "$status" -eq 0 ]
   if is_macos; then [ -d /Applications/Spotify.app ]; else dpkg -s cmatrix >/dev/null; fi
-  status_missing
+  converged
 }

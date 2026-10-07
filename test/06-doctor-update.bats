@@ -20,8 +20,8 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   with_mise
   run "$CO/tasks/doctor"
   [ "$status" -eq 1 ]
-  [[ "$output" == *"FAIL"*"selection"* ]]
-  [[ "$output" == *"bootstrap.sh"* ]]
+  [[ "$output" == *"FAIL"*"selection"* ]] || false
+  [[ "$output" == *"bootstrap.sh"* ]] || false
 }
 
 @test "doctor fails when mise itself is missing, before anything else" {
@@ -29,15 +29,15 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   select_envs "$CO" personal - studio >/dev/null
   MISE_BIN= PATH="$FIXTURES/bin/op-locked:/usr/bin:/bin" run "$CO/tasks/doctor"
   [ "$status" -eq 1 ]
-  [[ "${lines[0]}" == *"FAIL"*"mise"* ]]
+  [[ "${lines[0]}" == *"FAIL"*"mise"* ]] || false
 }
 
 @test "doctor reports a locked 1Password as a warning, never a failure" {
   with_mise
   select_envs "$CO" personal - studio >/dev/null
   run "$CO/tasks/doctor"
-  [[ "$output" == *"WARN"*"1Password"*"not signed in"* ]]
-  ! grep -q "FAIL.*1Password" <<<"$output"
+  [[ "$output" == *"WARN"*"1Password"*"not signed in"* ]] || false
+  ! grep -q "FAIL.*1Password" <<<"$output" || false
 }
 
 @test "doctor reports the Conquer state from tailscale only when the role is selected" {
@@ -45,12 +45,12 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   # Without the role first: a re-run without --role keeps the saved roles, so the order matters.
   select_envs "$CO" personal - studio >/dev/null
   PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/doctor"
-  [[ "$output" != *"Tailscale"* ]]
+  [[ "$output" != *"Tailscale"* ]] || false
   select_envs "$CO" personal conquer studio >/dev/null
   PATH="$FIXTURES/bin/tailscale-needs-login:$PATH" run "$CO/tasks/doctor"
-  [[ "$output" == *"WARN"*"Tailscale"*"login"* ]]
+  [[ "$output" == *"WARN"*"Tailscale"*"login"* ]] || false
   PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/doctor"
-  [[ "$output" == *"OK"*"Tailscale"*"connected"* ]]
+  [[ "$output" == *"OK"*"Tailscale"*"connected"* ]] || false
 }
 
 @test "doctor ends with a summary line and exits 1 while the checkout has never been converged" {
@@ -58,8 +58,8 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   select_envs "$CO" personal - studio >/dev/null
   run "$CO/tasks/doctor"
   [ "$status" -eq 1 ]
-  [[ "${lines[${#lines[@]}-1]}" == doctor:*checks*failed* ]]   # bash 3.2: no negative index
-  [[ "$output" == *"FAIL"*"drift"* ]]
+  [[ "${lines[${#lines[@]}-1]}" == doctor:*checks*failed* ]] || false   # bash 3.2: no negative index
+  [[ "$output" == *"FAIL"*"drift"* ]] || false
 }
 
 @test "update --dry-run shows the package and tool upgrade plan and changes nothing; unknown flags are refused" {
@@ -67,10 +67,10 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   select_envs "$CO" personal - studio >/dev/null
   run "$CO/tasks/update" --dry-run
   [ "$status" -eq 0 ]
-  [[ "$output" == *"update: packages"* ]]
-  [[ "$output" == *"update: tools"* ]]
-  [[ "$output" == *"update: skills pinned to v"* ]]
-  [[ "$output" == *"dry run"* ]]
+  [[ "$output" == *"update: packages"* ]] || false
+  [[ "$output" == *"update: tools"* ]] || false
+  [[ "$output" == *"update: skills pinned to v"* ]] || false
+  [[ "$output" == *"dry run"* ]] || false
   run "$CO/tasks/update" --bogus
   [ "$status" -eq 2 ]
 }
@@ -80,7 +80,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   select_envs "$CO" personal - studio >/dev/null
   run "$CO/tasks/update" </dev/null
   [ "$status" -eq 0 ]
-  [[ "$output" == *"--yes"* ]]
+  [[ "$output" == *"--yes"* ]] || false
 }
 
 @test "doctor warns when this session's SHELL is not the login shell, so terminals that read SHELL get the wrong one" {
