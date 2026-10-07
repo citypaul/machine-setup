@@ -77,9 +77,11 @@ file_mode() {
 }
 
 # Run the installed mise from the checkout, where the config and the saved selection live.
-# Commands run with descriptor 3 closed: a daemon they start (gpg-agent, scdaemon, op) keeps every
-# descriptor it inherits, and bats waits for EOF on fd 3 before it exits (ADR 0001 F-41).
-mise_in_checkout() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@" 3>&-); }
+# Run a command with stdin, stdout and stderr only. A daemon it starts (op, gpg-agent) keeps every
+# descriptor it inherits; bats keeps its output pipe on fd 3 and on copies above 9 that macOS's bash
+# 3.2 leaves inheritable, and waits for EOF on it (ADR 0001 F-41).
+stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
+mise_in_checkout() { (cd "$REPO_ROOT" && stdio_only "$HOME/.local/bin/mise" "$@"); }
 
 # Where bootstrap keeps the per-machine selection inside a checkout.
 env_list_of() { sed -n 's/^env = \[\(.*\)\]$/\1/p' "$1/.miserc.local.toml" | tr -d '" ' ; }

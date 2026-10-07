@@ -4,9 +4,9 @@
 # by bootstrap.sh and the skills by mise.toml; both change through the repo, not here.
 # Usage: tasks/update [--dry-run] [--yes]
 set -uo pipefail
-# stdio only for everything this runs: the 1Password CLI and gpg start daemons that keep every
-# descriptor they inherit, which hangs a caller waiting on one (ADR 0001 F-41).
-exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-
+# Upgrades run with stdin, stdout and stderr only: a cask upgrade can start a daemon (the 1Password
+# CLI's completion generation) that keeps every descriptor it inherits (ADR 0001 F-41).
+stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
 checkout=$(cd "$(dirname "$0")/.." && pwd)
 dry_run=0 yes=0
 while [ $# -gt 0 ]; do
@@ -25,9 +25,9 @@ cd "$checkout" || exit 1
 export MISE_YES=1
 
 echo "update: packages (declared by this checkout; the plan first)"
-"$mise_bin" bootstrap packages upgrade --dry-run 2>&1 | sed 's/^/  /'
+stdio_only "$mise_bin" bootstrap packages upgrade --dry-run 2>&1 | sed 's/^/  /'
 echo "update: tools (mise [tools])"
-"$mise_bin" upgrade --dry-run 2>&1 | sed 's/^/  /'
+stdio_only "$mise_bin" upgrade --dry-run 2>&1 | sed 's/^/  /'
 pinned=$(sed -n 's/^claude_skills_version = "\(.*\)"$/\1/p' mise.toml)
 # shellcheck disable=SC2016  # a literal ${ in the pattern
 mise_pin=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-\(v[^}]*\)}"$/\1/p' bootstrap.sh)
@@ -48,8 +48,8 @@ if [ "$yes" != 1 ]; then
   fi
 fi
 echo "update: upgrading packages"
-"$mise_bin" bootstrap packages upgrade --yes || { echo "update: package upgrade failed" >&2; exit 1; }
+stdio_only "$mise_bin" bootstrap packages upgrade --yes || { echo "update: package upgrade failed" >&2; exit 1; }
 echo "update: upgrading tools"
-"$mise_bin" upgrade || { echo "update: tool upgrade failed" >&2; exit 1; }
+stdio_only "$mise_bin" upgrade || { echo "update: tool upgrade failed" >&2; exit 1; }
 echo "update: checking the declared state afterwards"
 if "$mise_bin" bootstrap status --missing >/dev/null 2>&1; then echo "update: done, no drift"; else echo "update: done; something drifted, run $checkout/bootstrap.sh --yes"; exit 1; fi

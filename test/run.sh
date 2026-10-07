@@ -57,6 +57,19 @@ if [ "$hung" = 1 ]; then
   echo "run.sh: all $planned tests reported, but bats did not exit within ${grace}s: a process started by a test still holds its output (ADR 0001 F-41). Likely holders:" >&2
   # shellcheck disable=SC2009  # pgrep cannot print the elapsed time and full command portably
   ps -eo pid,ppid,etime,command 2>/dev/null | grep -E '[g]pg-agent|[s]cdaemon|[k]eyboxd|[d]irmngr|[o]p daemon|[h]erdr|[T]ailscale' >&2 || echo "  (none of the usual daemons; check ps)" >&2
+  # The exact holders: every process with the write end of a pipe a bats process is reading from, on
+  # any descriptor (how the op daemon holding fd 12 was found). lsof on macOS, /proc on Linux.
+  descendants() { local c; for c in $(pgrep -P "$1" 2>/dev/null); do echo "$c"; descendants "$c"; done; }
+  echo "run.sh: processes holding the pipe bats is waiting on:" >&2
+  if [ -d /proc/self/fd ]; then
+    for p in $(descendants "$bats_pid"); do readlink "/proc/$p/fd/0" 2>/dev/null; done | grep '^pipe:' | sort -u | while read -r pipe; do
+      for f in /proc/[0-9]*/fd/*; do [ "$(readlink "$f" 2>/dev/null)" = "$pipe" ] && { p=${f#/proc/}; echo "  pid ${p%%/*} fd ${f##*/} $(tr '\0' ' ' < "/proc/${p%%/*}/cmdline" 2>/dev/null | cut -c1-100)"; }; done
+    done >&2
+  elif command -v lsof >/dev/null 2>&1; then
+    for p in $(descendants "$bats_pid"); do lsof -nP -a -p "$p" -d 0 2>/dev/null | awk 'NR > 1 && $5 == "PIPE" {sub(/^->/, "", $NF); print $NF}'; done | sort -u | while read -r peer; do
+      lsof -nP 2>/dev/null | awk -v end="$peer" '$5 == "PIPE" && $6 == end {print "  " $1 " pid " $2 " fd " $4}'
+    done >&2
+  fi
   kill_tree "$bats_pid"
   exit 1
 fi

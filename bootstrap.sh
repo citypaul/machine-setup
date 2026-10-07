@@ -217,10 +217,11 @@ complete_selection() {
   fi
 }
 
-# Run a command with stdio only. The 1Password CLI leaves a daemon behind (on `op whoami`, and when
-# its cask generates completions during `mise bootstrap`); the daemon keeps every descriptor it
-# inherited, so a caller waiting for EOF on one (bats on fd 3) never finishes (ADR 0001 F-41).
-stdio_only() { "$@" 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-; }
+# Run a command with stdin, stdout and stderr only. The 1Password CLI leaves a daemon behind (on
+# `op whoami`, and when its cask generates completions during `mise bootstrap`) that keeps every
+# descriptor it inherited, so a caller waiting for EOF on one never finishes: bats keeps its output
+# pipe on 3 and on copies above 9 (ADR 0001 F-41). Perl closes them all; dash cannot name fds above 9.
+stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
 op_signed_in() { have op && stdio_only op whoami >/dev/null 2>&1; }
 compute_envs() {
   envs=$profile

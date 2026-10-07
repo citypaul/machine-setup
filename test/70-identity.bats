@@ -11,7 +11,7 @@ setup() {
   cd "$HOME"
 }
 
-mise_run() { (cd "$REPO_ROOT" && "$HOME/.local/bin/mise" "$@" 3>&-); }   # fd 3: see helpers.bash
+mise_run() { (cd "$REPO_ROOT" && stdio_only "$HOME/.local/bin/mise" "$@"); }   # see stdio_only in helpers.bash
 current_profile() { sed -n 's/^profile = "\(.*\)"$/\1/p' "$REPO_ROOT/mise.local.toml"; }
 
 @test "git identity is rendered for the personal profile and includes a local override file" {
@@ -41,7 +41,7 @@ current_profile() { sed -n 's/^profile = "\(.*\)"$/\1/p' "$REPO_ROOT/mise.local.
   local pinentry; pinentry=$(sed -n 's/^pinentry-program //p' "$HOME/.gnupg/gpg-agent.conf")
   [ -x "$pinentry" ] || { echo "pinentry $pinentry missing"; return 1; }
   grep -q 'keyid-format 0xlong' "$HOME/.gnupg/gpg.conf"
-  run zsh -lc 'gpg --list-keys 0xF65FC25E09455075' 3>&-
+  run stdio_only zsh -lc 'gpg --list-keys 0xF65FC25E09455075'
   [ "$status" -eq 0 ]
 }
 

@@ -4,9 +4,6 @@
 # One line per check: OK, WARN (works, something to do by hand) or FAIL (run something first); a
 # summary line last; exit 1 when anything failed. Usage: tasks/doctor [--checkout <dir>]
 set -uo pipefail
-# stdio only for everything this runs: the 1Password CLI and gpg start daemons that keep every
-# descriptor they inherit, which hangs a caller waiting on one (ADR 0001 F-41).
-exec 3>&- 4>&- 5>&- 6>&- 7>&- 8>&- 9>&-
 checkout=$(cd "$(dirname "$0")/.." && pwd)
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -24,7 +21,10 @@ finish() {
   printf 'doctor: %d checks, %d failed, %d warnings\n' "$checks" "$fails" "$warns"
   [ "$fails" -eq 0 ]
 }
-bounded() { perl -e 'alarm shift; exec @ARGV' "$@"; }
+# Calls that can start a daemon (op, gpg-agent, the Tailscale app) run with stdin, stdout and stderr
+# only: a daemon keeps every descriptor it inherits and would hold a caller's pipe open (ADR 0001 F-41).
+stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
+bounded() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; alarm shift; exec { $ARGV[0] } @ARGV or exit 127' "$@"; }
 export PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
 
 # 1. mise, at the pinned version
@@ -68,7 +68,7 @@ case "$shell" in */zsh) ok "login shell: $shell" ;; *) warn "login shell: ${shel
 
 # 5. 1Password
 if command -v op >/dev/null 2>&1; then
-  if op whoami >/dev/null 2>&1; then ok "1Password: signed in (op whoami)"; else warn "1Password: CLI present but not signed in; roles that need a secret are skipped until 'op signin'"; fi
+  if stdio_only op whoami >/dev/null 2>&1; then ok "1Password: signed in (op whoami)"; else warn "1Password: CLI present but not signed in; roles that need a secret are skipped until 'op signin'"; fi
 else
   info "1Password: CLI not installed (no role needs it today)"
 fi
