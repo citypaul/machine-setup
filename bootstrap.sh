@@ -309,4 +309,5 @@ else
   set --
 fi
 stdio_only "$MISE" bootstrap --update --yes "$@"
-log "done. Open a new shell (exec zsh) to pick up the environment."
+log "done. Log out and back in (or reboot) so every terminal and app starts with zsh, the new PATH and"
+log "the new launchers; until then, run exec zsh in a terminal that is already open."

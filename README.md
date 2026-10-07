@@ -55,6 +55,9 @@ What happens, in order:
    run time (`conquer`) are skipped for this run if it is not, and it says so.
 6. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
    dotfile links, the removal allowlist, runtimes, the Claude settings merge.
+7. Asks you to log out and back in: a desktop session keeps the shell and
+   PATH it started with, so terminals such as Ghostty and Alacritty, and
+   launchers for new per-user apps, only pick up the change at the next login.
 
 Flags:
 
