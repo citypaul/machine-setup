@@ -115,16 +115,12 @@ record() { printf '%s\t%s\t%s\n' "$1" "$2" "${3:-}" >> "$journal/journal.log"; }
 say "journal: $journal"
 if [ "$dry" = 1 ]; then say "dry run: nothing written"; exit 0; fi
 
-# 4. Prerequisites while every old link is still in place (plan §4.11 step 2).
-if [ "$skip_prereqs" = 0 ]; then
-  (cd "$checkout" && "$mise_bin" bootstrap --only files,packages,tools --yes)
-fi
 
 # Template and copy sources are not linked by the swap: mise renders or copies them in step 6, and
 # anything it creates then is journaled from the apply marker (see step 6).
 is_special_source() { case "$1" in *.tera) return 0 ;; esac; return 1; }
 
-# 5. Swap, one target at a time, rolling back everything on any failure.
+# 4. Unfold, prerequisites, then the swap, one target at a time, rolling back everything on any failure.
 reverse_lines() { if command -v tac >/dev/null 2>&1; then tac "$1"; else tail -r "$1"; fi; }
 rollback() {
   trap - ERR
@@ -157,6 +153,14 @@ for d in ${folds[@]+"${folds[@]}"}; do
   done
   say "unfolded $d"
 done
+
+# Prerequisites while every old link is still in place (plan §4.11 step 2), after the unfold: the
+# files phase manages directories such as ~/.gnupg and refuses one that is still a folded link
+# (ADR 0001 F-52). A failure here rolls the unfold back.
+if [ "$skip_prereqs" = 0 ]; then
+  (cd "$checkout" && "$mise_bin" bootstrap --only files,packages,tools --yes)
+fi
+
 
 writes=0
 for i in "${!targets[@]}"; do
