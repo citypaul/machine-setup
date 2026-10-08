@@ -1,11 +1,17 @@
 #!/usr/bin/env perl
 # Fake mise for the descriptor test: reports the version bootstrap.sh pins, accepts every setup call,
 # and on `bootstrap` records every descriptor above 2 it inherited. A daemon an installer starts (the
-# 1Password CLI's, from its cask's completion generation) would inherit exactly these.
+# 1Password CLI's, from its cask's completion generation) would inherit exactly these. With NOFILE_PROBE
+# set, `bootstrap` and `upgrade` also record the soft open-file limit they started with (ADR 0001 F-55).
 use strict; use warnings; use POSIX ();
 my $cmd = shift // '';
 if ($cmd eq '--version') { print(($ENV{FAKE_MISE_VERSION} // '0'), " fake\n"); exit 0; }
-if ($cmd eq 'bootstrap') {
+if (($cmd eq 'bootstrap' || $cmd eq 'upgrade') && $ENV{NOFILE_PROBE}) {
+  my $soft = qx(/bin/sh -c 'ulimit -Sn'); chomp $soft;
+  open(my $nofile, '>', $ENV{NOFILE_PROBE}) or die "fd-probe: $!\n";
+  print {$nofile} "$soft\n"; close $nofile;
+}
+if ($cmd eq 'bootstrap' && $ENV{FD_PROBE}) {
   my @open = grep { my $d = POSIX::dup($_); defined $d and POSIX::close($d) == 0 } 3 .. 1023;
   open(my $probe, '>', $ENV{FD_PROBE}) or die "fd-probe: $!\n";
   print {$probe} 'open: ', (@open ? join(' ', @open) : 'none'), "\n";
