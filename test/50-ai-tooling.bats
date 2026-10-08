@@ -33,6 +33,18 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
   [[ "$output" == *"/.local/share/mise/"* ]] || false
 }
 
+@test "every declared npm CLI starts and reports its version" {
+  # Resolving is not enough. Found on the Ubuntu VM: mise's npm installer skips install scripts it
+  # was not told to allow, claude-code's places its native binary, and `claude` only printed an
+  # error (ADR 0001 F-57).
+  local cli out bad=()
+  for cli in claude codex gemini task-master agent-browser pi; do
+    out=$(stdio_only zsh -lc "$cli --version" </dev/null 2>&1 | tail -1)
+    [[ "$out" =~ [0-9]+\.[0-9]+\.[0-9]+ ]] || bad+=("$cli: $out")
+  done
+  [ "${#bad[@]}" -eq 0 ] || { printf '%s\n' "${bad[@]}"; return 1; }
+}
+
 @test "herdr is installed and its Claude Code integration is in place" {
   run zsh -lc 'command -v herdr'
   [ "$status" -eq 0 ]
