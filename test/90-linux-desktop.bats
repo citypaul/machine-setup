@@ -38,6 +38,15 @@ setup() {
   [[ "$output" == *"already installed"* ]] || false
 }
 
+@test "the terminals use the Linux font sizes, which look like the Mac's (Linux counts 96 dots per inch, macOS 72)" {
+  # Paul's first run by hand: the Mac sizes made the Ubuntu VM's terminals a third larger (ADR 0001 F-58).
+  run zsh -lc 'ghostty +show-config'
+  [ "$status" -eq 0 ]
+  grep -q -x 'font-size = 13.5' <<<"$output"
+  [ "$(sed -n 's/^size = //p' "$HOME/.config/alacritty/font-size.toml")" = 14 ]
+  ! grep -q -E '^[[:space:]]*size[[:space:]]*=' "$HOME/.alacritty.toml" || false   # the import must win
+}
+
 @test "Docker Engine is installed, its daemon runs where systemd does, and the user is in the docker group" {
   run zsh -lc 'command -v docker'
   [ "$status" -eq 0 ]
