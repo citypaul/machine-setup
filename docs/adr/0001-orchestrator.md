@@ -806,8 +806,8 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   (read-only too, Homebrew's flags), which mise reports only as
   `hdiutil … exited with code 1`. Detaching it (`hdiutil detach /dev/diskN`)
   is the whole repair. `doctor` now fails on any attached image from mise's
-  `system-brew/casks` cache and prints that command; an upstream mise issue
-  (detach on interruption, or name the cause) needs Paul's go-ahead.
+  `system-brew/casks` cache and prints that command. Reported upstream as
+  jdx/mise#14151 (2026-10-08).
 - **F-55 macOS starts processes with a soft limit of 256 open files, and
   mise's npm installs need more.** The fourth rehearsal run's first converge
   after the migration installed the global tools and failed on
@@ -819,6 +819,8 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `update` now raise the soft limit to 10240 for their run (to the hard
   limit when that is lower, never lowering a higher one). Interactive
   shells keep the default; raising it there is a separate choice for Paul.
+  mise embeds aube as its npm installer, so it runs under mise's own limit;
+  reported upstream as jdx/mise#14152 (2026-10-08).
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append
