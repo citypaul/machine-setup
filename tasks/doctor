@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # The checks `mise bootstrap status` does not make (plan.md §4.4, ADR 0001 D-34): mise and its pin, the
-# saved selection, drift, the login shell, 1Password, the Conquer join, the GPG card, the skills pin.
+# saved selection, drift, the login shell, 1Password, the Conquer join, the GPG card, the skills pin,
+# cask images an interrupted install left attached.
 # One line per check: OK, WARN (works, something to do by hand) or FAIL (run something first); a
 # summary line last; exit 1 when anything failed. Usage: tasks/doctor [--checkout <dir>]
 set -uo pipefail
@@ -112,7 +113,21 @@ if [ -n "$pinned" ]; then
   if [ -f "$marker" ] && [ "$(cat "$marker")" = "$pinned" ]; then ok "skills: at $pinned"; else warn "skills: installed '$(cat "$marker" 2>/dev/null || echo none)', pinned $pinned; converge installs the pin"; fi
 fi
 
-# 9. where services cannot be managed
+# 9. cask images left attached: mise attaches a cask's image from its cache to install it, and an
+# interrupted install leaves it attached; mise cannot attach it again (ADR 0001 F-54). The first whole
+# disk listed for an image is the one to detach.
+if command -v hdiutil >/dev/null 2>&1; then
+  attached=$(bounded 10 hdiutil info 2>/dev/null | awk '/^image-path/ { img = substr($0, index($0, ":") + 2) } /^\/dev\/disk[0-9]+[ \t]/ && index(img, "/system-brew/casks/") { print $1 "\t" img; img = "" }')
+  if [ -z "$attached" ]; then
+    ok "cask images: none left attached"
+  else
+    while IFS=$'\t' read -r dev img; do
+      fail "cask image: ${img##*/} is still attached ($dev), left by an interrupted install; mise cannot install it until you run: hdiutil detach $dev"
+    done <<<"$attached"
+  fi
+fi
+
+# 10. where services cannot be managed
 if [ "$(uname -s)" = Linux ] && [ ! -d /run/systemd/system ]; then info "services: no systemd here, declared services are installed but not started (F-36)"; fi
 
 finish

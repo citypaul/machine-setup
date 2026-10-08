@@ -798,6 +798,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `dot apply`, the verification) were subshells. Each now rolls back
   explicitly with `|| on_error`; two new tests fail a prerequisites install
   and a `dot apply` through a mise wrapper and require an exact rollback.
+- **F-54 An interrupted cask install leaves its image attached, and every
+  later converge fails.** The cask image behind F-53 was not damaged: its
+  checksum matched the cask's. Stopping the second rehearsal run while the
+  suite reinstalled ProtonVPN left mise's mount of the image attached, and
+  `hdiutil attach` of the same image then fails with "Resource busy"
+  (read-only too, Homebrew's flags), which mise reports only as
+  `hdiutil … exited with code 1`. Detaching it (`hdiutil detach /dev/diskN`)
+  is the whole repair. `doctor` now fails on any attached image from mise's
+  `system-brew/casks` cache and prints that command; an upstream mise issue
+  (detach on interruption, or name the cause) needs Paul's go-ahead.
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append

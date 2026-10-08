@@ -1,0 +1,18 @@
+#!/bin/sh
+# Fake hdiutil: `info` lists a system image and a Homebrew download, neither from mise's cask cache.
+[ "$1" = info ] || { echo "fake hdiutil: unexpected call: $*" >&2; exit 99; }
+cat <<'OUT'
+framework       : 671.100.1
+driver          : 10.16v671.100.1
+================================================
+image-path      : /System/Library/AssetsV2/com_apple_MobileAsset_PKITrustStore/purpose_auto/6dd5.asset/AssetData/Restore/SECUREPKITRUSTSTOREASSETS_SECUREPKITRUSTSTORE_Cryptex.dmg
+image-type      : read-only disk image
+/dev/disk5	
+/dev/disk6	EF57347C-0000-11AA-AA11-00306543ECAC	
+/dev/disk6s1	41504653-0000-11AA-AA11-00306543ECAC	/System/Library/AssetsV2/com_apple_MobileAsset_PKITrustStore/purpose_auto/6dd5.asset/.AssetData
+================================================
+image-path      : /Users/someone/Library/Caches/Homebrew/downloads/0a1b--Firefox 140.0.dmg
+image-type      : read-only disk image
+/dev/disk8	GUID_partition_scheme	
+/dev/disk8s1	48465300-0000-11AA-AA11-00306543ECAC	/Volumes/Firefox
+OUT

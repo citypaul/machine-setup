@@ -1,0 +1,34 @@
+#!/bin/sh
+# Fake hdiutil: `info` lists a system image, a Homebrew download, and a cask image from mise's cache
+# that an interrupted install left attached (ADR 0001 F-54), plus an APFS one, which lists a second,
+# synthesized whole disk that is not the one to detach.
+[ "$1" = info ] || { echo "fake hdiutil: unexpected call: $*" >&2; exit 99; }
+cat <<'OUT'
+framework       : 671.100.1
+driver          : 10.16v671.100.1
+================================================
+image-path      : /System/Library/AssetsV2/com_apple_MobileAsset_PKITrustStore/purpose_auto/6dd5.asset/AssetData/Restore/SECUREPKITRUSTSTOREASSETS_SECUREPKITRUSTSTORE_Cryptex.dmg
+image-type      : read-only disk image
+/dev/disk5	
+/dev/disk6	EF57347C-0000-11AA-AA11-00306543ECAC	
+/dev/disk6s1	41504653-0000-11AA-AA11-00306543ECAC	/System/Library/AssetsV2/com_apple_MobileAsset_PKITrustStore/purpose_auto/6dd5.asset/.AssetData
+================================================
+image-path      : /Users/someone/Library/Caches/Homebrew/downloads/0a1b--Firefox 140.0.dmg
+image-type      : read-only disk image
+/dev/disk8	GUID_partition_scheme	
+/dev/disk8s1	48465300-0000-11AA-AA11-00306543ECAC	/Volumes/Firefox
+OUT
+cat <<'OUT'
+================================================
+image-path      : /Users/someone/Library/Caches/mise/system-brew/casks/protonvpn-6.5.1-021fecae1a9e-ProtonVPN_mac_v6.5.1.dmg
+image-type      : read-only disk image
+/dev/disk7	GUID_partition_scheme	
+/dev/disk7s1	48465300-0000-11AA-AA11-00306543ECAC	/private/var/folders/kt/5dm5n1d17pl87y150zfc63240000gn/T/.tmpvS7AFm
+================================================
+image-path      : /Users/someone/Library/Caches/mise/system-brew/casks/shottr-1.9-4c2e-Shottr-1.9.dmg
+image-type      : read-only disk image
+/dev/disk9	GUID_partition_scheme	
+/dev/disk9s1	7C3457EF-0000-11AA-AA11-00306543ECAC	
+/dev/disk10	EF57347C-0000-11AA-AA11-00306543ECAC	
+/dev/disk10s1	41504653-0000-11AA-AA11-00306543ECAC	/private/var/folders/kt/5dm5n1d17pl87y150zfc63240000gn/T/.tmpQx81Lb
+OUT
