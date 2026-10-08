@@ -171,7 +171,16 @@ step 2 so the rehearsal can be repeated. Steps 1 and 2 recreate the old
 setup the way it is on Paul's Mac: Oh My Zsh as a real checkout, and only the
 eight Stow packages that are live there, not everything `./install.sh` stows.
 
-1. Install the Command Line Tools and Homebrew, then Stow and Oh My Zsh:
+1. Install the Command Line Tools (a dialog opens; wait for it to finish),
+   then Homebrew, then Stow and Oh My Zsh:
+
+   ```bash
+   xcode-select --install
+   ```
+
+   ```bash
+   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" && eval "$(/opt/homebrew/bin/brew shellenv)"
+   ```
 
    ```bash
    brew install stow && git clone https://github.com/ohmyzsh/ohmyzsh.git ~/.oh-my-zsh
@@ -183,8 +192,12 @@ eight Stow packages that are live there, not everything `./install.sh` stows.
    git clone https://github.com/citypaul/.dotfiles ~/.dotfiles && cd ~/.dotfiles && stow zsh tmux gnupg alacritty zellij .oh-my-zsh ghostty herdr
    ```
 
-3. With a copy of this repo at `~/machine-setup`, save the selection and
-   install the pinned mise (the selection step installs nothing):
+3. Clone this repo to `~/machine-setup`, save the selection, and install the
+   pinned mise (the selection step installs nothing):
+
+   ```bash
+   git clone https://github.com/citypaul/machine-setup ~/machine-setup
+   ```
 
    ```bash
    cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine vm --select-only --yes
