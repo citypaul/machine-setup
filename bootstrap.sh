@@ -38,7 +38,7 @@ usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>
   --repo/--ref   where to clone from and what to check out (default: main of the public repo)
   --select-only  write the per-machine selection and stop (no installs)
   --dry-run      show what mise would do and stop
-  --yes          never prompt; fail instead of asking
+  --yes          never ask a question; fail instead (sudo still asks for your password once)
 USAGE
 }
 
@@ -234,6 +234,23 @@ raise_open_files() {
   soft=$(ulimit -Sn 2>/dev/null) || return 0
   [ "$soft" = unlimited ] || [ "$soft" -ge 10240 ] || ulimit -Sn 10240 2>/dev/null || ulimit -Sn "$(ulimit -Hn)" 2>/dev/null || true
 }
+# A fresh machine needs root several times in one run: apt or softwareupdate, then Homebrew's
+# installer, which with NONINTERACTIVE=1 only uses sudo that is already unlocked, then mise's system
+# packages. The Command Line Tools install alone can outlast macOS's 5-minute sudo timestamp (ADR 0001
+# F-56). So a full run unlocks sudo once, up front (sudo asks for the password itself, even with
+# --yes), and refreshes it in the background until the run ends. Root and passwordless sudo need
+# neither. The refresher gets stdio only, from /dev/null, so it holds none of the caller's descriptors.
+unlock_sudo() {
+  { [ "$(id -u)" != 0 ] && have sudo; } || return 0
+  sudo -n true 2>/dev/null && return 0
+  log "some steps need root: sudo asks for your password once, and it stays unlocked until this run ends"
+  sudo -v || die "sudo needs your password and cannot ask for it here; run 'sudo -v' in this terminal, then re-run"
+  # shellcheck disable=SC2016  # $1 and $2 are the inner sh's arguments
+  stdio_only sh -c 'while kill -0 "$1" 2>/dev/null && sudo -n -v 2>/dev/null; do sleep "$2"; done' \
+    sh "$$" "${MACHINE_SETUP_SUDO_REFRESH:-60}" </dev/null >/dev/null 2>&1 &
+  sudo_refresher=$!
+  trap 'kill "$sudo_refresher" 2>/dev/null || true' EXIT
+}
 op_signed_in() { have op && stdio_only op whoami >/dev/null 2>&1; }
 compute_envs() {
   envs=$profile
@@ -283,6 +300,7 @@ write_selection() {
 
 # ---------------------------------------------------------------- main
 if [ "$select_only" = 0 ]; then
+  unlock_sudo
   install_prerequisites
   install_mise
 fi

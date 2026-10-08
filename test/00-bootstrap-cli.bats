@@ -10,7 +10,10 @@ setup() {
   fresh_home
   CO="$BATS_TEST_TMPDIR/checkout"
   copy_checkout "$CO"
-  export PATH="$FIXTURES/bin/op-unlocked:$PATH"
+  # A full run unlocks sudo; tests use the fake, passwordless unless a test says otherwise, and
+  # never the real one.
+  export PATH="$FIXTURES/bin/op-unlocked:$FIXTURES/bin/sudo-fake:$PATH" FAKE_SUDO=passwordless
+  export FAKE_SUDO_STATE="$BATS_TEST_TMPDIR/sudo-unlocked" CALL_LOG="$BATS_TEST_TMPDIR/calls"
 }
 
 @test "an unsupported --os-family is rejected with exit 2 before anything is written" {
@@ -139,6 +142,53 @@ limits() {
 @test "bootstrap raises the soft open-file limit only as far as a hard limit below 10240" {
   with_fake_mise
   [ "$(limits 'ulimit -Sn 256 && ulimit -Hn 4096')" = 4096 ]
+}
+
+# A fresh machine needs root several times in one run: apt or softwareupdate, then Homebrew's
+# installer, which with NONINTERACTIVE=1 only uses sudo that is already unlocked, then mise's system
+# packages. The Command Line Tools install alone can outlast macOS's 5-minute sudo timestamp, so a
+# full run unlocks sudo once, up front, and keeps it unlocked until it ends (ADR 0001 F-56).
+full_run() { "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes; }
+line_of() { grep -n -x -m1 "$1" "$CALL_LOG" | cut -d: -f1; }
+not_root() { [ "$(id -u)" != 0 ] || skip "as root, bootstrap never needs sudo"; }
+
+@test "a full run asks for the sudo password once, up front, even with --yes, before mise installs anything" {
+  not_root; with_fake_mise
+  FAKE_SUDO=locked run full_run
+  [ "$status" -eq 0 ]
+  [ "$(grep -c -x 'sudo -v' "$CALL_LOG")" -eq 1 ]
+  [ "$(line_of 'sudo -v')" -lt "$(line_of 'mise bootstrap')" ]
+}
+
+@test "sudo stays unlocked for the whole run, and nothing keeps it unlocked after the run ends" {
+  not_root; with_fake_mise
+  FAKE_SUDO=locked MACHINE_SETUP_SUDO_REFRESH=1 FAKE_MISE_SLEEP=3 run full_run
+  [ "$status" -eq 0 ]
+  refreshes=$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)
+  [ "$refreshes" -ge 2 ]
+  sleep 3
+  [ "$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)" -eq "$refreshes" ]
+}
+
+@test "when sudo cannot ask for the password, the run stops before mise and says how to unlock it" {
+  not_root; with_fake_mise
+  FAKE_SUDO=noprompt run full_run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"sudo -v"* ]] || false
+  ! grep -q -x 'mise bootstrap' "$CALL_LOG" || false
+}
+
+@test "with passwordless sudo nothing asks for a password and nothing keeps sudo unlocked" {
+  with_fake_mise
+  MACHINE_SETUP_SUDO_REFRESH=1 FAKE_MISE_SLEEP=2 run full_run
+  [ "$status" -eq 0 ]
+  ! grep -q -x -e 'sudo -v' -e 'sudo -n -v' "$CALL_LOG" || false
+}
+
+@test "--select-only never touches sudo" {
+  FAKE_SUDO=locked run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --select-only --yes
+  [ "$status" -eq 0 ]
+  ! grep -q '^sudo' "$CALL_LOG" 2>/dev/null || false
 }
 
 @test "the 1Password sign-in check runs op with stdio only" {

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Fake sudo for bootstrap runs; tests must never reach the real one. FAKE_SUDO picks how it behaves:
+#   passwordless  every call succeeds (CI runners, the test VMs)
+#   locked        needs a password until `sudo -v` (standing in for the user typing it) unlocks it
+#   noprompt      locked, and `sudo -v` fails as it does with no terminal to ask on
+# FAKE_SUDO_STATE is a file that exists while unlocked; every call is appended to CALL_LOG.
+[ -z "${CALL_LOG:-}" ] || echo "sudo $*" >> "$CALL_LOG"
+mode=${FAKE_SUDO:-passwordless}
+unlocked() { [ "$mode" = passwordless ] || [ -f "$FAKE_SUDO_STATE" ]; }
+case "${1:-}" in
+  -v)
+    [ "$mode" != noprompt ] || { echo "sudo: a terminal is required to read the password" >&2; exit 1; }
+    : > "$FAKE_SUDO_STATE"; exit 0 ;;
+  -n)
+    shift
+    unlocked || { echo "sudo: a password is required" >&2; exit 1; }
+    [ "${1:-}" = -v ] && exit 0
+    exec "$@" ;;
+  *)
+    unlocked || [ "$mode" = locked ] || { echo "sudo: a terminal is required to read the password" >&2; exit 1; }
+    : > "$FAKE_SUDO_STATE"; exec "$@" ;;
+esac
