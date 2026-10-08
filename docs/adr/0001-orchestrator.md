@@ -833,6 +833,26 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   stdio only keeps it unlocked until the run ends. Root and passwordless
   sudo skip both. A fake sudo tests the locked, unpromptable and
   passwordless cases.
+- **F-57 `claude` was installed but printed "claude native binary not
+  installed".** Paul's first run of the one-liner by hand on the Ubuntu VM.
+  mise installs npm tools with its embedded aube, which runs no install
+  scripts unless a tool's `allow_builds` names the package, and
+  claude-code's own postinstall is what puts its native binary in place
+  (its platform package was downloaded). The suite only checked that
+  `claude` resolved to mise's path. Now `allow_builds =
+  ["@anthropic-ai/claude-code"]` approves that one script, and
+  `50-ai-tooling` starts every declared npm CLI and requires a version.
+  The other five (codex, gemini, task-master, agent-browser, pi) started
+  without scripts. An install made before the change needs
+  `mise install -f npm:@anthropic-ai/claude-code` once; changing the option
+  does not make mise reinstall a version it already has.
+  With claude working, CI then failed "~/.claude/settings.json carries the
+  repo settings" (`model` was no longer "opus") on both platforms. The
+  skills installer runs `claude plugin install ponytail@ponytail`, which
+  writes settings.json and had been failing silently, and it ran in
+  parallel with `merge-claude-settings` under the `bootstrap` task. The
+  merge now depends on `claude-skills`, so it runs last. It keeps keys it
+  does not define, so the plugin entry stays and the repo's settings win.
 - **F-58 The Mac's terminal font sizes look a third larger on Linux.** Paul's
   first run by hand on the Ubuntu VM. Alacritty's font library turns points
   into pixels at 96 dots per inch on Linux and 72 on macOS (crossfont's
