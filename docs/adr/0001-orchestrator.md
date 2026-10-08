@@ -833,6 +833,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   stdio only keeps it unlocked until the run ends. Root and passwordless
   sudo skip both. A fake sudo tests the locked, unpromptable and
   passwordless cases.
+- **F-58 The Mac's terminal font sizes look a third larger on Linux.** Paul's
+  first run by hand on the Ubuntu VM. Alacritty's font library turns points
+  into pixels at 96 dots per inch on Linux and 72 on macOS (crossfont's
+  `as_px`), and Ghostty differs the same way, so `size = 19` and
+  `font-size = 18` from the Mac render about 33% bigger there. Ghostty now
+  has 13.5 in the shared `~/.config/ghostty/config` and 18 in the macOS
+  config it loads after that one (`loadDefaultFiles`: XDG first, then
+  Application Support). Alacritty has one file for both OSes and an
+  importing file wins over its imports, so the size moved to
+  `~/.config/alacritty/font-size.toml`, which each OS's desktop overlay
+  writes (19 on macOS, 14 on Linux). Tested with `ghostty +show-config` and
+  the deployed files.
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append

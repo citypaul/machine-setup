@@ -45,6 +45,14 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   [ "$(readlink "$HOME/.alacritty.toml")" = "$REPO_ROOT/alacritty/.alacritty.toml" ]
 }
 
+@test "the terminals keep the Mac font sizes, Ghostty from its macOS config and Alacritty from its size file" {
+  has_desktop_role || skip "desktop role not selected on this machine"
+  run "/Applications/Ghostty.app/Contents/MacOS/ghostty" +show-config
+  [ "$status" -eq 0 ]
+  grep -q -x 'font-size = 18' <<<"$output"
+  [ "$(sed -n 's/^size = //p' "$HOME/.config/alacritty/font-size.toml")" = 19 ]
+}
+
 @test "Talat is installed from its release feed on Apple Silicon with the desktop role, once" {
   has_desktop_role || skip "desktop role not selected on this machine"
   [ "$(uname -m)" = arm64 ] || skip "Talat ships Apple Silicon builds only"

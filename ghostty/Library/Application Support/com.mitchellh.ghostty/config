@@ -2,3 +2,5 @@ macos-non-native-fullscreen = true
 macos-titlebar-style = transparent
 macos-auto-secure-input = true
 macos-secure-input-indication = true
+# Loaded after ~/.config/ghostty/config, so this overrides its Linux size (ADR 0001 F-58).
+font-size = 18

@@ -111,3 +111,10 @@ run = "tasks/docker-group"
 [bootstrap.hooks]
 pre-packages = "mise run flathub"
 post-packages = ["mise run fix-brew-certs", "mise run remove-packages", "mise run ghostty-linux", "mise run docker-group"]
+
+# Alacritty's font size on Linux (looks like the Mac's 19); ~/.alacritty.toml imports it (ADR 0001 F-58).
+[dotfiles]
+"~/.config/alacritty/font-size.toml" = { content = """
+[font]
+size = 14
+""", permissions = "0644" }

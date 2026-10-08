@@ -1,3 +1,5 @@
 window-save-state = never
-font-size = 18
+# Linux's size: it counts 96 dots per inch where macOS counts 72, so 13.5 here looks like the Mac's 18.
+# macOS sets 18 in its own config, which Ghostty loads after this one (ADR 0001 F-58).
+font-size = 13.5
 theme = tokyonight
