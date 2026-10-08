@@ -1,5 +1,8 @@
 colors.draw_bold_text_with_bright_colors = false
-general.import = [ "~/.config/alacritty/themes/themes/night_owl.toml" ]
+# font-size.toml is written per OS by the desktop overlays: Linux counts 96 dots per inch where macOS
+# counts 72, so the same size looks a third larger there. An importing file wins over its imports, so
+# no size is set below (ADR 0001 F-58). Missing imports are skipped.
+general.import = [ "~/.config/alacritty/themes/themes/night_owl.toml", "~/.config/alacritty/font-size.toml" ]
 
 [env]
 TERM = "xterm-256color"
@@ -24,8 +27,6 @@ title = "Alacritty"
 history = 5_000
 
 [font]
-size = 19
-
   [font.normal]
   family = "Hack Nerd Font"
   style = "Regular"
