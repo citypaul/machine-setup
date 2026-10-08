@@ -45,17 +45,21 @@ has no curl) and stops with an error if it cannot download either way.
 What happens, in order:
 
 1. Detects the OS and, on Linux, the distro family from `/etc/os-release`.
-2. Installs its own prerequisites: `git`, `curl` and CA certificates on
+2. Unless you are root or have passwordless sudo, asks for your password
+   once (sudo prompts, even with `--yes`) and keeps sudo unlocked until the
+   run ends: several steps need root, and macOS forgets a password after
+   five minutes.
+3. Installs its own prerequisites: `git`, `curl` and CA certificates on
    Debian-family Linux; the Command Line Tools (headless, via
    `softwareupdate`) and Homebrew on macOS.
-3. Installs a pinned mise to `~/.local/bin/mise`.
-4. Clones this repo to `~/.local/share/machine-setup` and saves your
+4. Installs a pinned mise to `~/.local/bin/mise`.
+5. Clones this repo to `~/.local/share/machine-setup` and saves your
    selection there (profile, roles, machine id).
-5. Checks whether 1Password's CLI is signed in; roles that need a secret at
+6. Checks whether 1Password's CLI is signed in; roles that need a secret at
    run time (`conquer`) are skipped for this run if it is not, and it says so.
-6. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
+7. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
    dotfile links, the removal allowlist, runtimes, the Claude settings merge.
-7. Asks you to log out and back in: a desktop session keeps the shell and
+8. Asks you to log out and back in: a desktop session keeps the shell and
    PATH it started with, so terminals such as Ghostty and Alacritty, and
    launchers for new per-user apps, only pick up the change at the next login.
 
@@ -72,7 +76,7 @@ Flags:
 | `--repo <url>`, `--ref <ref>` | where to clone from and what to check out | this repo, `main` |
 | `--select-only` | save the selection and stop; installs nothing | off |
 | `--dry-run` | show what mise would do and stop | off |
-| `--yes` | never prompt; fail instead of asking | off (prompts only on a terminal) |
+| `--yes` | never ask a question; fail instead (sudo still asks for your password once, when it needs one) | off (prompts only on a terminal) |
 
 Exit codes: `0` done, `2` a flag or this machine is not supported (nothing was
 changed), `1` a step failed (earlier steps stay applied; fix and re-run).

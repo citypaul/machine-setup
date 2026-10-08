@@ -3,6 +3,8 @@
 # and on `bootstrap` records every descriptor above 2 it inherited. A daemon an installer starts (the
 # 1Password CLI's, from its cask's completion generation) would inherit exactly these. With NOFILE_PROBE
 # set, `bootstrap` and `upgrade` also record the soft open-file limit they started with (ADR 0001 F-55).
+# `bootstrap` is appended to CALL_LOG when that is set, then sleeps FAKE_MISE_SLEEP seconds, so a test
+# can see what happened before and during it.
 use strict; use warnings; use POSIX ();
 my $cmd = shift // '';
 if ($cmd eq '--version') { print(($ENV{FAKE_MISE_VERSION} // '0'), " fake\n"); exit 0; }
@@ -11,6 +13,11 @@ if (($cmd eq 'bootstrap' || $cmd eq 'upgrade') && $ENV{NOFILE_PROBE}) {
   open(my $nofile, '>', $ENV{NOFILE_PROBE}) or die "fd-probe: $!\n";
   print {$nofile} "$soft\n"; close $nofile;
 }
+if ($cmd eq 'bootstrap' && $ENV{CALL_LOG}) {
+  open(my $log, '>>', $ENV{CALL_LOG}) or die "fd-probe: $!\n";
+  print {$log} "mise bootstrap\n"; close $log;
+}
+sleep($ENV{FAKE_MISE_SLEEP}) if $cmd eq 'bootstrap' && $ENV{FAKE_MISE_SLEEP};
 if ($cmd eq 'bootstrap' && $ENV{FD_PROBE}) {
   my @open = grep { my $d = POSIX::dup($_); defined $d and POSIX::close($d) == 0 } 3 .. 1023;
   open(my $probe, '>', $ENV{FD_PROBE}) or die "fd-probe: $!\n";

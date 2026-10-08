@@ -821,6 +821,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   shells keep the default; raising it there is a separate choice for Paul.
   mise embeds aube as its npm installer, so it runs under mise's own limit;
   reported upstream as jdx/mise#14152 (2026-10-08).
+- **F-56 On a clean Mac without passwordless sudo the one-liner would stop at
+  Homebrew.** Found by reading Homebrew's installer before Paul's first run by
+  hand: with `NONINTERACTIVE=1` its sudo check is `sudo -n`, so it aborts
+  ("Insufficient permissions to install Homebrew") unless sudo is already
+  unlocked, and the Command Line Tools install before it can outlast
+  macOS's 5-minute sudo timestamp. bootstrap's own root steps used `sudo -n`
+  under `--yes` too. Every test run had passwordless sudo (CI, the VMs), so
+  none could see it. A full run now unlocks sudo once, up front (sudo asks
+  for the password even with `--yes`), and a background refresher with
+  stdio only keeps it unlocked until the run ends. Root and passwordless
+  sudo skip both. A fake sudo tests the locked, unpromptable and
+  passwordless cases.
 - **F-49 bats does not enforce a failing `[[ ]]` mid-test under bash 3.2,
   nor `! cmd` under any bash.** A test for the fold rollback passed with
   status 3 and no "rolled back" in its output. bats documents both: append
