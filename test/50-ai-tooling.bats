@@ -12,12 +12,15 @@ setup() {
 
 pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO_ROOT/mise.toml"; }
 
-@test "the skills installer ran pinned to the declared release and left CLAUDE.md and the skills behind" {
+@test "the skills installer ran pinned to the declared release and left CLAUDE.md and the skills for Claude Code and Codex" {
   local v; v=$(pinned_version)
   [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || false
   [ -f "$HOME/.claude/CLAUDE.md" ]
   [ -d "$HOME/.claude/skills/tdd" ]
   [ -d "$HOME/.claude/skills/testing" ]
+  # Codex reads skills from ~/.agents/skills, where the installer's --agent codex puts them.
+  [ -d "$HOME/.agents/skills/tdd" ]
+  [ -d "$HOME/.agents/skills/testing" ]
   [ "$(cat "$HOME/.claude/.machine-setup-skills-version")" = "$v" ]
 }
 
