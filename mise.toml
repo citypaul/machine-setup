@@ -126,7 +126,7 @@ mode = "0700"
 "brew:starship" = "latest"
 "brew:task" = "latest"
 "brew:taskwarrior-tui" = "latest"
-"brew:tldr" = "latest"
+"brew:tealdeer" = "latest"   # the `tldr` command; the tldr formula left the Homebrew API (F-60)
 "brew:tmux" = "latest"
 "brew:tree" = "latest"
 "brew:vhs" = "latest"
@@ -153,7 +153,7 @@ claude_skills_version = "v4.18.0"
 # Config environments whose bootstrap needs 1Password signed in; bootstrap.sh drops them from a run
 # when `op whoami` fails and says so. None today: Conquer joins by OIDC (D6).
 secret_envs = ""
-remove_brew_base = "neofetch exa"
+remove_brew_base = "neofetch exa tldr"
 remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero"
 remove_cask_zap_base = "karabiner-elements"
 remove_mas_base = "457622435"   # Yoink

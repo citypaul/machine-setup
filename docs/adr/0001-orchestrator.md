@@ -874,6 +874,10 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   same pipeline and the same race: against the installed Talat.app it
   exited 141 in 1 of 5 runs, so a fresh install could be refused at
   random. It captures the output too.
+- **F-60 `brew:tldr` left the Homebrew API.** `05-inventory` failed on
+  main: `formulae.brew.sh/api/formula/tldr.json` returns 404. `tealdeer`,
+  which installs the same `tldr` command, replaces it, and `tldr` joins the
+  base removal list, since Homebrew lists the two as conflicting.
 - **F-58 The Mac's terminal font sizes look a third larger on Linux.** Paul's
   first run by hand on the Ubuntu VM. Alacritty's font library turns points
   into pixels at 96 dots per inch on Linux and 72 on macOS (crossfont's
