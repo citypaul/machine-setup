@@ -74,6 +74,7 @@ Flags:
 | `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
 | `--repo <url>`, `--ref <ref>` | where to clone from and what to check out | this repo, `main` |
+| `--stow-dir <dir>` | the GNU Stow dir an existing home links into; taken over once (see [Taking over a machine that Stow manages](#taking-over-a-machine-that-stow-manages)) | `~/.dotfiles` |
 | `--select-only` | save the selection and stop; installs nothing | off |
 | `--dry-run` | show what mise would do and stop | off |
 | `--yes` | never ask a question; fail instead (sudo still asks for your password once, when it needs one) | off (prompts only on a terminal) |
@@ -158,16 +159,34 @@ file at once.
 | `ghostty` | `desktop` role, `studio` machine | both the XDG and the Library config paths |
 | `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
 
-Moving an existing Stow-managed machine over is a separate, journaled
-operation that rolls back exactly if anything fails part-way:
+### Taking over a machine that Stow manages
+
+The same command takes over a machine whose dotfiles are GNU Stow links into
+`~/.dotfiles`, such as Paul's MacBook Pro:
 
 ```bash
-tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles --dry-run   # see what would change
-tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles             # do it; originals saved under ~/.local/state/machine-setup/migration/
+cd ~/personal/machine-setup && git pull
+./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine personal-macbook --dry-run   # see everything first; changes nothing
+./bootstrap.sh --dir "$PWD" --profile personal --role desktop --machine personal-macbook             # do it; asks once before migrating
 ```
 
-A real file where a link should go stops the migration; `--force` saves it in
-the journal first and then replaces it.
+When a top-level dotfile or an entry in `~/.config` links into the Stow dir,
+bootstrap, before it converges:
+
+1. Lists the packages the removal allowlist would remove from this machine.
+2. Runs the migration's dry run (`tasks/migrate --dry-run`). A real file where
+   a link should go stops the run here, with nothing changed; the message
+   gives the `tasks/migrate --force` command that saves the file in the
+   journal and replaces it.
+3. Asks once at a terminal (`--yes` skips the question), then migrates. Every
+   write is journaled under `~/.local/state/machine-setup/migration/`, and any
+   failure part-way rolls the home directory back exactly.
+4. Converges as usual, then runs `doctor`.
+
+On macOS, allow the terminal to read the Desktop folder if asked: the
+migration waits for that answer (ADR 0001 F-47). It runs once; later runs only
+converge. `~/.dotfiles` is not touched, so remove it once you are happy.
+`--stow-dir` names a Stow dir kept somewhere else.
 
 ### Rehearsing the migration on a VM
 
@@ -252,6 +271,8 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | File | Proves |
 |------|--------|
 | `00-bootstrap-cli` | flag validation, OS detection, the saved selection |
+| `00-bootstrap-migration` | a Stow-managed home is previewed, dry-run, migrated and converged in order, once; a conflict stops it before any change; a home without Stow links is left alone |
+| `07-herdr-app` | the Herdr desktop app installs only with the desktop role, and a bad checksum or signature is refused |
 | `01-layering` | group lists across profile, role and machine files; personal apps never reach work |
 | `02-secrets` | a locked 1Password drops the Conquer role; the key is read at run time and never printed or stored |
 | `03-merge-claude-settings` | the settings merge keeps foreign hooks, is idempotent and atomic |
