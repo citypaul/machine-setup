@@ -1,0 +1,6 @@
+#!/bin/sh
+# Fake mise for bootstrap's orchestration tests: reports the version bootstrap.sh pins
+# (FAKE_MISE_VERSION), appends every other call to CALL_LOG as "mise <args>", and succeeds.
+if [ "${1:-}" = --version ]; then echo "${FAKE_MISE_VERSION:-0} fake"; exit 0; fi
+[ -z "${CALL_LOG:-}" ] || echo "mise $*" >> "$CALL_LOG"
+exit 0

@@ -730,6 +730,20 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   herdr-core when it first opens. `07-herdr-app` tests it against a feed
   on disk through `HERDR_RELEASES_URL`.
 
+- **D-37 bootstrap takes over a Stow-managed home, once.** Paul asked to
+  automate the cutover on 2026-11-04, starting with his MacBook Pro
+  (`personal-macbook`: personal profile, desktop role; he also does contract
+  work on it, which `work` would not serve, as `work` only removes personal
+  apps). When a top-level dotfile or an entry in `~/.config` links into
+  the Stow dir (`--stow-dir`, default `~/.dotfiles`), bootstrap lists the
+  removal allowlist's packages, runs `tasks/migrate --dry-run` and stops
+  on a conflict with nothing changed, asks once at a terminal, migrates,
+  converges, then runs `doctor`. A mark in
+  `~/.local/state/machine-setup/migrated` keeps later runs to a converge.
+  Only those two levels are read: deeper ones include `~/Desktop`, which
+  macOS guards (F-47). The migration needs jq; macOS ships it from 15, and
+  on Linux bootstrap installs it with apt.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

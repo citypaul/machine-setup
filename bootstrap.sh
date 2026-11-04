@@ -6,6 +6,10 @@
 #       --profile personal --role desktop --machine studio
 #   (curl on macOS, wget on a fresh Ubuntu desktop, which has no curl until this script installs it)
 #
+# On a home that GNU Stow manages (dotfiles linked into ~/.dotfiles, or --stow-dir), the same command
+# takes it over: it shows the removal list, checks the migration with a dry run, migrates with
+# tasks/migrate (journaled, rolled back exactly on failure), then converges. Once only.
+#
 # Flags select config environments (plan.md §4.9): --profile personal|work, --role <r> (repeatable,
 # additive), --machine <id>. The OS is detected; the Linux distro family comes from /etc/os-release,
 # --os-family overrides it for odd derivatives. Re-running with no flags reuses the saved selection.
@@ -27,7 +31,7 @@ usage() {
   cat <<'USAGE'
 usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>] [--os-family <family>]
                     [--git-email <addr>] [--dir <checkout>] [--repo <url>] [--ref <ref>]
-                    [--select-only] [--dry-run] [--yes]
+                    [--stow-dir <dir>] [--select-only] [--dry-run] [--yes]
 
   --profile      personal or work; decides which apps and configs load
   --role         additive role, e.g. desktop, conquer (repeat the flag or separate with commas)
@@ -36,6 +40,7 @@ usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>
   --git-email    git user.email on this machine (saved; later runs keep it; '' resets to the default)
   --dir          use this existing checkout instead of cloning
   --repo/--ref   where to clone from and what to check out (default: main of the public repo)
+  --stow-dir     the GNU Stow dir an existing home links into, taken over once (default: ~/.dotfiles)
   --select-only  write the per-machine selection and stop (no installs)
   --dry-run      show what mise would do and stop
   --yes          never ask a question; fail instead (sudo still asks for your password once)
@@ -45,7 +50,7 @@ USAGE
 # ---------------------------------------------------------------- arguments
 profile='' roles='' machine='' os_family_override='' checkout='' repo_url=$REPO_URL_DEFAULT ref=''
 git_email='' git_email_set=0
-select_only=0 dry_run=0 yes=0
+select_only=0 dry_run=0 yes=0 stow_dir="$HOME/.dotfiles"
 add_roles() { roles="$roles $(printf '%s' "$1" | tr ',' ' ')"; }
 need_value() { [ $# -ge 2 ] || die "$1 needs a value" 2; }
 while [ $# -gt 0 ]; do
@@ -64,6 +69,8 @@ while [ $# -gt 0 ]; do
     --dir=*) checkout=${1#*=}; shift ;;
     --repo) need_value "$@"; repo_url=$2; shift 2 ;;
     --ref) need_value "$@"; ref=$2; shift 2 ;;
+    --stow-dir) need_value "$@"; stow_dir=$2; shift 2 ;;
+    --stow-dir=*) stow_dir=${1#*=}; shift ;;
     --select-only) select_only=1; shift ;;
     --dry-run) dry_run=1; shift ;;
     --yes|-y) yes=1; shift ;;
@@ -298,7 +305,50 @@ write_selection() {
   log "envs=$envs"
 }
 
+# ---------------------------------------------------------------- taking over a Stow-managed home
+# Recorded after a successful migration, so later runs only converge.
+MIGRATED_MARK="${XDG_STATE_HOME:-$HOME/.local/state}/machine-setup/migrated"
+# True when a top-level dotfile or an entry in ~/.config links into the Stow dir: where Stow puts
+# its links, files and folded directories alike. Deeper levels are not read; ~/Desktop and its
+# neighbours ask macOS for permission (ADR 0001 F-47).
+stow_managed() {
+  [ ! -e "$MIGRATED_MARK" ] && [ -d "$stow_dir" ] || return 1
+  stow_real=$(cd "$stow_dir" && pwd -P) || return 1
+  for link in "$HOME"/.[!.]* "$HOME"/.config/*; do
+    [ -L "$link" ] || continue
+    dest=$(readlink "$link")
+    case "$dest" in /*) ;; *) dest="$(dirname "$link")/$dest" ;; esac
+    dest_dir=$(cd "$(dirname "$dest")" 2>/dev/null && pwd -P) || continue
+    case "$dest_dir/" in "$stow_real"/*) return 0 ;; esac
+  done
+  return 1
+}
+take_over_stow() {   # take_over_stow dry|real
+  log "this home links into the Stow dir $stow_dir; taking it over (ADR 0001 D-37)"
+  log "packages the removal allowlist removes on this machine, if installed:"
+  "$MISE" run remove-packages --dry-run || die "could not list the packages the removal allowlist removes"
+  # The migration reads mise's plan with jq; macOS ships it from 15, a fresh Ubuntu does not.
+  if ! have jq; then
+    [ "$os" = linux ] || die "the migration needs jq; install it (brew install jq) and re-run"
+    DEBIAN_FRONTEND=noninteractive as_root apt-get install -y -qq --no-install-recommends jq
+  fi
+  [ "$os" != macos ] || log "if macOS asks to let this terminal read the Desktop folder, allow it: the migration waits for that answer"
+  if ! "$checkout/tasks/migrate" --checkout "$checkout" --stow-dir "$stow_dir" --yes --dry-run; then
+    die "the migration's dry run found a conflict (above); nothing was changed. Resolve it, or let the migration save the files and replace them: $checkout/tasks/migrate --checkout $checkout --stow-dir $stow_dir --force, then re-run"
+  fi
+  [ "$1" = real ] || return 0
+  if [ "$interactive" = 1 ]; then
+    ask "Migrate from $stow_dir and converge now? [y/N]"
+    case "$reply" in y|Y|yes) ;; *) die "stopped before migrating; nothing was changed" ;; esac
+  fi
+  "$checkout/tasks/migrate" --checkout "$checkout" --stow-dir "$stow_dir" --yes || die "the migration failed and was rolled back; see its output above"
+  mkdir -p "$(dirname "$MIGRATED_MARK")" && printf '%s\n' "$stow_dir" > "$MIGRATED_MARK"
+  log "migrated from $stow_dir; it was not touched, so remove it once you are happy"
+  migrated=1
+}
+
 # ---------------------------------------------------------------- main
+migrated=0
 if [ "$select_only" = 0 ]; then
   unlock_sudo
   install_prerequisites
@@ -324,9 +374,11 @@ if ! "$MISE" settings get trusted_config_paths 2>/dev/null | grep -qF "\"$checko
 fi
 "$MISE" trust --quiet >/dev/null 2>&1 || true
 if [ "$dry_run" = 1 ]; then
+  if stow_managed; then take_over_stow dry; fi
   "$MISE" bootstrap --dry-run
   exit 0
 fi
+if stow_managed; then take_over_stow real; fi
 log "converging with mise bootstrap"
 # --update refreshes apt metadata so a repository added in this run (pre-packages files) is usable.
 # Services need systemd as PID 1; in a container (CI, WSL1) mise refuses the change (ADR 0001 F-36).
@@ -337,5 +389,6 @@ else
   set --
 fi
 stdio_only "$MISE" bootstrap --update --yes "$@"
+[ "$migrated" = 0 ] || stdio_only "$MISE" run doctor || log "doctor reports something to fix (above)"
 log "done. Log out and back in (or reboot) so every terminal and app starts with zsh, the new PATH and"
 log "the new launchers; until then, run exec zsh in a terminal that is already open."
