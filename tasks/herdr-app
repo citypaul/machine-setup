@@ -1,0 +1,88 @@
+#!/usr/bin/env bash
+# Install the Herdr desktop app (herdr.dev) once, beside the herdr CLI that Homebrew provides. The app
+# is not on Homebrew, so this reads the release feed the app updates itself from, the one the vendor's
+# installer (releases.herdr.dev/app/install.sh) reads, and lays the app out the same way:
+#   macOS:  ~/Applications/Herdr.app, and ~/.local/bin/herdr-app linked to its program
+#   Linux:  ~/.local/share/herdr-app, ~/.local/bin/herdr-app, a launcher entry and its icon
+# Desktop role only; Apple Silicon on macOS (no Intel build). The download must match the feed's
+# sha256, and on macOS be signed with Herdr's Developer ID and pass Gatekeeper; a curl download carries
+# no quarantine flag, so nothing else would check it. Once installed, the app updates itself.
+# HERDR_RELEASES_URL points at another feed (tests). Usage: tasks/herdr-app <roles>
+set -uo pipefail
+roles=${1:-}
+releases=${HERDR_RELEASES_URL:-https://releases.herdr.dev}
+team=2W9652Q7QR
+bin="$HOME/.local/bin"
+data=${XDG_DATA_HOME:-$HOME/.local/share}
+
+fail() { echo "herdr-app: error: $*" >&2; exit 1; }
+later() { echo "herdr-app: warning: $*; re-run 'mise run herdr-app' later"; exit 0; }
+
+if [[ " $roles " != *" desktop "* ]]; then
+  echo "herdr-app: skipping (desktop role only; roles='$roles')"
+  exit 0
+fi
+case "$(uname -s)-$(uname -m)" in
+  Linux-x86_64) target=linux-x86_64 app="$data/herdr-app" ;;
+  Linux-aarch64) target=linux-aarch64 app="$data/herdr-app" ;;
+  Darwin-arm64) target=macos-aarch64 app="$HOME/Applications/Herdr.app" ;;
+  *) echo "herdr-app: skipping (no Herdr build for $(uname -s) $(uname -m))"; exit 0 ;;
+esac
+if [ -e "$app" ]; then
+  echo "herdr-app: already installed at $app (it updates itself)"
+  exit 0
+fi
+
+tmp=$(mktemp -d "${TMPDIR:-/tmp}/herdr-app.XXXXXX") || exit 1
+trap 'rm -rf "$tmp"' EXIT
+curl -fsSL --max-time 30 "$releases/app/latest.json" -o "$tmp/latest.json" 2>/dev/null || later "could not read the release feed $releases"
+# The manifest is flat: one {url, sha256} object per target. Read it without jq, as the vendor does.
+entry=$(tr -d '\n ' < "$tmp/latest.json" | sed -n "s/.*\"$target\":{\([^}]*\)}.*/\1/p")
+url=$(printf '%s' "$entry" | sed -n 's/.*"url":"\([^"]*\)".*/\1/p')
+want=$(printf '%s' "$entry" | sed -n 's/.*"sha256":"\([^"]*\)".*/\1/p')
+[ -n "$url" ] && [ -n "$want" ] || later "the release feed has no $target build"
+
+echo "herdr-app: downloading $url"
+curl -fsSL --max-time 600 "$url" -o "$tmp/app.tar.gz" || later "download failed"
+if command -v sha256sum >/dev/null 2>&1; then have=$(sha256sum "$tmp/app.tar.gz" | cut -d' ' -f1)
+else have=$(shasum -a 256 "$tmp/app.tar.gz" | cut -d' ' -f1); fi
+# Security checks fail loudly: an unverifiable app must never be installed.
+[ "$have" = "$want" ] || fail "the download does not match the feed's checksum ($have, expected $want)"
+mkdir -p "$tmp/unpacked"
+tar -xzf "$tmp/app.tar.gz" -C "$tmp/unpacked" || fail "could not unpack the download"
+mkdir -p "$bin"
+
+if [ "$target" = macos-aarch64 ]; then
+  bundle="$tmp/unpacked/Herdr.app"
+  [ -d "$bundle" ] || fail "no Herdr.app in the download"
+  # Captured, not piped: grep -q stops reading at the match, and under pipefail codesign's SIGPIPE
+  # would fail the pipeline even for a correctly signed app.
+  signature=$(codesign -dv "$bundle" 2>&1)
+  grep -qx "TeamIdentifier=$team" <<<"$signature" || fail "the app is not signed by Herdr's team $team"
+  codesign --verify --deep --strict "$bundle" 2>/dev/null || fail "the app's signature does not verify"
+  spctl --assess --type execute "$bundle" 2>/dev/null || fail "Gatekeeper rejects the app (signed but not notarized?)"
+  mkdir -p "$HOME/Applications"
+  mv "$bundle" "$app" || fail "could not move the app into ~/Applications"
+  ln -sfn "$app/Contents/MacOS/Herdr" "$bin/herdr-app"
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app" 2>/dev/null || true
+else
+  [ -x "$tmp/unpacked/herdr-app/herdr-app" ] || fail "no herdr-app program in the download"
+  mkdir -p "$data/applications" "$data/icons/hicolor/scalable/apps"
+  mv "$tmp/unpacked/herdr-app" "$app" || fail "could not move the app into $data"
+  ln -sfn "$app/herdr-app" "$bin/herdr-app"
+  [ -f "$app/herdr-app.svg" ] && cp "$app/herdr-app.svg" "$data/icons/hicolor/scalable/apps/herdr-app.svg"
+  cat > "$data/applications/herdr-app.desktop" <<EOF
+[Desktop Entry]
+Type=Application
+Name=Herdr
+Comment=Terminals and coding agents that keep running
+Exec=$bin/herdr-app
+Icon=herdr-app
+Terminal=false
+Categories=Development;
+StartupWMClass=herdr-app
+EOF
+  command -v update-desktop-database >/dev/null 2>&1 && update-desktop-database "$data/applications" 2>/dev/null || true
+fi
+echo "herdr-app: installed $app (open it from your apps, or run herdr-app; it updates itself from here on)"
+exit 0

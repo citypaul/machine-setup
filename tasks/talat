@@ -37,7 +37,9 @@ bundle=$(find "$tmp" -maxdepth 1 -name '*.app' | head -1)
 [ -n "$bundle" ] || { echo "talat: error: no .app in the download" >&2; exit 1; }
 # Security checks fail loudly: an unverifiable app must never be installed.
 spctl --assess --type execute "$bundle" || { echo "talat: error: Gatekeeper rejects the download" >&2; exit 1; }
-codesign -dv "$bundle" 2>&1 | grep -qx "TeamIdentifier=$team" || { echo "talat: error: the app is not signed by team $team" >&2; exit 1; }
+# Captured, not piped: under pipefail, grep -q stopping at its match can SIGPIPE codesign (ADR 0001 F-59).
+signature=$(codesign -dv "$bundle" 2>&1)
+grep -qx "TeamIdentifier=$team" <<<"$signature" || { echo "talat: error: the app is not signed by team $team" >&2; exit 1; }
 mv "$bundle" "$app" || { echo "talat: error: could not move the app into /Applications" >&2; exit 1; }
 echo "talat: installed $app (it updates itself from here on)"
 exit 0

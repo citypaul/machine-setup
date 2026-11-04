@@ -716,6 +716,19 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   shows mise's package and tool upgrade plan, applies it only with `--yes`
   (or a yes at a terminal), and reports drift afterwards. mise's own pin
   and the skills pin change through the repo, never here.
+- **D-36 The Herdr desktop app is a task** (`tasks/herdr-app`), beside the
+  `brew:herdr` CLI, which stays. Paul asked for the app as well on
+  2026-11-04. It is not on Homebrew; the task reads the release feed the
+  app updates itself from (`releases.herdr.dev/app/latest.json`, the one
+  the vendor's `install.sh` reads) and lays it out the same way:
+  `~/Applications/Herdr.app` on macOS (no admin, so it suits the
+  unmanaged work Mac), `~/.local/share/herdr-app` with a launcher entry on
+  Linux, and `~/.local/bin/herdr-app` on both. Desktop role only; Apple
+  Silicon on macOS. It refuses a download whose sha256 differs from the
+  feed's, and on macOS one not signed by team `2W9652Q7QR` or rejected by
+  Gatekeeper. It installs once; the app updates itself and offers
+  herdr-core when it first opens. `07-herdr-app` tests it against a feed
+  on disk through `HERDR_RELEASES_URL`.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
@@ -853,6 +866,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   parallel with `merge-claude-settings` under the `bootstrap` task. The
   merge now depends on `claude-skills`, so it runs last. It keeps keys it
   does not define, so the plugin entry stays and the repo's settings win.
+- **F-59 `codesign -dv | grep -qx` rejects a correctly signed app under
+  `pipefail`.** The first real run of `tasks/herdr-app` (into a scratch
+  HOME) refused Herdr's Developer ID build: `grep -q` exits at its match,
+  codesign is killed writing the rest, and the pipeline fails. The task
+  now captures codesign's output and greps that. `tasks/talat` had the
+  same pipeline and the same race: against the installed Talat.app it
+  exited 141 in 1 of 5 runs, so a fresh install could be refused at
+  random. It captures the output too.
+- **F-60 `brew:tldr` left the Homebrew API.** `05-inventory` failed on
+  main: `formulae.brew.sh/api/formula/tldr.json` returns 404. `tealdeer`,
+  which installs the same `tldr` command, replaces it, and `tldr` joins the
+  base removal list, since Homebrew lists the two as conflicting.
 - **F-58 The Mac's terminal font sizes look a third larger on Linux.** Paul's
   first run by hand on the Ubuntu VM. Alacritty's font library turns points
   into pixels at 96 dots per inch on Linux and 72 on macOS (crossfont's

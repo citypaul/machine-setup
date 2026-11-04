@@ -66,3 +66,14 @@ setup() {
   run mise_in_checkout bootstrap status --missing
   [ "$status" -eq 0 ]
 }
+
+@test "the Herdr app is installed with a launcher entry, beside the herdr CLI" {
+  [ -x "$HOME/.local/share/herdr-app/herdr-app" ]
+  [ -x "$HOME/.local/bin/herdr-app" ]
+  grep -q '^Exec=.*/herdr-app$' "$HOME/.local/share/applications/herdr-app.desktop"
+  run zsh -lc 'command -v herdr'
+  [ "$status" -eq 0 ]
+  run mise_in_checkout run herdr-app
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"already installed"* ]] || false
+}
