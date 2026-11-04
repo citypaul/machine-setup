@@ -1,0 +1,17 @@
+#!/bin/sh
+# Stand-in curl for tests that serve a release feed from disk: copies a file:// URL to the -o path
+# and fails like `curl -f` when the file is missing. CI's clean container has no curl until
+# bootstrap installs it (ADR 0001 F-45), and the pure tests run before that.
+out='' url=''
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -o) out=$2; shift 2 ;;
+    --max-time) shift 2 ;;
+    -*) shift ;;
+    *) url=$1; shift ;;
+  esac
+done
+case "$url" in file://*) ;; *) echo "curl-file: only file:// URLs ($url)" >&2; exit 1 ;; esac
+src=${url#file://}
+[ -f "$src" ] || exit 22
+if [ -n "$out" ]; then cp "$src" "$out"; else cat "$src"; fi

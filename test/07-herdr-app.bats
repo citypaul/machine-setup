@@ -2,7 +2,8 @@
 # The Herdr desktop app (herdr.dev), beside the herdr CLI from Homebrew. tasks/herdr-app installs it
 # once with the desktop role, from the release feed the app updates itself from, and refuses a
 # download whose checksum or (on macOS) Developer ID signature is wrong. Pure: fresh HOME, and a
-# release feed on disk through HERDR_RELEASES_URL, the override the vendor's own installer reads.
+# release feed on disk through HERDR_RELEASES_URL, the override the vendor's own installer reads,
+# fetched by a stand-in curl (CI's clean container has none until bootstrap installs it).
 load helpers
 
 setup() {
@@ -10,6 +11,7 @@ setup() {
   FEED="$BATS_TEST_TMPDIR/feed"
   mkdir -p "$FEED/app"
   export HERDR_RELEASES_URL="file://$FEED"
+  export PATH="$FIXTURES/bin/curl-file:$PATH"
   case "$(uname -s)-$(uname -m)" in
     Linux-x86_64) TARGET=linux-x86_64 ;;
     Linux-aarch64) TARGET=linux-aarch64 ;;
