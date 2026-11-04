@@ -170,6 +170,9 @@ run = '''tasks/remove-packages \
 
 [tasks.merge-claude-settings]
 description = "Merge claude/settings.json into ~/.claude/settings.json, keeping other hooks (plan §4.7)"
+# After the skills installer: its `claude plugin install` writes settings.json too, and the merge must
+# land last so the repo's settings win; it keeps the keys it does not define (ADR 0001 F-57).
+depends = ["claude-skills"]
 run = "tasks/merge-claude-settings"
 
 [tasks.install-browsers]

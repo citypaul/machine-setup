@@ -12,12 +12,15 @@ setup() {
 
 pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO_ROOT/mise.toml"; }
 
-@test "the skills installer ran pinned to the declared release and left CLAUDE.md and the skills behind" {
+@test "the skills installer ran pinned to the declared release and left CLAUDE.md and the skills for Claude Code and Codex" {
   local v; v=$(pinned_version)
   [[ "$v" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || false
   [ -f "$HOME/.claude/CLAUDE.md" ]
   [ -d "$HOME/.claude/skills/tdd" ]
   [ -d "$HOME/.claude/skills/testing" ]
+  # Codex reads skills from ~/.agents/skills, where the installer's --agent codex puts them.
+  [ -d "$HOME/.agents/skills/tdd" ]
+  [ -d "$HOME/.agents/skills/testing" ]
   [ "$(cat "$HOME/.claude/.machine-setup-skills-version")" = "$v" ]
 }
 
@@ -31,6 +34,18 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
   run zsh -lc 'command -v claude && command -v codex'
   [ "$status" -eq 0 ]
   [[ "$output" == *"/.local/share/mise/"* ]] || false
+}
+
+@test "every declared npm CLI starts and reports its version" {
+  # Resolving is not enough. Found on the Ubuntu VM: mise's npm installer skips install scripts it
+  # was not told to allow, claude-code's places its native binary, and `claude` only printed an
+  # error (ADR 0001 F-57).
+  local cli out bad=()
+  for cli in claude codex gemini task-master agent-browser pi; do
+    out=$(stdio_only zsh -lc "$cli --version" </dev/null 2>&1 | tail -1)
+    [[ "$out" =~ [0-9]+\.[0-9]+\.[0-9]+ ]] || bad+=("$cli: $out")
+  done
+  [ "${#bad[@]}" -eq 0 ] || { printf '%s\n' "${bad[@]}"; return 1; }
 }
 
 @test "herdr is installed and its Claude Code integration is in place" {
