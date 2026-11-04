@@ -63,6 +63,20 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   [[ "$output" == *"already installed"* ]] || false
 }
 
+@test "the Herdr app is installed in ~/Applications with the desktop role, signed by Herdr, beside the CLI" {
+  has_desktop_role || skip "desktop role not selected on this machine"
+  [ "$(uname -m)" = arm64 ] || skip "Herdr ships Apple Silicon builds only"
+  [ -d "$HOME/Applications/Herdr.app" ]
+  signature=$(codesign -dv "$HOME/Applications/Herdr.app" 2>&1)
+  grep -qx 'TeamIdentifier=2W9652Q7QR' <<<"$signature"
+  [ -x "$HOME/.local/bin/herdr-app" ]
+  run zsh -lc 'command -v herdr'
+  [ "$status" -eq 0 ]
+  run mise_in_checkout run herdr-app
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"already installed"* ]] || false
+}
+
 @test "the talat task does nothing without the desktop role or on another platform" {
   run "$REPO_ROOT/tasks/talat" ""
   [ "$status" -eq 0 ]

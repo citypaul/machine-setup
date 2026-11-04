@@ -108,6 +108,7 @@ cd ~/.local/share/machine-setup
 | See which macOS preferences differ from the declared ones | `~/.local/bin/mise bootstrap macos defaults status` |
 | Install the gh extensions once `gh auth login` has run | `~/.local/bin/mise run gh-extensions` |
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
+| Install the Herdr desktop app by hand (desktop role; the `herdr` CLI comes with every profile) | `~/.local/bin/mise run herdr-app` |
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
 | Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run doctor` (exit `1` when something needs running) |
 | See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |

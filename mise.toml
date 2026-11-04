@@ -196,6 +196,10 @@ run = "tasks/gpg-setup"
 description = "Install Talat from its release feed, once (macOS, Apple Silicon, desktop role)"
 run = "tasks/talat '{{ vars.roles | default(value='') }}'"
 
+[tasks.herdr-app]
+description = "Install the Herdr desktop app from its release feed, once (desktop role); the herdr CLI stays a package"
+run = "tasks/herdr-app '{{ vars.roles | default(value='') }}'"
+
 [tasks.doctor]
 description = "The checks mise does not make: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin"
 run = "tasks/doctor"
@@ -210,7 +214,7 @@ run = "tasks/gh-extensions"
 
 [tasks.bootstrap]
 description = "Imperative setup that runs after tools on every bootstrap"
-depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations", "gpg-setup", "talat", "gh-extensions"]
+depends = ["merge-claude-settings", "install-browsers", "claude-skills", "herdr-integrations", "herdr-app", "gpg-setup", "talat", "gh-extensions"]
 run = "true"
 
 [tasks.fix-brew-certs]
