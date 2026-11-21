@@ -62,7 +62,7 @@ current_profile() { sed -n 's/^profile = "\(.*\)"$/\1/p' "$REPO_ROOT/mise.local.
   grep -q 'Include ~/.ssh/config.d/\*' "$HOME/.ssh/config"
   [ -d "$HOME/.ssh/config.d" ]
   if is_macos; then
-    grep -q 'IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.group.com.1password/t/agent.sock"' "$HOME/.ssh/config"
+    grep -q 'IdentityAgent "~/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock"' "$HOME/.ssh/config"
   else
     grep -q 'IdentityAgent ~/.1password/agent.sock' "$HOME/.ssh/config"
   fi
