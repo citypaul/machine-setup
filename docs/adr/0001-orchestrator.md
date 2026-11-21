@@ -836,6 +836,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   2026.10.3 unless they say otherwise; the workarounds they led to are
   kept until each is shown to be unnecessary.
 
+- **F-63 A fresh Mac kept Apple's Dock until the next login.** After the
+  #40 rehearsal the macOS VM showed the stock Dock although
+  `com.apple.dock persistent-apps` held the twenty declared apps: the Dock
+  process had been running since boot, four hours before the list was
+  written, and it reads the list only when it starts. mise leaves the
+  restart to the user (its closing follow-up line names `killall Dock`),
+  and the `post-defaults` hook restarted Finder only. The `80-macos-extras`
+  test reads the stored list, so it passed. `killall Dock` on the VM showed
+  the declared layout and left the stored list intact, so the hook now
+  restarts the Dock as well, on every run, as it already does Finder. It
+  stays in the macOS layer because hooks replace per key (F-37).
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
