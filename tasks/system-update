@@ -9,6 +9,7 @@
 # Usage: tasks/system-update [--dry-run]
 set -uo pipefail
 dry_run=0
+apt_lock_wait=900   # seconds apt waits for another package manager's lock
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run|-n) dry_run=1; shift ;;
@@ -27,9 +28,11 @@ update_linux() {
     return 0
   fi
   say "refreshing apt and upgrading every installed package"
-  as_root env DEBIAN_FRONTEND=noninteractive apt-get update || fail "apt-get update failed"
+  # A freshly booted Ubuntu runs unattended-upgrades, which holds the dpkg lock for minutes: wait for
+  # it instead of failing at once (ADR 0001 F-60).
+  as_root env DEBIAN_FRONTEND=noninteractive apt-get -o "DPkg::Lock::Timeout=$apt_lock_wait" update || fail "apt-get update failed"
   # Keep a configuration file this machine changed, take the new default otherwise: never ask.
-  as_root env DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade \
+  as_root env DEBIAN_FRONTEND=noninteractive apt-get -o "DPkg::Lock::Timeout=$apt_lock_wait" -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade \
     || fail "apt-get full-upgrade failed"
   if command -v snap >/dev/null 2>&1; then
     say "refreshing snaps"

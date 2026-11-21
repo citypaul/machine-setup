@@ -116,6 +116,14 @@ with_logged_system_update() {
   [[ "$output" != *"upgrading packages"* ]] || false
 }
 
+@test "update refuses a value other than 0 or 1 for MACHINE_SETUP_SKIP_SYSTEM_UPDATE" {
+  with_logged_system_update
+  MACHINE_SETUP_SKIP_SYSTEM_UPDATE=yes MISE_BIN="$FIXTURES/bin/fd-probe/mise" run "$CO/tasks/update" --dry-run
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"0 or 1"* ]] || false
+  [ ! -s "$SYSTEM_UPDATE_LOG" ]
+}
+
 @test "update without --yes and without a terminal applies nothing and says how to" {
   with_mise
   select_envs "$CO" personal - studio >/dev/null

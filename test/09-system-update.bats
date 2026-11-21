@@ -38,9 +38,11 @@ LIST
 @test "on Debian-family Linux it refreshes apt, upgrades every package without asking, and refreshes snaps" {
   run "$REPO_ROOT/tasks/system-update"
   [ "$status" -eq 0 ]
-  [ "$(sed -n 1p "$CALLS")" = "apt-get[noninteractive] update" ]
+  [[ "$(sed -n 1p "$CALLS")" == "apt-get[noninteractive] "*" update" ]] || false
   grep -q -E '^apt-get\[noninteractive\] .*-y .*full-upgrade$|^apt-get\[noninteractive\] -y .*full-upgrade' "$CALLS"
   grep -q -x 'snap refresh' "$CALLS"
+  # A freshly booted Ubuntu's unattended-upgrades holds the dpkg lock for minutes: apt waits for it.
+  [ "$(grep -c 'DPkg::Lock::Timeout=[0-9][0-9]*' "$CALLS")" -eq 2 ]
   ! grep -q -e '^brew' -e '^softwareupdate' "$CALLS" || false
 }
 

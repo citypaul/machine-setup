@@ -35,8 +35,12 @@ export MISE_YES=1
 
 # The system's own packages first (apt, snaps; Homebrew and Apple's updates), then what this checkout
 # declares (ADR 0001 D-40). MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1 leaves the system's own alone.
+case "${MACHINE_SETUP_SKIP_SYSTEM_UPDATE:-0}" in
+  0|1) ;;
+  *) echo "update: MACHINE_SETUP_SKIP_SYSTEM_UPDATE must be 0 or 1, not '$MACHINE_SETUP_SKIP_SYSTEM_UPDATE'" >&2; exit 2 ;;
+esac
 system_update() {
-  if [ "${MACHINE_SETUP_SKIP_SYSTEM_UPDATE:-0}" != 0 ]; then echo "update: system: skipped (MACHINE_SETUP_SKIP_SYSTEM_UPDATE)"; return 0; fi
+  if [ "${MACHINE_SETUP_SKIP_SYSTEM_UPDATE:-0}" = 1 ]; then echo "update: system: skipped (MACHINE_SETUP_SKIP_SYSTEM_UPDATE)"; return 0; fi
   "$checkout/tasks/system-update" "$@"
 }
 echo "update: system (this machine's own packages; the plan first)"

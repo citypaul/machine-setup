@@ -79,7 +79,7 @@ Flags:
 | `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
 | `--repo <url>`, `--ref <ref>` | where to clone from and what to check out | this repo, `main` |
-| `--skip-system-update` | on a first install, do not update the system's own packages first (also `MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1`) | off |
+| `--skip-system-update` | on a first install, do not update the system's own packages first (also `MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1`; any value but `0` or `1` is refused) | off |
 | `--select-only` | save the selection and stop; installs nothing | off |
 | `--dry-run` | show what mise would do and stop | off |
 | `--yes` | never ask a question; fail instead (sudo still asks for your password once, when it needs one) | off (prompts only on a terminal) |

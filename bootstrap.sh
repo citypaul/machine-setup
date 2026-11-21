@@ -125,6 +125,11 @@ done
 case "$machine" in
   *[!a-zA-Z0-9-]*) die "machine ids are letters, digits and dashes: '$machine'" 2 ;;
 esac
+# Settings that come from the environment are checked here, before anything runs.
+case "$skip_system_update" in
+  0|1) ;;
+  *) die "MACHINE_SETUP_SKIP_SYSTEM_UPDATE must be 0 or 1, not '$skip_system_update'" 2 ;;
+esac
 
 interactive=0
 if [ -t 0 ] && [ "$yes" = 0 ]; then interactive=1; fi

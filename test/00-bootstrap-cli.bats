@@ -236,6 +236,14 @@ with_fake_system_update() {
   [ ! -e "$MARKER" ]   # skipping is not updating: a later run without the flag still updates once
 }
 
+@test "a value other than 0 or 1 for MACHINE_SETUP_SKIP_SYSTEM_UPDATE is refused before anything runs" {
+  with_fake_system_update
+  MACHINE_SETUP_SKIP_SYSTEM_UPDATE=yes run full_run
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"MACHINE_SETUP_SKIP_SYSTEM_UPDATE"*"0 or 1"* ]] || false
+  ! grep -q -e '^system-update' -e '^mise bootstrap' "$CALL_LOG" 2>/dev/null || false
+}
+
 @test "--select-only and --dry-run never update the system" {
   with_fake_system_update
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --select-only --yes
