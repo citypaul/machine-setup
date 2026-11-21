@@ -277,7 +277,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 | `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Rex's config, Talat |
 | `95-doctor-update` | doctor passes on a converged machine; update --dry-run leaves it converged |
-| `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code and Brave from their vendors' repositories, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
+| `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code, Cursor and Brave from their vendors' repositories, Firefox, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
 ```bash
 test/run.sh                                    # safe files run, mutating files skip
@@ -339,10 +339,10 @@ desktop set, machine files, `doctor` and `update`. Still to come:
   test VMs offer 4.1) closes it at once. The `vm` machine starts it with Mesa's
   software renderer instead (`LIBGL_ALWAYS_SOFTWARE=1`); real hardware keeps
   the GPU;
-- on a Linux desktop: Cursor (no supported Linux arm64 channel) and Firefox
-  (Ubuntu's own snap) are not declared; 1Password's desktop app exists for
-  x86_64 only (arm64 gets the CLI), and its SSH agent is switched on in the
-  app's settings by hand;
+- on a Linux desktop: 1Password's desktop app exists for x86_64 only (arm64
+  gets the CLI), and its SSH agent is switched on in the app's settings by
+  hand; Google Chrome is not declared (Google publishes no Linux arm64
+  build);
 - the rehearsed migration of the existing Macs, moving an existing
   `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public
   skills repo (slice 10).

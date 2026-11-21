@@ -3,7 +3,8 @@
 # armored, F-29; fingerprints in ADR 0001 D-30) and pre-packages files add the sources. Alacritty is
 # Ubuntu's package, Ghostty comes from the ghostty-ubuntu builds through a task (no repository, D-31),
 # Obsidian is a per-user Flatpak from Flathub (the pre-packages hook installs flatpak and adds the remote).
-# Not declared (D-30): Cursor has no supported Linux arm64 channel; Firefox is Ubuntu's own snap.
+# Cursor comes from Anysphere's apt repository (amd64 and arm64) and Firefox is Ubuntu's own package,
+# which installs the snap (D-39).
 [bootstrap.directories."/etc/apt/keyrings"]
 mode = "0755"
 phase = "pre-packages"
@@ -24,6 +25,13 @@ phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/brave.asc"]
 source = "files/brave.asc"
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
+[bootstrap.files."/etc/apt/keyrings/cursor.asc"]
+source = "files/cursor.asc"
 owner = "root"
 group = "root"
 mode = "0644"
@@ -66,6 +74,18 @@ group = "root"
 mode = "0644"
 phase = "pre-packages"
 
+# Cursor's package would add this repository itself, under another name and key path; the cursor-repo
+# hook tells it not to, so this stays the only source (D-39).
+[bootstrap.files."/etc/apt/sources.list.d/cursor.list"]
+content = '''# Cursor (machine-setup, desktop role)
+deb [arch={{ exec(command="dpkg --print-architecture") }} signed-by=/etc/apt/keyrings/cursor.asc] https://downloads.cursor.com/aptrepo stable main
+'''
+template = true
+owner = "root"
+group = "root"
+mode = "0644"
+phase = "pre-packages"
+
 [bootstrap.files."/etc/apt/sources.list.d/docker.list"]
 content = '''# Docker Engine (machine-setup, desktop role)
 deb [arch={{ exec(command="dpkg --print-architecture") }} signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ exec(command="sh -c '. /etc/os-release && echo $VERSION_CODENAME'") }} stable
@@ -82,6 +102,8 @@ phase = "pre-packages"
 "apt:1password" = { os = "linux/x64" }
 "apt:1password-cli" = "latest"
 "apt:code" = "latest"
+"apt:cursor" = "latest"
+"apt:firefox" = "latest"   # Ubuntu's package, which installs Mozilla's snap; a desktop image has it already
 "apt:brave-browser" = "latest"
 "apt:alacritty" = "latest"
 "apt:docker-ce" = "latest"
@@ -100,6 +122,10 @@ enabled = true
 description = "Install flatpak and add the Flathub remote before the packages phase needs them"
 run = "tasks/flathub"
 
+[tasks.cursor-repo]
+description = "Tell Cursor's package not to add its own apt source beside the declared one"
+run = "tasks/cursor-repo"
+
 [tasks.ghostty-linux]
 description = "Install Ghostty from the ghostty-ubuntu build for this Ubuntu release, once"
 run = "tasks/ghostty-linux"
@@ -109,7 +135,7 @@ description = "Put the current user in the docker group"
 run = "tasks/docker-group"
 
 [bootstrap.hooks]
-pre-packages = "mise run flathub"
+pre-packages = ["mise run flathub", "mise run cursor-repo"]
 post-packages = ["mise run fix-brew-certs", "mise run remove-packages", "mise run ghostty-linux", "mise run docker-group"]
 
 # Alacritty's font size on Linux (looks like the Mac's 19); ~/.alacritty.toml imports it (ADR 0001 F-58).
