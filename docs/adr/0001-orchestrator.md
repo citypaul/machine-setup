@@ -827,6 +827,15 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   does, and a `06-doctor-update` test fails without the fix (61 seconds,
   the stand-in's whole sleep).
 
+- **D-41 The pins move to the current releases.** Paul asked for it on
+  2026-11-21, after #39 merged: mise `v2026.10.3` to `v2026.11.12`
+  (`bootstrap.sh`, and the README's rehearsal command), bats-core `v1.12.0`
+  to `v1.14.0` (the copy `test/run.sh` downloads when no bats is installed)
+  and `actions/checkout` `v5` to `v7`. The skills pin is already the latest
+  release (`v4.18.0`). Findings earlier in this record were made with mise
+  2026.10.3 unless they say otherwise; the workarounds they led to are
+  kept until each is shown to be unnecessary.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

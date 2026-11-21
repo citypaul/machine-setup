@@ -12,7 +12,7 @@
 # POSIX sh on purpose: the one-liner runs under whatever /bin/sh the machine has.
 set -eu
 
-MISE_PIN="${MISE_VERSION:-v2026.10.3}"
+MISE_PIN="${MISE_VERSION:-v2026.11.12}"
 REPO_URL_DEFAULT="https://github.com/citypaul/machine-setup.git"
 CHECKOUT_DEFAULT="${XDG_DATA_HOME:-$HOME/.local/share}/machine-setup"
 # Envs whose tasks read 1Password during bootstrap are listed in mise.toml as `secret_envs`; they are
