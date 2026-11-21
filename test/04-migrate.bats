@@ -86,6 +86,23 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   grep -rq 'name = unrelated' "$(latest_journal)/saved"
 }
 
+@test "a real ~/.gitconfig is still a conflict, and saved by --force, when a link target is a real file too" {
+  # An adopted Mac has both. mise's dry run refuses the real file at the link target and prints no
+  # render lines, so the rendered targets must not be learned from it: ~/.gitconfig was overwritten unsaved.
+  rm "$HOME/.zsh_profile"; printf 'edited locally\n' > "$HOME/.zsh_profile"
+  printf '[user]\n\tname = unrelated\n' > "$HOME/.gitconfig"
+  local before; before=$(snapshot_tree "$HOME")
+  run "${MIGRATE[@]}"
+  [ "$status" -ne 0 ]
+  [[ "$output" == *".zsh_profile"* ]] || false
+  [[ "$output" == *".gitconfig"* ]] || false
+  [ "$(snapshot_tree "$HOME")" = "$before" ]
+  run "${MIGRATE[@]}" --force
+  [ "$status" -eq 0 ]
+  grep -q 'name = Paul Hammond' "$HOME/.gitconfig"
+  grep -rq 'name = unrelated' "$(latest_journal)/saved"
+}
+
 @test "a checkout inside the home directory, which mise reports as ~/ paths, is planned and migrated" {
   # Found in the first rehearsal on the macOS VM: with the checkout at ~/machine-setup, mise prints the
   # group sources as ~/machine-setup/zsh, and the plan found 0 targets.

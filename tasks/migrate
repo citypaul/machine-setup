@@ -48,13 +48,15 @@ done
 say "stow dir: $stow_dir; ${#targets[@]} targets from ${#roots[@]} groups"
 [ ${#targets[@]} -gt 0 ] || die 1 "the selected groups list no files under ${roots[*]}; is --checkout the machine-setup checkout?"
 
-# Targets that mise renders or copies (template and copy entries) are learned from a dry run: they
-# are not linked by the swap, but an existing real file there is just as much a conflict.
+# Targets that mise renders or copies (template and copy entries): not linked by the swap, but an
+# existing real file there is just as much a conflict. They are read from mise's status, not from a
+# dry run: the dry run refuses a real file at a link target and then prints no render lines, so on
+# a home with both, ~/.gitconfig and ~/.ssh/config were overwritten without being saved.
 rendered=()
 while IFS= read -r p; do
   [ -n "$p" ] || continue
   rendered+=("${p/#\~/$HOME}")
-done < <(cd "$checkout" && "$mise_bin" dot apply --dry-run 2>/dev/null | sed -n -E 's/^render .* -> (~\/[^ ]+).*/\1/p; s/^cp .* (~\/[^ ]+)$/\1/p' | sort -u)
+done < <(cd "$checkout" && "$mise_bin" dot status --json 2>/dev/null | jq -r '.files[] | select(.mode=="template" or .mode=="copy") | .target' | sort -u)
 
 # GNU Stow "folds" a directory that did not exist yet into one link to the package directory
 # (~/.config/ghostty -> ../.dotfiles/ghostty/.config/ghostty). A target under such a link is not a
