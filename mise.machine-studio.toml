@@ -1,11 +1,11 @@
 # Machine: studio, Paul's Mac Studio (personal profile, desktop role). The machine file states the
 # complete group list and this machine's exceptions (ADR 0001 D-33).
 [bootstrap]
-dotfile_groups = ["zsh", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]
+dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]
 
 # This machine's Dock: the desktop role's list plus the personal apps that exist here (Spotify and
 # Brave come with the personal profile). Every app must exist when the Dock phase runs, so Talat,
-# which a later task installs, stays unpinned (D-33).
+# which a later task installs, stays unpinned (D-33); so does Rex, installed by hand (D-37).
 [bootstrap.macos.dock]
 apps = [
   "/Applications/Spotify.app",

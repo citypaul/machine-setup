@@ -6,6 +6,11 @@
 [dotfile_groups.zsh]
 root = "zsh"
 
+# Rex, the primary terminal (ADR 0001 D-37). Its init.lua binds nothing, so Rex keeps its own
+# default key bindings. Selected by the desktop role and the machines that take it.
+[dotfile_groups.rex]
+root = "rex"
+
 [dotfile_groups.ghostty]
 root = "ghostty"
 
