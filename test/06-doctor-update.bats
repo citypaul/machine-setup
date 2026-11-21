@@ -43,6 +43,18 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   ! grep -q "FAIL.*1Password" <<<"$output" || false
 }
 
+@test "doctor finds the signing key gpg-setup writes to ~/.gitconfig.local, which ~/.gitconfig includes" {
+  # Found adopting the Mac Studio: the key was only read from ~/.gitconfig itself, so a signing
+  # setup warned "git has no signing key".
+  with_mise
+  select_envs "$CO" personal - studio >/dev/null
+  export PATH="$FIXTURES/bin/gpg-card:$PATH"
+  printf '[include]\n\tpath = ~/.gitconfig.local\n' > "$HOME/.gitconfig"
+  printf '[user]\n\tsigningkey = 0xTESTKEY\n' > "$HOME/.gitconfig.local"
+  run "$CO/tasks/doctor"
+  [[ "$output" == *"OK"*"GPG: a card is present and git signs with 0xTESTKEY"* ]] || false
+}
+
 @test "doctor reports the Conquer state from tailscale only when the role is selected" {
   with_mise
   # Without the role first: a re-run without --role keeps the saved roles, so the order matters.

@@ -107,7 +107,8 @@ esac
 # 7. GPG card and signing
 if command -v gpg >/dev/null 2>&1; then
   if bounded 10 gpg --card-status >/dev/null 2>&1; then
-    key=$(git config --global user.signingkey 2>/dev/null || true)
+    # --includes: gpg-setup writes the key to ~/.gitconfig.local, which ~/.gitconfig includes.
+    key=$(git config --global --includes user.signingkey 2>/dev/null || true)
     if [ -n "$key" ]; then ok "GPG: a card is present and git signs with $key"; else warn "GPG: a card is present but git has no signing key; run mise run gpg-setup"; fi
   else
     info "GPG: no card inserted (signing is configured when one is)"

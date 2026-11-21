@@ -103,6 +103,23 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   grep -rq 'name = unrelated' "$(latest_journal)/saved"
 }
 
+@test "a finished migration leaves the mark bootstrap reads, so bootstrap does not take the home over again" {
+  # Found adopting the Mac Studio: tasks/migrate was run by hand, as bootstrap's own message says to
+  # after a conflict, and the next bootstrap still saw leftover Stow links and tried to migrate again.
+  run "${MIGRATE[@]}"
+  [ "$status" -eq 0 ]
+  [ "$(cat "$HOME/.local/state/machine-setup/migrated")" = "$STOW" ]
+  grep -q 'MIGRATED_MARK="${XDG_STATE_HOME:-$HOME/.local/state}/machine-setup/migrated"' "$REPO_ROOT/bootstrap.sh"
+}
+
+@test "files mise rendered itself are not conflicts: a second run after a migration is not refused" {
+  run "${MIGRATE[@]}"
+  [ "$status" -eq 0 ]
+  run "${MIGRATE[@]}" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"real files"* ]] || false
+}
+
 @test "a checkout inside the home directory, which mise reports as ~/ paths, is planned and migrated" {
   # Found in the first rehearsal on the macOS VM: with the checkout at ~/machine-setup, mise prints the
   # group sources as ~/machine-setup/zsh, and the plan found 0 targets.

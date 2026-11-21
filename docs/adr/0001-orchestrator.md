@@ -862,6 +862,29 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   macOS guards (F-47). The migration needs jq; macOS ships it from 15, and
   on Linux bootstrap installs it with apt.
 
+- **F-64 Adopting the Mac Studio (2026-11-21) found five faults.** The first
+  real takeover of a long-lived Stow home, with mise 2026.11.12:
+  (1) `tasks/migrate` learned the rendered targets from `mise dot apply
+  --dry-run`, which refuses a real file at a link target and then prints no
+  render lines, so `--force` let mise write over `~/.gitconfig` and
+  `~/.ssh/config` with no copy in the journal; they are now read from `mise
+  dot status --json`. (2) bootstrap stops on a conflict and says to run
+  `tasks/migrate --force`, but only bootstrap wrote the `migrated` mark, so
+  the next bootstrap saw the Stow links that have no group here and tried
+  to migrate again; the migration now writes the mark. (3) That second dry
+  run reported the files mise had just rendered as the user's own; a
+  rendered or copied target mise reports as applied is no longer a
+  conflict. (4) `doctor` read `user.signingkey` without following
+  includes, so the key `gpg-setup` writes to `~/.gitconfig.local` read as
+  "no signing key". (5) The macOS `IdentityAgent` path said
+  `2BUA8C4S2C.group.com.1password`; 1Password's socket is under
+  `2BUA8C4S2C.com.1password`, and ssh's silent fallback to key files
+  (F-34) hid it. The bootstrap-migration tests also ran the real
+  `tasks/system-update` once D-40 landed, a full `brew upgrade` of the
+  machine running them; they now stub it. Tests: `04-migrate`,
+  `06-doctor-update`, `00-bootstrap-migration`; `70-identity` names the
+  socket path and was not run on a disposable machine for this change.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
