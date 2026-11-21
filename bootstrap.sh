@@ -139,17 +139,25 @@ if [ -t 0 ] && [ "$yes" = 0 ]; then interactive=1; fi
 as_root() {
   if [ "$(id -u)" = 0 ]; then "$@"
   elif [ "$interactive" = 1 ]; then sudo "$@"
-  else sudo -n "$@" || die "sudo needs a password and no terminal is attached; run 'sudo -v' first, then re-run"
+  else
+    # Ask sudo first, so a command that fails is not reported as a missing password (ADR 0001 F-60).
+    sudo -n true 2>/dev/null || die "sudo needs a password and no terminal is attached; run 'sudo -v' first, then re-run"
+    sudo -n "$@"
   fi
 }
 
 # ---------------------------------------------------------------- prerequisites (git, curl, CLT, Homebrew, mise)
+APT_LOCK_WAIT=900   # seconds apt waits for another package manager's lock
 install_prerequisites() {
   if [ "$os" = linux ]; then
     if ! have git || ! have curl || [ ! -e /etc/ssl/certs/ca-certificates.crt ]; then
       log "installing git, curl and CA certificates with apt"
-      DEBIAN_FRONTEND=noninteractive as_root apt-get update -qq
-      DEBIAN_FRONTEND=noninteractive as_root apt-get install -y -qq --no-install-recommends git curl ca-certificates
+      # A freshly booted Ubuntu runs unattended-upgrades, which holds the dpkg lock for minutes: wait
+      # for it (up to APT_LOCK_WAIT seconds) instead of failing at once (ADR 0001 F-60).
+      DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" update -qq \
+        || die "apt-get update failed (its own message is above); fix that and re-run"
+      DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" install -y -qq --no-install-recommends git curl ca-certificates \
+        || die "apt-get could not install git, curl and ca-certificates (its own message is above); fix that and re-run"
     fi
   else
     if ! xcode-select -p >/dev/null 2>&1; then

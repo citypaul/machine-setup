@@ -252,6 +252,43 @@ with_fake_system_update() {
   [ "$status" -eq 0 ]
   ! grep -q '^system-update' "$CALL_LOG" || false
   [ ! -e "$MARKER" ]
+# A freshly booted Ubuntu runs unattended-upgrades, which holds the dpkg lock for minutes; the first
+# rehearsal on a clean VM failed there at once, with a message about sudo's password (ADR 0001 F-60).
+# A Linux machine without git or curl, on any host: uname, apt-get and sudo are stand-ins, and PATH has
+# only the tools bootstrap needs before that step.
+without_prerequisites() {
+  BARE="$BATS_TEST_TMPDIR/bare"; mkdir -p "$BARE"
+  local tool path
+  for tool in sh sed tr id cut head dirname grep perl cat env true sleep; do
+    path=$(type -P "$tool") && ln -s "$path" "$BARE/$tool"   # the file, not a shell builtin
+  done
+  printf '#!/bin/sh\necho Linux\n' > "$BARE/uname"
+  printf '#!/bin/sh\necho "apt-get $*" >> "$CALL_LOG"\necho "E: Could not get lock /var/lib/dpkg/lock-frontend" >&2\nexit "${FAKE_APT_EXIT:-0}"\n' > "$BARE/apt-get"
+  chmod +x "$BARE/uname" "$BARE/apt-get"
+  ln -s "$FIXTURES/bin/sudo-fake/sudo" "$BARE/sudo"
+}
+bare_run() { PATH="$BARE" "$BARE/sh" "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family debian --profile personal --machine studio --yes; }
+
+@test "installing the prerequisites waits for another package manager to release the dpkg lock" {
+  without_prerequisites
+  FAKE_APT_EXIT=1 run bare_run
+  grep -q '^apt-get .*DPkg::Lock::Timeout=[0-9][0-9]* .*update' "$CALL_LOG"
+}
+
+@test "when apt fails, bootstrap says apt failed and does not blame sudo's password" {
+  not_root; without_prerequisites
+  FAKE_APT_EXIT=1 run bare_run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"apt-get update failed"* ]] || false
+  [[ "$output" != *"sudo needs a password"* ]] || false
+}
+
+@test "when sudo itself needs a password and cannot ask, bootstrap still says so" {
+  not_root; without_prerequisites
+  FAKE_SUDO=noprompt run bare_run
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"sudo -v"* ]] || false
+  ! grep -q '^apt-get' "$CALL_LOG" 2>/dev/null || false
 }
 
 @test "the 1Password sign-in check runs op with stdio only" {

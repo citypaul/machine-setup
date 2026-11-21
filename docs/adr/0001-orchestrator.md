@@ -793,6 +793,19 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   the update would be every preinstalled Homebrew package. `update` runs
   the same task before mise's upgrades. `09-system-update` tests the task
   with stubbed package managers, `00-bootstrap-cli` the once-only rule.
+### 2026-11-21 — a rehearsal on freshly reverted VMs
+
+- **F-60 A freshly booted Ubuntu holds the dpkg lock, and bootstrap blamed
+  sudo.** Run within a minute of booting the clean Ubuntu VM, the one-line
+  install stopped at its first apt call: `unattended-upgrades` held
+  `/var/lib/dpkg/lock-frontend`. The message was "sudo needs a password and
+  no terminal is attached", because `as_root` reported any failed command
+  that way. Earlier rehearsals started minutes after boot and never met
+  the lock. bootstrap's apt calls now pass `DPkg::Lock::Timeout`, so apt
+  waits up to fifteen minutes for the lock, and `as_root` asks sudo first
+  (`sudo -n true`) and then lets the command fail under its own name. Tests
+  in `00-bootstrap-cli` run bootstrap as a Linux machine without git or
+  curl, with stand-ins for `uname`, `apt-get` and `sudo`.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
