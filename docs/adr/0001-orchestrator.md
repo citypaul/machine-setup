@@ -815,6 +815,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `ghostty +validate-config`, which failed on the VM before the change.
   `.dotfiles` carries the same line.
 
+- **F-62 `doctor` waited forty minutes on the macOS Tailscale CLI.** On the
+  macOS VM, with the Conquer role and the app never opened, `tailscale
+  status --json` does not answer (F-38). doctor bounded it with an alarm
+  set before `exec`; the app's CLI outlived the alarm and kept the pipe
+  doctor was reading, so `95-doctor-update` sat until the process was
+  killed by hand. `tasks/tailscale-join` already bounds the same call by
+  killing its process group, which is why its tests passed on the same
+  machine. doctor now does the same, with KILL after TERM. The
+  `tailscale-hangs` stand-in ignores the alarm signal as the real one
+  does, and a `06-doctor-update` test fails without the fix (61 seconds,
+  the stand-in's whole sleep).
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

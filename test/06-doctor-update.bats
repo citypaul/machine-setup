@@ -65,6 +65,17 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [[ "$output" == *"FAIL"*"drift"* ]] || false
 }
 
+@test "doctor gives up on a Tailscale that never answers, and says so, instead of waiting for it (F-62)" {
+  # On the macOS VM the app's CLI outlived doctor's alarm and held its pipe: the suite sat for forty minutes.
+  with_mise
+  select_envs "$CO" personal conquer studio >/dev/null
+  export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
+  local started=$SECONDS
+  run "$CO/tasks/doctor"
+  [ $((SECONDS - started)) -lt 40 ]
+  [[ "$output" == *"Tailscale: the daemon did not answer"* ]] || false
+}
+
 @test "update --dry-run shows the package and tool upgrade plan and changes nothing; unknown flags are refused" {
   with_mise
   select_envs "$CO" personal - studio >/dev/null
