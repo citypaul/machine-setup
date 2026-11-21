@@ -152,3 +152,25 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 0' >/dev/null
 }
+
+@test "Slack is a desktop-role cask, not an App Store app, so a Mac that is not signed in still gets it (D-38)" {
+  grep -q '^"brew-cask:slack" = { os = "macos" }' "$CO/mise.desktop.toml"
+  ! grep -q '^"mas:803453959"' "$CO/mise.appstore.toml" || false   # Slack's App Store id
+}
+
+# The Dock list a file declares, as comma-separated app names.
+dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/\([^/]*\)\.app",.*|\1|p' | tr '\n' ','; }
+
+@test "the Dock leads with Slack and pins Talat after FluidVoice, on the desktop role and on studio (D-38)" {
+  [[ "$(dock_of mise.desktop-macos.toml)" == "Slack,Fantastical,"* ]] || false
+  [[ "$(dock_of mise.desktop-macos.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+  [[ "$(dock_of mise.machine-studio.toml)" == "Slack,Spotify,Fantastical,"* ]] || false
+  [[ "$(dock_of mise.machine-studio.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+}
+
+@test "on a desktop Mac, Talat is installed in the post-dotfiles hook, before the Dock phase, and the login shell is still set (D-38)" {
+  # Hooks replace per key across files (F-37), so the overlay must restate the base's login-shell hook.
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-macos.toml" | grep '^post-dotfiles')
+  [[ "$hook" == *'"mise run login-shell"'*'"mise run talat"'* ]] || false
+  grep -q '^post-dotfiles = "mise run login-shell"' "$CO/mise.toml"   # the base hook the overlay restates
+}

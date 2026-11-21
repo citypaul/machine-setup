@@ -329,9 +329,11 @@ desktop set, machine files, `doctor` and `update`. Still to come:
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the
   details are settled (ADR 0001 D-23);
-- the Dock on `studio` pins Spotify and Brave with the desktop list, but not
-  Talat or Slack: mise refuses a Dock whose apps do not exist yet, and both
-  arrive after the Dock phase (a task, the App Store role);
+- a Mac that already has Slack from the App Store: the desktop role now
+  installs Slack as a Homebrew cask (ADR 0001 D-38), so delete the App Store
+  copy before the first converge there;
+- the Dock on an Intel Mac: Talat is pinned and ships Apple Silicon builds
+  only, so the Dock phase stops there until the list is changed (D-38);
 - anything needing admin rights or extra permissions on a Mac: the
   automatic software-update check, the terminal's App Management
   permission and the Notification Center banner time (Full Disk Access)

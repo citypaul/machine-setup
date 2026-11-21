@@ -44,6 +44,7 @@ dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin",
 "brew-cask:responsively" = { os = "macos" }
 "brew-cask:sourcetree" = { os = "macos" }
 "brew-cask:shortcat" = { os = "macos" }
+"brew-cask:slack" = { os = "macos" }       # a cask, not the App Store app: no sign-in needed, and it exists for the Dock (D-38)
 "brew-cask:stats" = { os = "macos" }
 "brew-cask:tableplus" = { os = "macos" }
 "brew-cask:vlc" = { os = "macos" }
