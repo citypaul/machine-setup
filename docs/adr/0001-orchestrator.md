@@ -807,6 +807,14 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   in `00-bootstrap-cli` run bootstrap as a Linux machine without git or
   curl, with stand-ins for `uname`, `apt-get` and `sudo`.
 
+- **F-61 Ghostty opened on a "Configuration Errors" dialog on Ubuntu.** The
+  shared config said `theme = tokyonight`; Ghostty's theme file is
+  `TokyoNight`. macOS's file system ignores case, so the Mac found it and
+  Linux did not. Paul saw the dialog on the rehearsal VM. The config now
+  names the file exactly, and both desktop test files run
+  `ghostty +validate-config`, which failed on the VM before the change.
+  `.dotfiles` carries the same line.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

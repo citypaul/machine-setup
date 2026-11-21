@@ -52,6 +52,12 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   ! grep -q -E '^[[:space:]]*rex\.(bind|unbind|mode|action)' "$HOME/.config/rex/init.lua" || false
 }
 
+@test "Ghostty accepts its configuration (F-61)" {
+  has_desktop_role || skip "desktop role not selected on this machine"
+  run "/Applications/Ghostty.app/Contents/MacOS/ghostty" +validate-config
+  [ "$status" -eq 0 ] || { echo "$output"; return 1; }
+}
+
 @test "the terminals keep the Mac font sizes, Ghostty from its macOS config and Alacritty from its size file" {
   has_desktop_role || skip "desktop role not selected on this machine"
   run "/Applications/Ghostty.app/Contents/MacOS/ghostty" +show-config

@@ -51,6 +51,13 @@ setup() {
   [[ "$output" == *"already installed"* ]] || false
 }
 
+@test "Ghostty accepts its configuration: no error dialog when it opens (F-61)" {
+  # The theme was named `tokyonight`; the file is `TokyoNight`. A Mac's file system ignores case, so it
+  # only failed here, where Ghostty opened on a "Configuration Errors" dialog.
+  run zsh -lc 'ghostty +validate-config'
+  [ "$status" -eq 0 ] || { echo "$output"; return 1; }
+}
+
 @test "the terminals use the Linux font sizes, which look like the Mac's (Linux counts 96 dots per inch, macOS 72)" {
   # Paul's first run by hand: the Mac sizes made the Ubuntu VM's terminals a third larger (ADR 0001 F-58).
   run zsh -lc 'ghostty +show-config'
