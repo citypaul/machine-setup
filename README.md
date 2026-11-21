@@ -57,9 +57,14 @@ What happens, in order:
    selection there (profile, roles, machine id).
 6. Checks whether 1Password's CLI is signed in; roles that need a secret at
    run time (`conquer`) are skipped for this run if it is not, and it says so.
-7. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
+7. On a first install only, updates the system's own packages before
+   installing anything: `apt full-upgrade` and `snap refresh` on Ubuntu;
+   Homebrew and Apple's `softwareupdate` on macOS. An Apple update that
+   needs a restart is downloaded and announced, never installed for you.
+   Later runs never upgrade; `mise run update` does it on purpose.
+8. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
    dotfile links, the removal allowlist, runtimes, the Claude settings merge.
-8. Asks you to log out and back in: a desktop session keeps the shell and
+9. Asks you to log out and back in: a desktop session keeps the shell and
    PATH it started with, so terminals such as Ghostty and Alacritty, and
    launchers for new per-user apps, only pick up the change at the next login.
 
@@ -74,6 +79,7 @@ Flags:
 | `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
 | `--repo <url>`, `--ref <ref>` | where to clone from and what to check out | this repo, `main` |
+| `--skip-system-update` | on a first install, do not update the system's own packages first (also `MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1`) | off |
 | `--select-only` | save the selection and stop; installs nothing | off |
 | `--dry-run` | show what mise would do and stop | off |
 | `--yes` | never ask a question; fail instead (sudo still asks for your password once, when it needs one) | off (prompts only on a terminal) |
@@ -112,7 +118,8 @@ cd ~/.local/share/machine-setup
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
 | Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run doctor` (exit `1` when something needs running) |
 | See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
-| Upgrade declared packages and tools on purpose | `~/.local/bin/mise run update -- --yes` |
+| Upgrade on purpose: the system's own packages, then declared packages and tools | `~/.local/bin/mise run update -- --yes` |
+| Update only the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart) | `~/.local/bin/mise run system-update` |
 
 The saved selection lives in two untracked files in the checkout:
 `.miserc.local.toml` (the list of config environments) and `mise.local.toml`
@@ -268,6 +275,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
 | `06-doctor-update` | doctor fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
+| `09-system-update` | the system update: apt and snaps on Linux, Homebrew and Apple's updates on macOS, a restart-needing update only downloaded, failures and `--dry-run` |
 | `10-bootstrap` | a real bootstrap: mise, packages, casks, pre-existing Homebrew apps left alone |
 | `20-runtime-env` | node resolves in interactive, login and empty-environment shells |
 | `30-drift` | a deleted dotfile or package is reported and repaired |

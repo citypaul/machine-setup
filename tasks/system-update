@@ -1,0 +1,83 @@
+#!/usr/bin/env bash
+# The whole system's own update (ADR 0001 D-40): what `apt full-upgrade` is on Ubuntu. bootstrap.sh
+# runs it once, on a first install, before mise installs anything; `update` runs it on purpose. A
+# normal converge never does (D-35).
+#   Debian-family Linux: apt-get update and full-upgrade, then snap refresh where there are snaps.
+#   macOS: Homebrew update and upgrade, then Apple's softwareupdate. An Apple update that needs a
+#   restart is only downloaded and announced: this never restarts the Mac.
+# Needs root for apt, snap and softwareupdate: run it as root, or with sudo already unlocked.
+# Usage: tasks/system-update [--dry-run]
+set -uo pipefail
+dry_run=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --dry-run|-n) dry_run=1; shift ;;
+    -h|--help) echo "usage: system-update [--dry-run]"; exit 0 ;;
+    *) echo "system-update: unknown argument: $1" >&2; exit 2 ;;
+  esac
+done
+say() { echo "system-update: $*"; }
+fail() { echo "system-update: error: $*" >&2; exit 1; }
+as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
+
+update_linux() {
+  command -v apt-get >/dev/null 2>&1 || { say "no apt-get on this system; nothing to update"; return 0; }
+  if [ "$dry_run" = 1 ]; then
+    say "dry run: would run apt-get update and apt-get full-upgrade$(command -v snap >/dev/null 2>&1 && echo ', then snap refresh')"
+    return 0
+  fi
+  say "refreshing apt and upgrading every installed package"
+  as_root env DEBIAN_FRONTEND=noninteractive apt-get update || fail "apt-get update failed"
+  # Keep a configuration file this machine changed, take the new default otherwise: never ask.
+  as_root env DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold full-upgrade \
+    || fail "apt-get full-upgrade failed"
+  if command -v snap >/dev/null 2>&1; then
+    say "refreshing snaps"
+    as_root snap refresh || say "warning: snap refresh failed; run 'sudo snap refresh' later"
+  fi
+}
+
+update_macos() {
+  local brew; brew=$(command -v brew 2>/dev/null || echo /opt/homebrew/bin/brew)
+  if [ -x "$brew" ]; then
+    if [ "$dry_run" = 1 ]; then
+      say "dry run: would run brew update and brew upgrade"
+    else
+      say "updating Homebrew and upgrading what it has installed"
+      "$brew" update || fail "brew update failed"
+      "$brew" upgrade || fail "brew upgrade failed"
+    fi
+  else
+    say "Homebrew is not installed; skipping it"
+  fi
+  command -v softwareupdate >/dev/null 2>&1 || return 0
+  say "asking Apple for system updates"
+  # Each update is a "* Label: <label>" line followed by a line of details; "Action: restart" in the
+  # details marks one that restarts the Mac.
+  local updates kind label
+  updates=$(softwareupdate --list 2>&1 | awk '
+    /^\* Label: / { label = substr($0, index($0, ": ") + 2); next }
+    label != "" { print (/Action: restart/ ? "restart" : "install") "\t" label; label = "" }')
+  [ -n "$updates" ] || { say "no Apple updates available"; return 0; }
+  while IFS=$'\t' read -r kind label; do
+    [ -n "$label" ] || continue
+    if [ "$dry_run" = 1 ]; then
+      if [ "$kind" = restart ]; then say "dry run: would download '$label' (it needs a restart to install)"
+      else say "dry run: would install '$label'"; fi
+    elif [ "$kind" = restart ]; then
+      say "downloading '$label': it needs a restart, so install it from System Settings > General > Software Update when that suits you"
+      as_root softwareupdate --download "$label" </dev/null || say "warning: could not download '$label'; install it from System Settings later"
+    else
+      say "installing '$label'"
+      as_root softwareupdate --install "$label" </dev/null || say "warning: could not install '$label'; install it from System Settings later"
+    fi
+  done <<<"$updates"
+}
+
+case "$(uname -s)" in
+  Linux) update_linux ;;
+  Darwin) update_macos ;;
+  *) say "unsupported system; nothing to update" ;;
+esac
+[ "$dry_run" = 0 ] || say "dry run, nothing changed"
+exit 0

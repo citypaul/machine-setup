@@ -209,6 +209,10 @@ run = "tasks/herdr-app '{{ vars.roles | default(value='') }}'"
 description = "The checks mise does not make: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin"
 run = "tasks/doctor"
 
+[tasks.system-update]
+description = "Update the system's own packages: apt and snaps on Linux, Homebrew and Apple's updates on macOS (never a restart)"
+run = "tasks/system-update"
+
 [tasks.update]
 description = "Upgrade on purpose: show the plan, then upgrade declared packages and tools with --yes"
 run = "tasks/update"

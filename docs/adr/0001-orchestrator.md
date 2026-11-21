@@ -744,6 +744,26 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Settings window; the Lua reference has no setting for them.
   `01-layering` covers the lists and `80-macos-extras` the link.
 
+- **D-40 A first install updates the whole system once.** Paul asked on
+  2026-11-21 for installation to force the system's generic updates, "the
+  equivalent of apt update all". `tasks/system-update` does it: `apt-get
+  update` and `full-upgrade` and `snap refresh` on Debian-family Linux;
+  `brew update` and `brew upgrade`, then Apple's `softwareupdate`, on
+  macOS. Paul's choices: first install only, so D-35 still holds for every
+  later converge; and on a Mac never a restart, so an Apple update whose
+  details say `Action: restart` is downloaded and announced, and the rest
+  are installed by label (never `--all`, which would take the restarting
+  ones too). `bootstrap.sh` runs the task once, after the checkout exists
+  and before `mise bootstrap`, and records it in
+  `~/.local/state/machine-setup/system-updated`, outside the checkout. A
+  failed apt or Homebrew update stops the run and leaves no marker, so the
+  next run retries; a failed Apple update is only a warning.
+  `--skip-system-update` (or `MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1`) skips it
+  without writing the marker. The macOS CI runner sets that variable: there
+  the update would be every preinstalled Homebrew package. `update` runs
+  the same task before mise's upgrades. `09-system-update` tests the task
+  with stubbed package managers, `00-bootstrap-cli` the once-only rule.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
