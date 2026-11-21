@@ -175,6 +175,16 @@ dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/
   grep -q '^post-dotfiles = "mise run login-shell"' "$CO/mise.toml"   # the base hook the overlay restates
 }
 
+@test "after macOS preferences and the Dock list are written, the Dock is restarted so it shows them, as Finder is (F-63)" {
+  # The Dock reads its pinned apps only when it starts; without a restart a fresh install keeps showing Apple's set.
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.macos.toml" | grep '^post-defaults')
+  [[ "$hook" == *'"chflags nohidden ~/Library"'* ]] || false
+  [[ "$hook" == *'"killall Finder || true"'* ]] || false
+  [[ "$hook" == *'"killall Dock || true"'* ]] || false
+  # Hooks replace per key across files (F-37): a second post-defaults elsewhere would drop these commands.
+  [ "$(grep -l '^post-defaults' "$CO"/mise*.toml)" = "$CO/mise.macos.toml" ]
+}
+
 @test "Cursor's own package never adds a second apt source: the pre-packages hook answers its question first (D-39)" {
   # Cursor's package would write cursor.sources with another key path beside the declared cursor.list,
   # and apt refuses a repository configured twice with different Signed-By values.

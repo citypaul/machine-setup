@@ -46,4 +46,6 @@ automatic_spelling_correction = false
 "com.apple.Terminal" = { NewTabWorkingDirectoryBehavior = true }
 
 [bootstrap.hooks]
-post-defaults = ["chflags nohidden ~/Library", "killall Finder || true"]
+# The Dock phase writes the pinned apps just before this hook, and the Dock reads them only when it
+# starts, so it is restarted here like Finder (F-63). launchd brings both straight back.
+post-defaults = ["chflags nohidden ~/Library", "killall Finder || true", "killall Dock || true"]
