@@ -730,6 +730,20 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   herdr-core when it first opens. `07-herdr-app` tests it against a feed
   on disk through `HERDR_RELEASES_URL`.
 
+- **D-37 Rex is the primary terminal; its config is a group, the app is not
+  installed.** Paul is moving to Rex (2026-11-21). The `rex` group links
+  `~/.config/rex/init.lua`, where Rex reads its config, and joins the
+  desktop list (the role, `studio`, `vm`); the base and CI lists do not
+  take it. The file binds nothing: Paul chose Rex's defaults over carrying
+  the tmux, Zellij, Alacritty and Ghostty bindings across, so those groups
+  stay as they are. Rex is a beta: its docs name no Homebrew cask,
+  download URL or release feed, so unlike Herdr (D-36) and Talat there is
+  nothing for a task to read, and the app is installed by hand into
+  `~/Applications`. It is therefore not in any Dock list, where every path
+  must exist when the Dock phase runs. Theme and font are set in Rex's
+  Settings window; the Lua reference has no setting for them.
+  `01-layering` covers the lists and `80-macos-extras` the link.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

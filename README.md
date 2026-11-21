@@ -155,8 +155,18 @@ file at once.
 | Group | Deployed when | Notes |
 |-------|---------------|-------|
 | `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively |
+| `rex` | `desktop` role, `studio` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
 | `ghostty` | `desktop` role, `studio` machine | both the XDG and the Library config paths |
 | `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
+
+[Rex](https://www.superlogical.com/rex) is the primary terminal. Its `init.lua`
+binds nothing on purpose, so Rex's default key bindings always win; the tmux,
+Zellij, Alacritty and Ghostty groups are still deployed but are not carried
+into Rex. Rex is a beta with no Homebrew cask or public download, so nothing
+here installs the app: install it by hand into `~/Applications`. For the same
+reason it is not pinned in the Dock, where every listed app must already
+exist. Theme and font live in Rex's Settings window, not in `init.lua`. After
+editing the file, run `rex config check`, then `rex config reload`.
 
 Moving an existing Stow-managed machine over is a separate, journaled
 operation that rolls back exactly if anything fails part-way:
@@ -265,7 +275,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `50-ai-tooling` | skills at the pinned release, the settings merge on a real machine, herdr and OpenCode, the agent CLIs (`claude`, `codex`, `omp`) from mise |
 | `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
-| `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Talat |
+| `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Rex's config, Talat |
 | `95-doctor-update` | doctor passes on a converged machine; update --dry-run leaves it converged |
 | `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code and Brave from their vendors' repositories, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
@@ -343,7 +353,7 @@ desktop set, machine files, `doctor` and `update`. Still to come:
 |------|------|
 | `bootstrap.sh` | the one command; POSIX sh |
 | `mise*.toml`, `.miserc.toml` | the declared state, one file per layer |
-| `zsh/`, `ghostty/`, `git/`, `gnupg/`, `ssh/`, `bin/`, `tmux/`, `zellij/`, `herdr/`, `alacritty/`, `claude/` | dotfile groups and the Claude settings source |
+| `zsh/`, `rex/`, `ghostty/`, `git/`, `gnupg/`, `ssh/`, `bin/`, `tmux/`, `zellij/`, `herdr/`, `alacritty/`, `claude/` | dotfile groups and the Claude settings source |
 | `tasks/` | the shell tasks mise runs: `remove-packages`, `merge-claude-settings`, `migrate`, `tailscale-join` |
 | `test/` | the bats suite and its fixtures |
 | `docs/adr/0001-orchestrator.md` | the orchestrator decision, every finding, every executed result |

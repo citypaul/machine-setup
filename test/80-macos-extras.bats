@@ -45,6 +45,13 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   [ "$(readlink "$HOME/.alacritty.toml")" = "$REPO_ROOT/alacritty/.alacritty.toml" ]
 }
 
+@test "the desktop role links Rex's config, which leaves Rex on its default key bindings" {
+  has_desktop_role || skip "desktop role not selected on this machine"
+  [ "$(readlink "$HOME/.config/rex/init.lua")" = "$REPO_ROOT/rex/.config/rex/init.lua" ]
+  [ -d "$HOME/.config/rex" ] && [ ! -L "$HOME/.config/rex" ]
+  ! grep -q -E '^[[:space:]]*rex\.(bind|unbind|mode|action)' "$HOME/.config/rex/init.lua" || false
+}
+
 @test "the terminals keep the Mac font sizes, Ghostty from its macOS config and Alacritty from its size file" {
   has_desktop_role || skip "desktop role not selected on this machine"
   run "/Applications/Ghostty.app/Contents/MacOS/ghostty" +show-config

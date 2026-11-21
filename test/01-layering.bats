@@ -38,14 +38,14 @@ packages_for() {
 }
 
 @test "machine-studio deploys both the zsh and the ghostty groups" {
-  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
+  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
 }
 
 @test "the desktop role without a machine file still deploys zsh: group lists replace, so a role states the full list" {
-  [ "$(groups_for personal,desktop)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
+  [ "$(groups_for personal,desktop)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
 }
 
-@test "the work profile without roles deploys the base groups only (no ghostty)" {
+@test "the work profile without roles deploys the base groups only (no ghostty, no rex)" {
   [ "$(groups_for work)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
 }
 
@@ -136,8 +136,8 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 }
 
 @test "the machine files: studio and the test VMs state the full desktop group list, the CI runners the base list" {
-  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
-  [ "$(groups_for personal,desktop,machine-vm)" = "alacritty bin ghostty git gnupg herdr mise ssh tmux zellij zsh" ]
+  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
+  [ "$(groups_for personal,desktop,machine-vm)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
   [ "$(groups_for personal,machine-ci)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
 }
 

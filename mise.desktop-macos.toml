@@ -5,7 +5,8 @@
 # mise has no notion of). mise owns the pinned-app tiles: it adds, removes and reorders them, and
 # every path must exist when the Dock phase runs, which is before tasks. So Slack (App Store role),
 # Spotify and Brave (personal profile) and Talat (installed by a task) are not here; they return
-# with per-machine Dock lists in slice 9 (D-25).
+# with per-machine Dock lists in slice 9 (D-25). Rex, the primary terminal, is a beta installed by
+# hand into ~/Applications, so on a fresh machine it is not there yet and stays unpinned (D-37).
 [bootstrap.macos.dock]
 apps = [
   "/Applications/Fantastical.app",
