@@ -154,7 +154,7 @@ file at once.
 
 | Group | Deployed when | Notes |
 |-------|---------------|-------|
-| `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively |
+| `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively; `claude-profile NAME` and `claude-personal` run Claude Code with a separate config directory per profile (opt-in; the machine default goes in `~/.zshrc.local`) |
 | `rex` | `desktop` role, `studio` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
 | `ghostty` | `desktop` role, `studio` machine | both the XDG and the Library config paths |
 | `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
@@ -268,6 +268,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
 | `06-doctor-update` | doctor fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
+| `08-claude-profiles` | `claude-profile` and `claude-personal` give Claude Code the right config directory for one command, and change nothing otherwise |
 | `10-bootstrap` | a real bootstrap: mise, packages, casks, pre-existing Homebrew apps left alone |
 | `20-runtime-env` | node resolves in interactive, login and empty-environment shells |
 | `30-drift` | a deleted dotfile or package is reported and repaired |
