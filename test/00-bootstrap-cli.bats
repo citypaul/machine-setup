@@ -14,6 +14,9 @@ setup() {
   # never the real one.
   export PATH="$FIXTURES/bin/op-unlocked:$FIXTURES/bin/sudo-fake:$PATH" FAKE_SUDO=passwordless
   export FAKE_SUDO_STATE="$BATS_TEST_TMPDIR/sudo-unlocked" CALL_LOG="$BATS_TEST_TMPDIR/calls"
+  # A full run would update this machine's own packages (D-40); only the tests about that step, with
+  # the task replaced by a logger, let it run.
+  export MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1
 }
 
 @test "an unsupported --os-family is rejected with exit 2 before anything is written" {
@@ -189,6 +192,66 @@ not_root() { [ "$(id -u)" != 0 ] || skip "as root, bootstrap never needs sudo"; 
   FAKE_SUDO=locked run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --select-only --yes
   [ "$status" -eq 0 ]
   ! grep -q '^sudo' "$CALL_LOG" 2>/dev/null || false
+}
+
+# A first install updates the whole system once, before mise installs anything (ADR 0001 D-40); later
+# runs converge without upgrading (D-35). The task itself is replaced by a logger here.
+with_fake_system_update() {
+  with_fake_mise
+  printf '#!/bin/sh\necho "system-update $*" >> "$CALL_LOG"\nexit "${FAKE_SYSTEM_UPDATE_EXIT:-0}"\n' > "$CO/tasks/system-update"
+  chmod +x "$CO/tasks/system-update"
+  unset MACHINE_SETUP_SKIP_SYSTEM_UPDATE
+  MARKER="$HOME/.local/state/machine-setup/system-updated"
+}
+
+@test "a first install updates the whole system once, before mise bootstrap, and later runs do not" {
+  with_fake_system_update
+  run full_run
+  [ "$status" -eq 0 ]
+  [ "$(line_of 'system-update ')" -lt "$(line_of 'mise bootstrap')" ]
+  [ -f "$MARKER" ]
+  run full_run
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^system-update' "$CALL_LOG")" -eq 1 ]
+}
+
+@test "a failed system update stops the first install before mise, and the next run tries it again" {
+  with_fake_system_update
+  FAKE_SYSTEM_UPDATE_EXIT=1 run full_run
+  [ "$status" -eq 1 ]
+  ! grep -q -x 'mise bootstrap' "$CALL_LOG" || false
+  [ ! -e "$MARKER" ]
+  run full_run
+  [ "$status" -eq 0 ]
+  [ "$(grep -c '^system-update' "$CALL_LOG")" -eq 2 ]
+}
+
+@test "--skip-system-update and MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1 leave the system's own packages alone" {
+  with_fake_system_update
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --skip-system-update --yes
+  [ "$status" -eq 0 ]
+  MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1 run full_run
+  [ "$status" -eq 0 ]
+  ! grep -q '^system-update' "$CALL_LOG" || false
+  [ ! -e "$MARKER" ]   # skipping is not updating: a later run without the flag still updates once
+}
+
+@test "a value other than 0 or 1 for MACHINE_SETUP_SKIP_SYSTEM_UPDATE is refused before anything runs" {
+  with_fake_system_update
+  MACHINE_SETUP_SKIP_SYSTEM_UPDATE=yes run full_run
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"MACHINE_SETUP_SKIP_SYSTEM_UPDATE"*"0 or 1"* ]] || false
+  ! grep -q -e '^system-update' -e '^mise bootstrap' "$CALL_LOG" 2>/dev/null || false
+}
+
+@test "--select-only and --dry-run never update the system" {
+  with_fake_system_update
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --select-only --yes
+  [ "$status" -eq 0 ]
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --dry-run --yes
+  [ "$status" -eq 0 ]
+  ! grep -q '^system-update' "$CALL_LOG" || false
+  [ ! -e "$MARKER" ]
 }
 
 @test "the 1Password sign-in check runs op with stdio only" {
