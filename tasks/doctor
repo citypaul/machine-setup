@@ -25,7 +25,15 @@ finish() {
 # Calls that can start a daemon (op, gpg-agent, the Tailscale app) run with stdin, stdout and stderr
 # only: a daemon keeps every descriptor it inherits and would hold a caller's pipe open (ADR 0001 F-41).
 stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
-bounded() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; alarm shift; exec { $ARGV[0] } @ARGV or exit 127' "$@"; }
+# bounded <seconds> <command...>: the command runs in its own process group with stdio only, and the
+# whole group is stopped when the time is up, first asked (TERM), then killed. An alarm set before
+# exec is not enough: the macOS Tailscale CLI outlived it and kept doctor's pipe open (ADR 0001 F-62).
+bounded() {
+  perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; my $t = shift; setpgrp(0, 0);
+    my $pid = fork; if (!$pid) { exec { $ARGV[0] } @ARGV or exit 127 }
+    $SIG{ALRM} = sub { $SIG{TERM} = "IGNORE"; kill "TERM", -$$; sleep 1; kill "KILL", -$$; exit 124 };
+    alarm $t; waitpid $pid, 0; exit $? >> 8' "$@"
+}
 export PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew/bin"
 
 # 1. mise, at the pinned version

@@ -27,6 +27,19 @@ setup() {
   fi
 }
 
+@test "Cursor comes from its vendor's apt repository, configured once, and Firefox is installed (D-39)" {
+  run zsh -lc 'command -v cursor firefox'
+  [ "$status" -eq 0 ]
+  apt-cache policy cursor | grep -q 'downloads.cursor.com'
+  [ -f /etc/apt/sources.list.d/cursor.list ]
+  [ ! -e /etc/apt/sources.list.d/cursor.sources ]   # the package's own source would conflict with the declared one
+  dpkg -s firefox >/dev/null 2>&1
+  if [ "$(id -u)" = 0 ]; then run apt-get update; else run sudo -n apt-get update; fi
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Conflicting values"* ]] || false
+  [[ "$output" != *"configured multiple times"* ]] || false
+}
+
 @test "Alacritty is installed from Ubuntu and Ghostty from the ghostty-ubuntu build for this release" {
   run zsh -lc 'command -v alacritty'
   [ "$status" -eq 0 ]
@@ -36,6 +49,13 @@ setup() {
   run mise_in_checkout run ghostty-linux
   [ "$status" -eq 0 ]
   [[ "$output" == *"already installed"* ]] || false
+}
+
+@test "Ghostty accepts its configuration: no error dialog when it opens (F-61)" {
+  # The theme was named `tokyonight`; the file is `TokyoNight`. A Mac's file system ignores case, so it
+  # only failed here, where Ghostty opened on a "Configuration Errors" dialog.
+  run zsh -lc 'ghostty +validate-config'
+  [ "$status" -eq 0 ] || { echo "$output"; return 1; }
 }
 
 @test "the terminals use the Linux font sizes, which look like the Mac's (Linux counts 96 dots per inch, macOS 72)" {

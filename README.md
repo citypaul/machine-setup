@@ -57,9 +57,14 @@ What happens, in order:
    selection there (profile, roles, machine id).
 6. Checks whether 1Password's CLI is signed in; roles that need a secret at
    run time (`conquer`) are skipped for this run if it is not, and it says so.
-7. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
+7. On a first install only, updates the system's own packages before
+   installing anything: `apt full-upgrade` and `snap refresh` on Ubuntu;
+   Homebrew and Apple's `softwareupdate` on macOS. An Apple update that
+   needs a restart is downloaded and announced, never installed for you.
+   Later runs never upgrade; `mise run update` does it on purpose.
+8. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
    dotfile links, the removal allowlist, runtimes, the Claude settings merge.
-8. Asks you to log out and back in: a desktop session keeps the shell and
+9. Asks you to log out and back in: a desktop session keeps the shell and
    PATH it started with, so terminals such as Ghostty and Alacritty, and
    launchers for new per-user apps, only pick up the change at the next login.
 
@@ -74,6 +79,7 @@ Flags:
 | `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
 | `--repo <url>`, `--ref <ref>` | where to clone from and what to check out | this repo, `main` |
+| `--skip-system-update` | on a first install, do not update the system's own packages first (also `MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1`; any value but `0` or `1` is refused) | off |
 | `--select-only` | save the selection and stop; installs nothing | off |
 | `--dry-run` | show what mise would do and stop | off |
 | `--yes` | never ask a question; fail instead (sudo still asks for your password once, when it needs one) | off (prompts only on a terminal) |
@@ -112,7 +118,8 @@ cd ~/.local/share/machine-setup
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
 | Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run doctor` (exit `1` when something needs running) |
 | See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
-| Upgrade declared packages and tools on purpose | `~/.local/bin/mise run update -- --yes` |
+| Upgrade on purpose: the system's own packages, then declared packages and tools | `~/.local/bin/mise run update -- --yes` |
+| Update only the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart) | `~/.local/bin/mise run system-update` |
 
 The saved selection lives in two untracked files in the checkout:
 `.miserc.local.toml` (the list of config environments) and `mise.local.toml`
@@ -154,7 +161,7 @@ file at once.
 
 | Group | Deployed when | Notes |
 |-------|---------------|-------|
-| `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively |
+| `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively; `claude-profile NAME` and `claude-personal` run Claude Code with a separate config directory per profile (opt-in; the machine default goes in `~/.zshrc.local`) |
 | `rex` | `desktop` role, `studio` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
 | `ghostty` | `desktop` role, `studio` machine | both the XDG and the Library config paths |
 | `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
@@ -268,6 +275,8 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
 | `06-doctor-update` | doctor fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
+| `08-claude-profiles` | `claude-profile` and `claude-personal` give Claude Code the right config directory for one command, and change nothing otherwise |
+| `09-system-update` | the system update: apt and snaps on Linux, Homebrew and Apple's updates on macOS, a restart-needing update only downloaded, failures and `--dry-run` |
 | `10-bootstrap` | a real bootstrap: mise, packages, casks, pre-existing Homebrew apps left alone |
 | `20-runtime-env` | node resolves in interactive, login and empty-environment shells |
 | `30-drift` | a deleted dotfile or package is reported and repaired |
@@ -277,7 +286,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 | `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Rex's config, Talat |
 | `95-doctor-update` | doctor passes on a converged machine; update --dry-run leaves it converged |
-| `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code and Brave from their vendors' repositories, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
+| `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code, Cursor and Brave from their vendors' repositories, Firefox, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
 ```bash
 test/run.sh                                    # safe files run, mutating files skip
@@ -328,9 +337,11 @@ desktop set, machine files, `doctor` and `update`. Still to come:
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the
   details are settled (ADR 0001 D-23);
-- the Dock on `studio` pins Spotify and Brave with the desktop list, but not
-  Talat or Slack: mise refuses a Dock whose apps do not exist yet, and both
-  arrive after the Dock phase (a task, the App Store role);
+- a Mac that already has Slack from the App Store: the desktop role now
+  installs Slack as a Homebrew cask (ADR 0001 D-38), so delete the App Store
+  copy before the first converge there;
+- the Dock on an Intel Mac: Talat is pinned and ships Apple Silicon builds
+  only, so the Dock phase stops there until the list is changed (D-38);
 - anything needing admin rights or extra permissions on a Mac: the
   automatic software-update check, the terminal's App Management
   permission and the Notification Center banner time (Full Disk Access)
@@ -339,10 +350,10 @@ desktop set, machine files, `doctor` and `update`. Still to come:
   test VMs offer 4.1) closes it at once. The `vm` machine starts it with Mesa's
   software renderer instead (`LIBGL_ALWAYS_SOFTWARE=1`); real hardware keeps
   the GPU;
-- on a Linux desktop: Cursor (no supported Linux arm64 channel) and Firefox
-  (Ubuntu's own snap) are not declared; 1Password's desktop app exists for
-  x86_64 only (arm64 gets the CLI), and its SSH agent is switched on in the
-  app's settings by hand;
+- on a Linux desktop: 1Password's desktop app exists for x86_64 only (arm64
+  gets the CLI), and its SSH agent is switched on in the app's settings by
+  hand; Google Chrome is not declared (Google publishes no Linux arm64
+  build);
 - the rehearsed migration of the existing Macs, moving an existing
   `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public
   skills repo (slice 10).

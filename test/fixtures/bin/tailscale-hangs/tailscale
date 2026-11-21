@@ -1,6 +1,9 @@
 #!/bin/sh
 # Fake tailscale whose daemon never answers: the macOS app's CLI blocks like this before the app has
 # been opened once and its VPN configuration approved (ADR 0001 F-38).
+# The real one also outlives an alarm signal: `doctor` waited forty minutes on it (ADR 0001 F-62). An
+# ignored signal stays ignored in the sleep below.
+trap '' ALRM
 case "$1 $2" in
   "status --json") sleep 60 ;;
   "up --login-server") sleep 60 ;;

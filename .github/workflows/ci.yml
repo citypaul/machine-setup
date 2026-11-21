@@ -33,6 +33,11 @@ jobs:
     name: macos-15 runner (Homebrew present)
     runs-on: macos-15
     timeout-minutes: 60
+    # A first install updates the system's own packages (ADR 0001 D-40). On a hosted runner that is
+    # every preinstalled Homebrew package and Apple's updates, which proves nothing about this repo
+    # and would outlast the job; the Linux container runs it for real, and the test VMs do on macOS.
+    env:
+      MACHINE_SETUP_SKIP_SYSTEM_UPDATE: 1
     steps:
       - uses: actions/checkout@v5
       - run: brew install bats-core

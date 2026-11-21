@@ -11,6 +11,9 @@ setup() {
   # Fakes first, always: these tests run anywhere, including a workstation with a real 1Password,
   # YubiKey and Tailscale, and must never touch them.
   export PATH="$FIXTURES/bin/op-locked:$FIXTURES/bin/gpg-nocard:$PATH"
+  # `update` also updates the machine's own packages (D-40); only the tests about that step, with
+  # the task replaced by a logger, let it run.
+  export MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1
 }
 
 # doctor and update need mise for every check after the first; CI installs it in 10-bootstrap.
@@ -62,6 +65,17 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [[ "$output" == *"FAIL"*"drift"* ]] || false
 }
 
+@test "doctor gives up on a Tailscale that never answers, and says so, instead of waiting for it (F-62)" {
+  # On the macOS VM the app's CLI outlived doctor's alarm and held its pipe: the suite sat for forty minutes.
+  with_mise
+  select_envs "$CO" personal conquer studio >/dev/null
+  export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
+  local started=$SECONDS
+  run "$CO/tasks/doctor"
+  [ $((SECONDS - started)) -lt 40 ]
+  [[ "$output" == *"Tailscale: the daemon did not answer"* ]] || false
+}
+
 @test "update --dry-run shows the package and tool upgrade plan and changes nothing; unknown flags are refused" {
   with_mise
   select_envs "$CO" personal - studio >/dev/null
@@ -83,6 +97,42 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   MISE_BIN="$FIXTURES/bin/fd-probe/mise" run sh -c 'ulimit -Sn 256 && exec "$@"' sh "$CO/tasks/update" --dry-run
   [ "$status" -eq 0 ]
   [ "$(cat "$NOFILE_PROBE")" = 10240 ]
+}
+
+# The system's own packages are part of an upgrade on purpose (ADR 0001 D-40). The task is a logger here.
+with_logged_system_update() {
+  select_envs "$CO" personal - studio >/dev/null
+  export SYSTEM_UPDATE_LOG="$BATS_TEST_TMPDIR/system-update-calls"; : > "$SYSTEM_UPDATE_LOG"   # not CALL_LOG: the fake mise writes there
+  printf '#!/bin/sh\necho "system-update $*" >> "$SYSTEM_UPDATE_LOG"\nexit "${FAKE_SYSTEM_UPDATE_EXIT:-0}"\n' > "$CO/tasks/system-update"
+  chmod +x "$CO/tasks/system-update"
+  unset MACHINE_SETUP_SKIP_SYSTEM_UPDATE
+}
+
+@test "update --dry-run shows the system update's plan without applying it" {
+  with_logged_system_update
+  MISE_BIN="$FIXTURES/bin/fd-probe/mise" run "$CO/tasks/update" --dry-run
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"update: system"* ]] || false
+  [ "$(cat "$SYSTEM_UPDATE_LOG")" = "system-update --dry-run" ]
+}
+
+@test "update --yes updates the system's own packages before the declared ones, and stops when that fails" {
+  with_logged_system_update
+  MISE_BIN="$FIXTURES/bin/fd-probe/mise" run "$CO/tasks/update" --yes
+  [ "$status" -eq 0 ]
+  [ "$(sed -n 2p "$SYSTEM_UPDATE_LOG")" = "system-update " ]
+  [[ "$output" == *"updating the system's own packages"*"upgrading packages"* ]] || false
+  FAKE_SYSTEM_UPDATE_EXIT=1 MISE_BIN="$FIXTURES/bin/fd-probe/mise" run "$CO/tasks/update" --yes
+  [ "$status" -eq 1 ]
+  [[ "$output" != *"upgrading packages"* ]] || false
+}
+
+@test "update refuses a value other than 0 or 1 for MACHINE_SETUP_SKIP_SYSTEM_UPDATE" {
+  with_logged_system_update
+  MACHINE_SETUP_SKIP_SYSTEM_UPDATE=yes MISE_BIN="$FIXTURES/bin/fd-probe/mise" run "$CO/tasks/update" --dry-run
+  [ "$status" -eq 2 ]
+  [[ "$output" == *"0 or 1"* ]] || false
+  [ ! -s "$SYSTEM_UPDATE_LOG" ]
 }
 
 @test "update without --yes and without a terminal applies nothing and says how to" {

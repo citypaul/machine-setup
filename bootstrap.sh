@@ -27,7 +27,7 @@ usage() {
   cat <<'USAGE'
 usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>] [--os-family <family>]
                     [--git-email <addr>] [--dir <checkout>] [--repo <url>] [--ref <ref>]
-                    [--select-only] [--dry-run] [--yes]
+                    [--skip-system-update] [--select-only] [--dry-run] [--yes]
 
   --profile      personal or work; decides which apps and configs load
   --role         additive role, e.g. desktop, conquer (repeat the flag or separate with commas)
@@ -36,6 +36,7 @@ usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>
   --git-email    git user.email on this machine (saved; later runs keep it; '' resets to the default)
   --dir          use this existing checkout instead of cloning
   --repo/--ref   where to clone from and what to check out (default: main of the public repo)
+  --skip-system-update  on a first install, do not update the system's own packages first
   --select-only  write the per-machine selection and stop (no installs)
   --dry-run      show what mise would do and stop
   --yes          never ask a question; fail instead (sudo still asks for your password once)
@@ -45,7 +46,7 @@ USAGE
 # ---------------------------------------------------------------- arguments
 profile='' roles='' machine='' os_family_override='' checkout='' repo_url=$REPO_URL_DEFAULT ref=''
 git_email='' git_email_set=0
-select_only=0 dry_run=0 yes=0
+select_only=0 dry_run=0 yes=0 skip_system_update=${MACHINE_SETUP_SKIP_SYSTEM_UPDATE:-0}
 add_roles() { roles="$roles $(printf '%s' "$1" | tr ',' ' ')"; }
 need_value() { [ $# -ge 2 ] || die "$1 needs a value" 2; }
 while [ $# -gt 0 ]; do
@@ -64,6 +65,7 @@ while [ $# -gt 0 ]; do
     --dir=*) checkout=${1#*=}; shift ;;
     --repo) need_value "$@"; repo_url=$2; shift 2 ;;
     --ref) need_value "$@"; ref=$2; shift 2 ;;
+    --skip-system-update) skip_system_update=1; shift ;;
     --select-only) select_only=1; shift ;;
     --dry-run) dry_run=1; shift ;;
     --yes|-y) yes=1; shift ;;
@@ -123,6 +125,11 @@ done
 case "$machine" in
   *[!a-zA-Z0-9-]*) die "machine ids are letters, digits and dashes: '$machine'" 2 ;;
 esac
+# Settings that come from the environment are checked here, before anything runs.
+case "$skip_system_update" in
+  0|1) ;;
+  *) die "MACHINE_SETUP_SKIP_SYSTEM_UPDATE must be 0 or 1, not '$skip_system_update'" 2 ;;
+esac
 
 interactive=0
 if [ -t 0 ] && [ "$yes" = 0 ]; then interactive=1; fi
@@ -132,17 +139,25 @@ if [ -t 0 ] && [ "$yes" = 0 ]; then interactive=1; fi
 as_root() {
   if [ "$(id -u)" = 0 ]; then "$@"
   elif [ "$interactive" = 1 ]; then sudo "$@"
-  else sudo -n "$@" || die "sudo needs a password and no terminal is attached; run 'sudo -v' first, then re-run"
+  else
+    # Ask sudo first, so a command that fails is not reported as a missing password (ADR 0001 F-60).
+    sudo -n true 2>/dev/null || die "sudo needs a password and no terminal is attached; run 'sudo -v' first, then re-run"
+    sudo -n "$@"
   fi
 }
 
 # ---------------------------------------------------------------- prerequisites (git, curl, CLT, Homebrew, mise)
+APT_LOCK_WAIT=900   # seconds apt waits for another package manager's lock
 install_prerequisites() {
   if [ "$os" = linux ]; then
     if ! have git || ! have curl || [ ! -e /etc/ssl/certs/ca-certificates.crt ]; then
       log "installing git, curl and CA certificates with apt"
-      DEBIAN_FRONTEND=noninteractive as_root apt-get update -qq
-      DEBIAN_FRONTEND=noninteractive as_root apt-get install -y -qq --no-install-recommends git curl ca-certificates
+      # A freshly booted Ubuntu runs unattended-upgrades, which holds the dpkg lock for minutes: wait
+      # for it (up to APT_LOCK_WAIT seconds) instead of failing at once (ADR 0001 F-60).
+      DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" update -qq \
+        || die "apt-get update failed (its own message is above); fix that and re-run"
+      DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" install -y -qq --no-install-recommends git curl ca-certificates \
+        || die "apt-get could not install git, curl and ca-certificates (its own message is above); fix that and re-run"
     fi
   else
     if ! xcode-select -p >/dev/null 2>&1; then
@@ -251,6 +266,24 @@ unlock_sudo() {
   sudo_refresher=$!
   trap 'kill "$sudo_refresher" 2>/dev/null || true' EXIT
 }
+# A first install updates the whole system's own packages once, before mise installs anything: apt
+# full-upgrade on Linux, Homebrew and Apple's softwareupdate (never a restart) on macOS. A marker
+# outside the checkout records that it ran, so every later run converges without upgrading (D-35);
+# `mise run update` is how to upgrade on purpose afterwards. A failed update stops the run and leaves
+# no marker, so the next run tries again (ADR 0001 D-40).
+SYSTEM_UPDATED="${XDG_STATE_HOME:-$HOME/.local/state}/machine-setup/system-updated"
+system_update_once() {
+  [ ! -f "$SYSTEM_UPDATED" ] || return 0
+  if [ "$skip_system_update" != 0 ]; then
+    log "not updating the system's own packages (--skip-system-update)"
+    return 0
+  fi
+  log "first install: updating the system's own packages before installing anything (once; later runs never upgrade)"
+  stdio_only "$checkout/tasks/system-update" \
+    || die "the system update failed; fix what it reported and re-run, or pass --skip-system-update"
+  mkdir -p "$(dirname "$SYSTEM_UPDATED")"
+  date -u '+%Y-%m-%dT%H:%M:%SZ' > "$SYSTEM_UPDATED"
+}
 op_signed_in() { have op && stdio_only op whoami >/dev/null 2>&1; }
 compute_envs() {
   envs=$profile
@@ -327,6 +360,7 @@ if [ "$dry_run" = 1 ]; then
   "$MISE" bootstrap --dry-run
   exit 0
 fi
+system_update_once
 log "converging with mise bootstrap"
 # --update refreshes apt metadata so a repository added in this run (pre-packages files) is usable.
 # Services need systemd as PID 1; in a container (CI, WSL1) mise refuses the change (ADR 0001 F-36).

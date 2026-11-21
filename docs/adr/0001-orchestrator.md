@@ -744,6 +744,89 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Settings window; the Lua reference has no setting for them.
   `01-layering` covers the lists and `80-macos-extras` the link.
 
+- **D-38 Slack is a desktop cask, and Slack and Talat are pinned in the
+  Dock.** Paul asked for both on 2026-11-21. Slack was declared only in the
+  opt-in App Store role, so a fresh Mac did not get it and the Dock could
+  not pin it; it is now `brew-cask:slack` in the desktop role and gone from
+  `mise.appstore.toml`. A Mac that already has the App Store copy needs it
+  deleted before the first converge. Talat is still installed by
+  `tasks/talat`, but also from the desktop role's `post-dotfiles` hook on
+  macOS, the last hook before the Dock phase (F-35); the overlay restates
+  the base hook's login-shell step because hooks replace per key (F-37).
+  The Dock leads with Slack and pins Talat after FluidVoice, as
+  `dock.yaml` did. Accepted cost: the task only warns when Talat's download
+  fails, and Talat has no Intel build, so in either case the Dock phase
+  stops the run until `/Applications/Talat.app` exists. `01-layering`
+  covers the declarations and `80-macos-extras` the Dock order.
+- **D-39 Cursor and Firefox on a Linux desktop.** Paul asked for both on
+  2026-11-21; this replaces D-30's "not declared". Cursor now has an apt
+  repository with amd64 and arm64 builds (`downloads.cursor.com/aptrepo`,
+  suite `stable`, package `cursor`); its key is vendored as
+  `files/cursor.asc`, fingerprint `380F F4BC DC34 A4BD 92A3 5653 42A1 772E
+  62E4 92D6` (Anysphere Inc, computed from the vendor's key file: their
+  docs print none). Cursor's package, a fork of VS Code's, asks through
+  debconf whether to add that repository and on an unattended install
+  writes `cursor.sources` with its own key path, removing `cursor.list`;
+  apt refuses a repository configured twice with different `Signed-By`
+  values. `tasks/cursor-repo`, a pre-packages hook, answers no first
+  (`cursor/add-cursor-repo`), so the declared source stays the only one.
+  Firefox is `apt:firefox`, Ubuntu's package that installs Mozilla's snap:
+  a desktop image has it already, and declaring it makes that explicit.
+  Mozilla's own apt repository was not used: it needs an apt pin to beat
+  Ubuntu's epoch, for no gain here. `90-linux-desktop` covers both.
+- **D-40 A first install updates the whole system once.** Paul asked on
+  2026-11-21 for installation to force the system's generic updates, "the
+  equivalent of apt update all". `tasks/system-update` does it: `apt-get
+  update` and `full-upgrade` and `snap refresh` on Debian-family Linux;
+  `brew update` and `brew upgrade`, then Apple's `softwareupdate`, on
+  macOS. Paul's choices: first install only, so D-35 still holds for every
+  later converge; and on a Mac never a restart, so an Apple update whose
+  details say `Action: restart` is downloaded and announced, and the rest
+  are installed by label (never `--all`, which would take the restarting
+  ones too). `bootstrap.sh` runs the task once, after the checkout exists
+  and before `mise bootstrap`, and records it in
+  `~/.local/state/machine-setup/system-updated`, outside the checkout. A
+  failed apt or Homebrew update stops the run and leaves no marker, so the
+  next run retries; a failed Apple update is only a warning.
+  `--skip-system-update` (or `MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1`) skips it
+  without writing the marker. The macOS CI runner sets that variable: there
+  the update would be every preinstalled Homebrew package. `update` runs
+  the same task before mise's upgrades. `09-system-update` tests the task
+  with stubbed package managers, `00-bootstrap-cli` the once-only rule.
+### 2026-11-21 — a rehearsal on freshly reverted VMs
+
+- **F-60 A freshly booted Ubuntu holds the dpkg lock, and bootstrap blamed
+  sudo.** Run within a minute of booting the clean Ubuntu VM, the one-line
+  install stopped at its first apt call: `unattended-upgrades` held
+  `/var/lib/dpkg/lock-frontend`. The message was "sudo needs a password and
+  no terminal is attached", because `as_root` reported any failed command
+  that way. Earlier rehearsals started minutes after boot and never met
+  the lock. bootstrap's apt calls now pass `DPkg::Lock::Timeout`, so apt
+  waits up to fifteen minutes for the lock, and `as_root` asks sudo first
+  (`sudo -n true`) and then lets the command fail under its own name. Tests
+  in `00-bootstrap-cli` run bootstrap as a Linux machine without git or
+  curl, with stand-ins for `uname`, `apt-get` and `sudo`.
+
+- **F-61 Ghostty opened on a "Configuration Errors" dialog on Ubuntu.** The
+  shared config said `theme = tokyonight`; Ghostty's theme file is
+  `TokyoNight`. macOS's file system ignores case, so the Mac found it and
+  Linux did not. Paul saw the dialog on the rehearsal VM. The config now
+  names the file exactly, and both desktop test files run
+  `ghostty +validate-config`, which failed on the VM before the change.
+  `.dotfiles` carries the same line.
+
+- **F-62 `doctor` waited forty minutes on the macOS Tailscale CLI.** On the
+  macOS VM, with the Conquer role and the app never opened, `tailscale
+  status --json` does not answer (F-38). doctor bounded it with an alarm
+  set before `exec`; the app's CLI outlived the alarm and kept the pipe
+  doctor was reading, so `95-doctor-update` sat until the process was
+  killed by hand. `tasks/tailscale-join` already bounds the same call by
+  killing its process group, which is why its tests passed on the same
+  machine. doctor now does the same, with KILL after TERM. The
+  `tailscale-hangs` stand-in ignores the alarm signal as the real one
+  does, and a `06-doctor-update` test fails without the fix (61 seconds,
+  the stand-in's whole sleep).
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

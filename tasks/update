@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Upgrade on purpose (plan.md §4.4, ADR 0001 D-35): converge never upgrades, this shows the plan and
-# then upgrades the declared packages and the mise tools when told to. mise's own version is pinned
+# then updates the system's own packages (D-40) and upgrades the declared packages and the mise tools
+# when told to. mise's own version is pinned
 # by bootstrap.sh and the skills by mise.toml; both change through the repo, not here.
 # Usage: tasks/update [--dry-run] [--yes]
 set -uo pipefail
@@ -32,6 +33,18 @@ mise_bin=${MISE_BIN:-}
 cd "$checkout" || exit 1
 export MISE_YES=1
 
+# The system's own packages first (apt, snaps; Homebrew and Apple's updates), then what this checkout
+# declares (ADR 0001 D-40). MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1 leaves the system's own alone.
+case "${MACHINE_SETUP_SKIP_SYSTEM_UPDATE:-0}" in
+  0|1) ;;
+  *) echo "update: MACHINE_SETUP_SKIP_SYSTEM_UPDATE must be 0 or 1, not '$MACHINE_SETUP_SKIP_SYSTEM_UPDATE'" >&2; exit 2 ;;
+esac
+system_update() {
+  if [ "${MACHINE_SETUP_SKIP_SYSTEM_UPDATE:-0}" = 1 ]; then echo "update: system: skipped (MACHINE_SETUP_SKIP_SYSTEM_UPDATE)"; return 0; fi
+  "$checkout/tasks/system-update" "$@"
+}
+echo "update: system (this machine's own packages; the plan first)"
+system_update --dry-run 2>&1 | sed 's/^/  /'
 echo "update: packages (declared by this checkout; the plan first)"
 stdio_only "$mise_bin" bootstrap packages upgrade --dry-run 2>&1 | sed 's/^/  /'
 echo "update: tools (mise [tools])"
@@ -55,6 +68,8 @@ if [ "$yes" != 1 ]; then
     exit 0
   fi
 fi
+echo "update: updating the system's own packages"
+system_update || { echo "update: system update failed" >&2; exit 1; }
 echo "update: upgrading packages"
 stdio_only "$mise_bin" bootstrap packages upgrade --yes || { echo "update: package upgrade failed" >&2; exit 1; }
 echo "update: upgrading tools"

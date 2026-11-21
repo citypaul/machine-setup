@@ -118,7 +118,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 @test "the Linux desktop overlay declares the GUI set from the vendors' repositories for both profiles (D7)" {
   skip_unless_linux   # packages status lists only this OS's managers (no apt or flatpak entries on a Mac)
   local pk want; pk=$(packages_for personal,desktop,desktop-linux)
-  for want in code brave-browser alacritty docker-ce docker-compose-plugin flatpak 1password-cli md.obsidian.Obsidian; do
+  for want in code cursor firefox brave-browser alacritty docker-ce docker-compose-plugin flatpak 1password-cli md.obsidian.Obsidian; do
     grep -qx "$want" <<<"$pk" || { echo "missing $want"; return 1; }
   done
   # 1Password's desktop app exists for x86_64 only; its arm64 repository ships the CLI alone.
@@ -151,4 +151,36 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-studio dot status --json"
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 0' >/dev/null
+}
+
+@test "Slack is a desktop-role cask, not an App Store app, so a Mac that is not signed in still gets it (D-38)" {
+  grep -q '^"brew-cask:slack" = { os = "macos" }' "$CO/mise.desktop.toml"
+  ! grep -q '^"mas:803453959"' "$CO/mise.appstore.toml" || false   # Slack's App Store id
+}
+
+# The Dock list a file declares, as comma-separated app names.
+dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/\([^/]*\)\.app",.*|\1|p' | tr '\n' ','; }
+
+@test "the Dock leads with Slack and pins Talat after FluidVoice, on the desktop role and on studio (D-38)" {
+  [[ "$(dock_of mise.desktop-macos.toml)" == "Slack,Fantastical,"* ]] || false
+  [[ "$(dock_of mise.desktop-macos.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+  [[ "$(dock_of mise.machine-studio.toml)" == "Slack,Spotify,Fantastical,"* ]] || false
+  [[ "$(dock_of mise.machine-studio.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+}
+
+@test "on a desktop Mac, Talat is installed in the post-dotfiles hook, before the Dock phase, and the login shell is still set (D-38)" {
+  # Hooks replace per key across files (F-37), so the overlay must restate the base's login-shell hook.
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-macos.toml" | grep '^post-dotfiles')
+  [[ "$hook" == *'"mise run login-shell"'*'"mise run talat"'* ]] || false
+  grep -q '^post-dotfiles = "mise run login-shell"' "$CO/mise.toml"   # the base hook the overlay restates
+}
+
+@test "Cursor's own package never adds a second apt source: the pre-packages hook answers its question first (D-39)" {
+  # Cursor's package would write cursor.sources with another key path beside the declared cursor.list,
+  # and apt refuses a repository configured twice with different Signed-By values.
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-linux.toml" | grep '^pre-packages')
+  [[ "$hook" == *'"mise run flathub"'* ]] || false
+  [[ "$hook" == *'"mise run cursor-repo"'* ]] || false
+  grep -q 'cursor/add-cursor-repo boolean false' "$CO/tasks/cursor-repo"
+  grep -q 'signed-by=/etc/apt/keyrings/cursor.asc' "$CO/mise.desktop-linux.toml"
 }
