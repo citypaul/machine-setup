@@ -252,6 +252,8 @@ with_fake_system_update() {
   [ "$status" -eq 0 ]
   ! grep -q '^system-update' "$CALL_LOG" || false
   [ ! -e "$MARKER" ]
+}
+
 # A freshly booted Ubuntu runs unattended-upgrades, which holds the dpkg lock for minutes; the first
 # rehearsal on a clean VM failed there at once, with a message about sudo's password (ADR 0001 F-60).
 # A Linux machine without git or curl, on any host: uname, apt-get and sudo are stand-ins, and PATH has

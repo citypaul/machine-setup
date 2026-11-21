@@ -173,6 +173,8 @@ dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/
   local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-macos.toml" | grep '^post-dotfiles')
   [[ "$hook" == *'"mise run login-shell"'*'"mise run talat"'* ]] || false
   grep -q '^post-dotfiles = "mise run login-shell"' "$CO/mise.toml"   # the base hook the overlay restates
+}
+
 @test "Cursor's own package never adds a second apt source: the pre-packages hook answers its question first (D-39)" {
   # Cursor's package would write cursor.sources with another key path beside the declared cursor.list,
   # and apt refuses a repository configured twice with different Signed-By values.
