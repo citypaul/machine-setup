@@ -27,7 +27,7 @@ jobs:
     steps:
       # Only the test harness is pre-installed; bootstrap.sh must bring its own prerequisites.
       - run: apt-get update && apt-get install -y --no-install-recommends bats jq
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh
   macos:
     name: macos-15 runner (Homebrew present)
@@ -39,6 +39,6 @@ jobs:
     env:
       MACHINE_SETUP_SKIP_SYSTEM_UPDATE: 1
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
       - run: brew install bats-core
       - run: MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh
