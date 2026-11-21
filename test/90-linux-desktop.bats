@@ -27,6 +27,19 @@ setup() {
   fi
 }
 
+@test "Cursor comes from its vendor's apt repository, configured once, and Firefox is installed (D-39)" {
+  run zsh -lc 'command -v cursor firefox'
+  [ "$status" -eq 0 ]
+  apt-cache policy cursor | grep -q 'downloads.cursor.com'
+  [ -f /etc/apt/sources.list.d/cursor.list ]
+  [ ! -e /etc/apt/sources.list.d/cursor.sources ]   # the package's own source would conflict with the declared one
+  dpkg -s firefox >/dev/null 2>&1
+  if [ "$(id -u)" = 0 ]; then run apt-get update; else run sudo -n apt-get update; fi
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"Conflicting values"* ]] || false
+  [[ "$output" != *"configured multiple times"* ]] || false
+}
+
 @test "Alacritty is installed from Ubuntu and Ghostty from the ghostty-ubuntu build for this release" {
   run zsh -lc 'command -v alacritty'
   [ "$status" -eq 0 ]

@@ -118,7 +118,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 @test "the Linux desktop overlay declares the GUI set from the vendors' repositories for both profiles (D7)" {
   skip_unless_linux   # packages status lists only this OS's managers (no apt or flatpak entries on a Mac)
   local pk want; pk=$(packages_for personal,desktop,desktop-linux)
-  for want in code brave-browser alacritty docker-ce docker-compose-plugin flatpak 1password-cli md.obsidian.Obsidian; do
+  for want in code cursor firefox brave-browser alacritty docker-ce docker-compose-plugin flatpak 1password-cli md.obsidian.Obsidian; do
     grep -qx "$want" <<<"$pk" || { echo "missing $want"; return 1; }
   done
   # 1Password's desktop app exists for x86_64 only; its arm64 repository ships the CLI alone.
@@ -173,4 +173,12 @@ dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/
   local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-macos.toml" | grep '^post-dotfiles')
   [[ "$hook" == *'"mise run login-shell"'*'"mise run talat"'* ]] || false
   grep -q '^post-dotfiles = "mise run login-shell"' "$CO/mise.toml"   # the base hook the overlay restates
+@test "Cursor's own package never adds a second apt source: the pre-packages hook answers its question first (D-39)" {
+  # Cursor's package would write cursor.sources with another key path beside the declared cursor.list,
+  # and apt refuses a repository configured twice with different Signed-By values.
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-linux.toml" | grep '^pre-packages')
+  [[ "$hook" == *'"mise run flathub"'* ]] || false
+  [[ "$hook" == *'"mise run cursor-repo"'* ]] || false
+  grep -q 'cursor/add-cursor-repo boolean false' "$CO/tasks/cursor-repo"
+  grep -q 'signed-by=/etc/apt/keyrings/cursor.asc' "$CO/mise.desktop-linux.toml"
 }

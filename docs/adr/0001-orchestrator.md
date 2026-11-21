@@ -758,6 +758,22 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   fails, and Talat has no Intel build, so in either case the Dock phase
   stops the run until `/Applications/Talat.app` exists. `01-layering`
   covers the declarations and `80-macos-extras` the Dock order.
+- **D-39 Cursor and Firefox on a Linux desktop.** Paul asked for both on
+  2026-11-21; this replaces D-30's "not declared". Cursor now has an apt
+  repository with amd64 and arm64 builds (`downloads.cursor.com/aptrepo`,
+  suite `stable`, package `cursor`); its key is vendored as
+  `files/cursor.asc`, fingerprint `380F F4BC DC34 A4BD 92A3 5653 42A1 772E
+  62E4 92D6` (Anysphere Inc, computed from the vendor's key file: their
+  docs print none). Cursor's package, a fork of VS Code's, asks through
+  debconf whether to add that repository and on an unattended install
+  writes `cursor.sources` with its own key path, removing `cursor.list`;
+  apt refuses a repository configured twice with different `Signed-By`
+  values. `tasks/cursor-repo`, a pre-packages hook, answers no first
+  (`cursor/add-cursor-repo`), so the declared source stays the only one.
+  Firefox is `apt:firefox`, Ubuntu's package that installs Mozilla's snap:
+  a desktop image has it already, and declaring it makes that explicit.
+  Mozilla's own apt repository was not used: it needs an apt pin to beat
+  Ubuntu's epoch, for no gain here. `90-linux-desktop` covers both.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 

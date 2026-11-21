@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Cursor's package asks (debconf) whether to add its apt repository, and on an unattended install the
+# answer is yes: it writes /etc/apt/sources.list.d/cursor.sources with its own key path and removes
+# cursor.list. This setup declares the source itself (mise.desktop-linux.toml), and apt refuses a
+# repository configured twice with different Signed-By values. Answering no before the packages phase
+# keeps the declared source the only one (ADR 0001 D-39). Runs as a pre-packages hook of the Linux
+# desktop role; idempotent; Linux only.
+set -uo pipefail
+[ "$(uname -s)" = Linux ] || { echo "cursor-repo: Linux only; skipping"; exit 0; }
+command -v debconf-set-selections >/dev/null 2>&1 || { echo "cursor-repo: no debconf here; skipping"; exit 0; }
+as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
+if echo 'cursor cursor/add-cursor-repo boolean false' | as_root debconf-set-selections; then
+  echo "cursor-repo: Cursor's package will leave the apt sources alone"
+else
+  echo "cursor-repo: error: could not preseed cursor/add-cursor-repo" >&2; exit 1
+fi
+# A copy the package wrote before this answer existed would conflict with the declared source.
+if [ -e /etc/apt/sources.list.d/cursor.sources ]; then
+  as_root rm -f /etc/apt/sources.list.d/cursor.sources && echo "cursor-repo: removed the package's own cursor.sources"
+fi
+exit 0
