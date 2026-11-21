@@ -4,10 +4,12 @@
 dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]
 
 # This machine's Dock: the desktop role's list plus the personal apps that exist here (Spotify and
-# Brave come with the personal profile). Every app must exist when the Dock phase runs, so Talat,
-# which a later task installs, stays unpinned (D-33); so does Rex, installed by hand (D-37).
+# Brave come with the personal profile). Every app must exist when the Dock phase runs: Slack is a
+# desktop cask and Talat is installed by the desktop role's post-dotfiles hook (D-38). Rex, installed
+# by hand, stays unpinned (D-37).
 [bootstrap.macos.dock]
 apps = [
+  "/Applications/Slack.app",
   "/Applications/Spotify.app",
   "/Applications/Fantastical.app",
   "/Applications/Alacritty.app",
@@ -27,5 +29,6 @@ apps = [
   "/Applications/ChatGPT.app",
   "/Applications/Claude.app",
   "/Applications/FluidVoice.app",
+  "/Applications/Talat.app",
   "/Applications/Obsidian.app",
 ]

@@ -32,8 +32,8 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   run defaults read com.apple.dock persistent-apps
   [ "$status" -eq 0 ]
   local labels; labels=$(printf '%s\n' "$output" | sed -n 's/.*"file-label" = "\{0,1\}\([^";]*\)"\{0,1\};/\1/p' | tr '\n' ',')
-  [[ "$labels" == "Fantastical,Alacritty,Ghostty,Cursor,"* ]] || false
-  [[ "$labels" == *"Claude,FluidVoice,Obsidian,"* ]] || false
+  [[ "$labels" == "Slack,Fantastical,Alacritty,Ghostty,Cursor,"* ]] || false
+  [[ "$labels" == *"Claude,FluidVoice,Talat,Obsidian,"* ]] || false
 }
 
 @test "the desktop role installs the iTerm2 dynamic profile and the Alacritty theme the config imports" {

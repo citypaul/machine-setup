@@ -744,6 +744,21 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Settings window; the Lua reference has no setting for them.
   `01-layering` covers the lists and `80-macos-extras` the link.
 
+- **D-38 Slack is a desktop cask, and Slack and Talat are pinned in the
+  Dock.** Paul asked for both on 2026-11-21. Slack was declared only in the
+  opt-in App Store role, so a fresh Mac did not get it and the Dock could
+  not pin it; it is now `brew-cask:slack` in the desktop role and gone from
+  `mise.appstore.toml`. A Mac that already has the App Store copy needs it
+  deleted before the first converge. Talat is still installed by
+  `tasks/talat`, but also from the desktop role's `post-dotfiles` hook on
+  macOS, the last hook before the Dock phase (F-35); the overlay restates
+  the base hook's login-shell step because hooks replace per key (F-37).
+  The Dock leads with Slack and pins Talat after FluidVoice, as
+  `dock.yaml` did. Accepted cost: the task only warns when Talat's download
+  fails, and Talat has no Intel build, so in either case the Dock phase
+  stops the run until `/Applications/Talat.app` exists. `01-layering`
+  covers the declarations and `80-macos-extras` the Dock order.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
