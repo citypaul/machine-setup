@@ -36,7 +36,7 @@ On a machine with nothing installed, not even git or the Xcode Command Line
 Tools:
 
 ```bash
-u=https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh; sh -c "$(curl -fsSL $u 2>/dev/null || wget -qO- $u 2>/dev/null || echo 'echo could not download bootstrap.sh >&2; exit 1')" -- --profile personal --role desktop --machine studio --yes
+u=https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh; sh -c "$(curl -fsSL $u 2>/dev/null || wget -qO- $u 2>/dev/null || echo 'echo could not download bootstrap.sh >&2; exit 1')" -- --profile personal --role desktop --machine personal-macbook --yes
 ```
 
 It downloads the script with `curl` (macOS) or `wget` (a fresh Ubuntu desktop
@@ -140,7 +140,7 @@ and for the same key the later file wins:
 | `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
 | `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
 | `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile), `mise.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
-| `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `studio` (Paul's Mac Studio, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
+| `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `personal-macbook` (Paul's MacBook Pro, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
 
 Two rules that are not obvious:
 
@@ -163,8 +163,8 @@ file at once.
 | Group | Deployed when | Notes |
 |-------|---------------|-------|
 | `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively; `claude-profile NAME` and `claude-personal` run Claude Code with a separate config directory per profile (opt-in; the machine default goes in `~/.zshrc.local`) |
-| `rex` | `desktop` role, `studio` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
-| `ghostty` | `desktop` role, `studio` machine | both the XDG and the Library config paths |
+| `rex` | `desktop` role, `personal-macbook` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
+| `ghostty` | `desktop` role, `personal-macbook` machine | both the XDG and the Library config paths |
 | `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
 
 [Rex](https://www.superlogical.com/rex) is the primary terminal. Its `init.lua`

@@ -18,28 +18,28 @@ with_op() { export PATH="$FIXTURES/bin/op-$1:$PATH"; }
 
 @test "bootstrap drops the conquer env when 1Password is locked, says so, and remembers the role" {
   with_op locked
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   [[ "$output" == *"1Password"*"conquer"* ]] || false
-  [ "$(env_list_of "$CO")" = "personal,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,machine-personal-macbook" ]
   grep -q '^roles = "conquer"$' "$CO/mise.local.toml"
 }
 
 @test "bootstrap keeps the conquer env when 1Password is signed in" {
   with_op unlocked
   local os; if is_macos; then os=macos; else os=linux; fi
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-personal-macbook" ]
 }
 
 
 @test "with no secret-bearing envs declared, a locked 1Password changes nothing" {
   with_op locked
   sed -i.bak 's/^secret_envs = "conquer"$/secret_envs = ""/' "$CO/mise.toml" && rm -f "$CO/mise.toml.bak"
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   [[ "$output" != *"1Password"* ]] || false
   local os; if is_macos; then os=macos; else os=linux; fi
-  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-personal-macbook" ]
 }

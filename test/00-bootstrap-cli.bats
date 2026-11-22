@@ -21,7 +21,7 @@ setup() {
 
 @test "an unsupported --os-family is rejected with exit 2 before anything is written" {
   skip_unless_linux
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family rhel --profile work --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family rhel --profile work --machine personal-macbook --select-only --yes
   [ "$status" -eq 2 ]
   [[ "$output" == *"unsupported"* ]] || false
   [ ! -e "$CO/.miserc.local.toml" ]
@@ -30,20 +30,20 @@ setup() {
 
 @test "--os-family is rejected on macOS, where there is no distro family" {
   skip_unless_macos
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family debian --profile work --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family debian --profile work --machine personal-macbook --select-only --yes
   [ "$status" -eq 2 ]
   [[ "$output" == *"--os-family"* ]] || false
 }
 
 @test "an unknown profile is rejected with exit 2" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile gaming --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile gaming --machine personal-macbook --select-only --yes
   [ "$status" -eq 2 ]
   [[ "$output" == *"profile"* ]] || false
   [ ! -e "$CO/.miserc.local.toml" ]
 }
 
 @test "a non-interactive run with no saved selection and no --profile fails with exit 2 and names the flag" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --machine studio --select-only --yes </dev/null
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --machine personal-macbook --select-only --yes </dev/null
   [ "$status" -eq 2 ]
   [[ "$output" == *"--profile"* ]] || false
 }
@@ -55,26 +55,26 @@ setup() {
 }
 
 @test "--select-only records profile, roles, machine, dotfiles.root and the env list without running mise" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --role conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --role conquer --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   local os; if is_macos; then os=macos; else os=linux; fi
-  [[ "$output" == *"envs=personal,$(desktop_envs),conquer,conquer-$os,machine-studio"* ]] || false
-  [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-studio" ]
+  [[ "$output" == *"envs=personal,$(desktop_envs),conquer,conquer-$os,machine-personal-macbook"* ]] || false
+  [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-personal-macbook" ]
   grep -q '^profile = "personal"$' "$CO/mise.local.toml"
   grep -q '^roles = "desktop conquer"$' "$CO/mise.local.toml"
-  grep -q '^machine = "studio"$' "$CO/mise.local.toml"
+  grep -q '^machine = "personal-macbook"$' "$CO/mise.local.toml"
   grep -q "^dotfiles.root = \"$CO\"$" "$CO/mise.local.toml"
 }
 
 @test "roles may also be given as one comma-separated list" {
   local os; if is_macos; then os=macos; else os=linux; fi
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop,conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop,conquer --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,$(desktop_envs),conquer,conquer-$os,machine-personal-macbook" ]
 }
 
 @test "the detected OS, family and architecture are printed" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   if is_macos; then
     [[ "$output" == *"os=macos"* ]] || false
@@ -85,17 +85,17 @@ setup() {
 }
 
 @test "re-running without flags reuses the saved selection" {
-  "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine studio --select-only --yes >/dev/null
+  "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine personal-macbook --select-only --yes >/dev/null
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --select-only --yes
   [ "$status" -eq 0 ]
-  [[ "$output" == *"envs=personal,$(desktop_envs),machine-studio"* ]] || false
+  [[ "$output" == *"envs=personal,$(desktop_envs),machine-personal-macbook"* ]] || false
 }
 
 @test "changing only --profile keeps the saved roles and machine" {
-  "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine studio --select-only --yes >/dev/null
+  "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine personal-macbook --select-only --yes >/dev/null
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "work,$(desktop_envs),machine-studio" ]
+  [ "$(env_list_of "$CO")" = "work,$(desktop_envs),machine-personal-macbook" ]
 }
 
 # A daemon started during a run (the 1Password CLI starts one when its cask generates completions)
@@ -114,7 +114,7 @@ prerequisites_present() {
   cp "$FIXTURES/bin/fd-probe/mise" "$HOME/.local/bin/mise"
   export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-v\([^}]*\)}"$/\1/p' "$REPO_ROOT/bootstrap.sh")
   export FD_PROBE="$BATS_TEST_TMPDIR/fd-probe"
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes 13>"$BATS_TEST_TMPDIR/held"
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --yes 13>"$BATS_TEST_TMPDIR/held"
   [ "$status" -eq 0 ]
   [ "$(cat "$FD_PROBE")" = "open: none" ]
 }
@@ -132,7 +132,7 @@ with_fake_mise() {
 }
 limits() {
   rm -f "$NOFILE_PROBE"
-  sh -c "$1"' && exec "$@"' sh "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes >/dev/null 2>&1 || return 1
+  sh -c "$1"' && exec "$@"' sh "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --yes >/dev/null 2>&1 || return 1
   cat "$NOFILE_PROBE"
 }
 
@@ -151,7 +151,7 @@ limits() {
 # installer, which with NONINTERACTIVE=1 only uses sudo that is already unlocked, then mise's system
 # packages. The Command Line Tools install alone can outlast macOS's 5-minute sudo timestamp, so a
 # full run unlocks sudo once, up front, and keeps it unlocked until it ends (ADR 0001 F-56).
-full_run() { "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --yes; }
+full_run() { "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --yes; }
 line_of() { grep -n -x -m1 "$1" "$CALL_LOG" | cut -d: -f1; }
 not_root() { [ "$(id -u)" != 0 ] || skip "as root, bootstrap never needs sudo"; }
 
@@ -189,7 +189,7 @@ not_root() { [ "$(id -u)" != 0 ] || skip "as root, bootstrap never needs sudo"; 
 }
 
 @test "--select-only never touches sudo" {
-  FAKE_SUDO=locked run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --select-only --yes
+  FAKE_SUDO=locked run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   ! grep -q '^sudo' "$CALL_LOG" 2>/dev/null || false
 }
@@ -228,7 +228,7 @@ with_fake_system_update() {
 
 @test "--skip-system-update and MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1 leave the system's own packages alone" {
   with_fake_system_update
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --skip-system-update --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --skip-system-update --yes
   [ "$status" -eq 0 ]
   MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1 run full_run
   [ "$status" -eq 0 ]
@@ -246,7 +246,7 @@ with_fake_system_update() {
 
 @test "--select-only and --dry-run never update the system" {
   with_fake_system_update
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --dry-run --yes
   [ "$status" -eq 0 ]
@@ -269,7 +269,7 @@ without_prerequisites() {
   chmod +x "$BARE/uname" "$BARE/apt-get"
   ln -s "$FIXTURES/bin/sudo-fake/sudo" "$BARE/sudo"
 }
-bare_run() { PATH="$BARE" "$BARE/sh" "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family debian --profile personal --machine studio --yes; }
+bare_run() { PATH="$BARE" "$BARE/sh" "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-family debian --profile personal --machine personal-macbook --yes; }
 
 @test "installing the prerequisites waits for another package manager to release the dpkg lock" {
   without_prerequisites
@@ -297,20 +297,20 @@ bare_run() { PATH="$BARE" "$BARE/sh" "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-
   { true >&3; } 2>/dev/null || skip "no descriptor 3 to leak in this harness"
   sed -i.bak 's/^secret_envs = ".*"$/secret_envs = "conquer"/' "$CO/mise.toml"
   export PATH="$FIXTURES/bin/fd-probe:$PATH" FD_PROBE="$BATS_TEST_TMPDIR/fd-probe"
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes 13>"$BATS_TEST_TMPDIR/held"
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine personal-macbook --select-only --yes 13>"$BATS_TEST_TMPDIR/held"
   [ "$status" -eq 0 ]
   [ "$(cat "$FD_PROBE")" = "open: none" ]
 }
 
 @test "a role's per-OS overlay file is selected right after the role when the checkout has one" {
   local os; if is_macos; then os=macos; else os=linux; fi
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role conquer --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
-  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-studio" ]
+  [ "$(env_list_of "$CO")" = "personal,conquer,conquer-$os,machine-personal-macbook" ]
 }
 
 @test "--git-email is saved with the selection, kept by later runs, and dropped by an empty value" {
-  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine studio --select-only --yes
+  run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile work --machine personal-macbook --select-only --yes
   [ "$status" -eq 0 ]
   ! grep -q '^git_email' "$CO/mise.local.toml" || false   # no override: the base default applies
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --git-email paul@example.com --select-only --yes

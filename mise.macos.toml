@@ -6,9 +6,12 @@ adopt = true   # keep an existing app bundle in place instead of replacing it (p
 # and its CLI, the terminal, the editor. The rest of the GUI inventory is the desktop role.
 [bootstrap.packages]
 "brew:colima" = "latest"
+"brew:dockutil" = "latest"
 "brew:mas" = "latest"
 "brew:mole" = "latest"
 "brew:pinentry-mac" = "latest"
+"brew:z" = "latest"
+"brew:zsh" = "latest"   # the login shell tasks/login-shell sets
 "brew-cask:1password" = "latest"
 "brew-cask:1password-cli" = "latest"
 "brew-cask:ghostty" = "latest"

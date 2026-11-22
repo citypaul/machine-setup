@@ -38,7 +38,7 @@ stow_home() {
   ln -s "$rel/zsh/.zshrc" "$HOME/.zshrc"
   ln -s "../$rel/ghostty/.config/ghostty" "$HOME/.config/ghostty"
 }
-run_bootstrap() { "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine studio --yes "$@"; }
+run_bootstrap() { "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --role desktop --machine personal-macbook --yes "$@"; }
 line_of() { grep -n -m1 -e "$1" "$CALL_LOG" | cut -d: -f1; }
 
 @test "a Stow-managed home is previewed, dry-run, migrated, then converged, in that order" {

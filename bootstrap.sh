@@ -3,7 +3,7 @@
 #
 #   u=https://raw.githubusercontent.com/citypaul/machine-setup/main/bootstrap.sh
 #   sh -c "$(curl -fsSL $u 2>/dev/null || wget -qO- $u 2>/dev/null || echo 'echo could not download bootstrap.sh >&2; exit 1')" -- \
-#       --profile personal --role desktop --machine studio
+#       --profile personal --role desktop --machine personal-macbook
 #   (curl on macOS, wget on a fresh Ubuntu desktop, which has no curl until this script installs it)
 #
 # On a home that GNU Stow manages (dotfiles linked into ~/.dotfiles, or --stow-dir), the same command
@@ -234,8 +234,8 @@ complete_selection() {
     case "$profile" in personal|work) ;; *) die "unknown profile '$profile'" 2 ;; esac
   fi
   if [ -z "$machine" ]; then
-    [ "$interactive" = 1 ] || die "no saved selection and no --machine given (an explicit id, e.g. studio)" 2
-    ask "Machine id (e.g. studio)"; machine=$reply
+    [ "$interactive" = 1 ] || die "no saved selection and no --machine given (an explicit id, e.g. personal-macbook)" 2
+    ask "Machine id (e.g. personal-macbook)"; machine=$reply
     [ -n "$machine" ] || die "a machine id is required" 2
   fi
   if [ -z "$roles" ] && [ "$interactive" = 1 ] && [ -z "$(saved_var profile)" ]; then

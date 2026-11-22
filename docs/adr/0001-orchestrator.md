@@ -885,6 +885,41 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `06-doctor-update`, `00-bootstrap-migration`; `70-identity` names the
   socket path and was not run on a disposable machine for this change.
 
+- **D-43 Every Homebrew package on a machine is declared, removed, or
+  named as unmanaged; `doctor` says which are none of these.** After the
+  takeover (F-64) Paul's MacBook Pro still had 36 casks and 46 top-level
+  formulae that no layer declared: a machine rebuilt from the repo would
+  have missed `cloudflared` (his ssh hosts' ProxyCommand), `z` and `zsh`
+  itself, the login shell. Paul sorted them on 2026-11-22. CLI tools went
+  to the base list, `zsh`, `z` and `dockutil` to the macOS layer, the apps
+  he uses for work (recording gear included) and Tailscale to the desktop
+  role, games, WhatsApp and Calibre to the personal profile (and to the
+  work profile's removal list). The base removal list gained the Homebrew
+  copies of what mise installs as tools (`agent-browser`, `gemini-cli`,
+  `omp`, `terraform`, `rustup`, the `claude-code@latest` cask), `nvm` and
+  `pyenv`, `stow`, and apps he no longer uses. `unmanaged_brew` and
+  `unmanaged_cask` in `mise.toml` name what is left alone on purpose.
+  `doctor` warns, never fails, about a top-level formula (`brew leaves`) or
+  cask that is in none of the three, so a `brew install` by hand shows up.
+  It reads only the base file's unmanaged lists. Not handled: a cask
+  Homebrew renamed leaves its old name in the Caskroom (`docker`,
+  `tailscale`, `xcodes`), and uninstalling that name would delete the app
+  the new name owns, so those are cleared by hand. `06-doctor-update`
+  tests the check with a stand-in `brew`. `quint` was first declared as a
+  formula and CI failed `20-runtime-env`: the formula pulls Homebrew's
+  node, so it is an npm tool like `agent-browser`, and the formula is on
+  the removal list.
+
+- **D-44 There is no `studio` machine; its Dock list belongs to
+  `personal-macbook`.** The machine adopted in F-64 as `studio` is Paul's
+  MacBook Pro: he does not own a Mac Studio (2026-11-22). The `studio`
+  file's Dock list was written from this Mac's Dock, so it moved into
+  `mise.machine-personal-macbook.toml` and `mise.machine-studio.toml` is
+  gone. Tests, the README and bootstrap's examples name `personal-macbook`
+  where they named `studio`. Earlier entries in this record keep the old
+  name. A machine selected as `studio` is re-selected with `bootstrap.sh
+  --machine personal-macbook`; nothing installed changes.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

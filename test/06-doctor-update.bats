@@ -29,7 +29,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 
 @test "doctor fails when mise itself is missing, before anything else" {
   [ ! -x "$HOME/.local/bin/mise" ] || skip "this HOME has mise"
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   MISE_BIN= PATH="$FIXTURES/bin/op-locked:/usr/bin:/bin" run "$CO/tasks/doctor"
   [ "$status" -eq 1 ]
   [[ "${lines[0]}" == *"FAIL"*"mise"* ]] || false
@@ -37,7 +37,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 
 @test "doctor reports a locked 1Password as a warning, never a failure" {
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   run "$CO/tasks/doctor"
   [[ "$output" == *"WARN"*"1Password"*"not signed in"* ]] || false
   ! grep -q "FAIL.*1Password" <<<"$output" || false
@@ -47,7 +47,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   # Found adopting the Mac Studio: the key was only read from ~/.gitconfig itself, so a signing
   # setup warned "git has no signing key".
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   export PATH="$FIXTURES/bin/gpg-card:$PATH"
   printf '[include]\n\tpath = ~/.gitconfig.local\n' > "$HOME/.gitconfig"
   printf '[user]\n\tsigningkey = 0xTESTKEY\n' > "$HOME/.gitconfig.local"
@@ -55,13 +55,42 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [[ "$output" == *"OK"*"GPG: a card is present and git signs with 0xTESTKEY"* ]] || false
 }
 
+@test "doctor warns about installed Homebrew packages that are neither declared nor listed as unmanaged" {
+  # A package installed by hand is on this machine and on no other: the next machine built from the
+  # repo would miss it. Declared packages (jq) and the unmanaged list stay quiet.
+  with_mise
+  select_envs "$CO" personal - personal-macbook >/dev/null
+  export PATH="$FIXTURES/bin/brew-inventory:$PATH"
+  sed -i.bak 's/^unmanaged_brew = .*/unmanaged_brew = "zzz-unmanaged"/' "$CO/mise.toml"
+  # A cask Homebrew renamed keeps its old name as a link to the new one (docker -> docker-desktop):
+  # the same app, listed twice, so the old name is not a package of its own.
+  export FAKE_CASKROOM="$BATS_TEST_TMPDIR/caskroom"
+  mkdir -p "$FAKE_CASKROOM/zzz-new-name" && ln -s zzz-new-name "$FAKE_CASKROOM/zzz-renamed"
+  run "$CO/tasks/doctor"
+  local line; line=$(grep 'inventory' <<<"$output")
+  [[ "$line" != *"zzz-renamed"* ]] || false
+  [[ "$line" == *"WARN"*"zzz-undeclared"* ]] || false
+  [[ "$line" == *"zzz-cask"* ]] || false
+  [[ "$line" != *"jq"* ]] || false
+  [[ "$line" != *"zzz-unmanaged"* ]] || false
+}
+
+@test "doctor reports the inventory as OK when every installed Homebrew package is accounted for" {
+  with_mise
+  select_envs "$CO" personal - personal-macbook >/dev/null
+  export PATH="$FIXTURES/bin/brew-inventory:$PATH"
+  sed -i.bak -e 's/^unmanaged_brew = .*/unmanaged_brew = "zzz-unmanaged zzz-undeclared"/' -e 's/^unmanaged_cask = .*/unmanaged_cask = "zzz-cask zzz-renamed"/' "$CO/mise.toml"
+  run "$CO/tasks/doctor"
+  [[ "$output" == *"OK"*"inventory"* ]] || false
+}
+
 @test "doctor reports the Conquer state from tailscale only when the role is selected" {
   with_mise
   # Without the role first: a re-run without --role keeps the saved roles, so the order matters.
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/doctor"
   [[ "$output" != *"Tailscale"* ]] || false
-  select_envs "$CO" personal conquer studio >/dev/null
+  select_envs "$CO" personal conquer personal-macbook >/dev/null
   PATH="$FIXTURES/bin/tailscale-needs-login:$PATH" run "$CO/tasks/doctor"
   [[ "$output" == *"WARN"*"Tailscale"*"login"* ]] || false
   PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/doctor"
@@ -70,7 +99,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 
 @test "doctor ends with a summary line and exits 1 while the checkout has never been converged" {
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   run "$CO/tasks/doctor"
   [ "$status" -eq 1 ]
   [[ "${lines[${#lines[@]}-1]}" == doctor:*checks*failed* ]] || false   # bash 3.2: no negative index
@@ -80,7 +109,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 @test "doctor gives up on a Tailscale that never answers, and says so, instead of waiting for it (F-62)" {
   # On the macOS VM the app's CLI outlived doctor's alarm and held its pipe: the suite sat for forty minutes.
   with_mise
-  select_envs "$CO" personal conquer studio >/dev/null
+  select_envs "$CO" personal conquer personal-macbook >/dev/null
   export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
   local started=$SECONDS
   run "$CO/tasks/doctor"
@@ -90,7 +119,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 
 @test "update --dry-run shows the package and tool upgrade plan and changes nothing; unknown flags are refused" {
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   run "$CO/tasks/update" --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" == *"update: packages"* ]] || false
@@ -104,7 +133,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 @test "update raises a low soft open-file limit to 10240 before mise upgrades anything" {
   # The same launchd limit as bootstrap's (ADR 0001 F-55): `mise run update` from a Terminal starts
   # mise upgrade with 256.
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   export NOFILE_PROBE="$BATS_TEST_TMPDIR/nofile"
   MISE_BIN="$FIXTURES/bin/fd-probe/mise" run sh -c 'ulimit -Sn 256 && exec "$@"' sh "$CO/tasks/update" --dry-run
   [ "$status" -eq 0 ]
@@ -113,7 +142,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 
 # The system's own packages are part of an upgrade on purpose (ADR 0001 D-40). The task is a logger here.
 with_logged_system_update() {
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   export SYSTEM_UPDATE_LOG="$BATS_TEST_TMPDIR/system-update-calls"; : > "$SYSTEM_UPDATE_LOG"   # not CALL_LOG: the fake mise writes there
   printf '#!/bin/sh\necho "system-update $*" >> "$SYSTEM_UPDATE_LOG"\nexit "${FAKE_SYSTEM_UPDATE_EXIT:-0}"\n' > "$CO/tasks/system-update"
   chmod +x "$CO/tasks/system-update"
@@ -149,7 +178,7 @@ with_logged_system_update() {
 
 @test "update without --yes and without a terminal applies nothing and says how to" {
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   run "$CO/tasks/update" </dev/null
   [ "$status" -eq 0 ]
   [[ "$output" == *"--yes"* ]] || false
@@ -162,7 +191,7 @@ with_logged_system_update() {
   local login
   if is_macos; then login=$(dscl . -read "/Users/$(id -un)" UserShell | awk '{print $2}'); else login=$(getent passwd "$(id -un)" | cut -d: -f7); fi
   [[ "$login" == */zsh ]] || skip "the login shell here is $login, not zsh"
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   SHELL=/bin/sh run "$CO/tasks/doctor"
   [[ "$output" == *"WARN"*"SHELL is /bin/sh"*"log out and back in"* ]] || false
   SHELL="$login" run "$CO/tasks/doctor"
@@ -173,7 +202,7 @@ with_logged_system_update() {
   # Found on the macOS VM: a converge stopped mid-install left ProtonVPN's image attached, and every
   # later converge failed with a bare "hdiutil … exited with code 1" (ADR 0001 F-54).
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   PATH="$FIXTURES/bin/hdiutil-cask-attached:$PATH" run "$CO/tasks/doctor"
   [ "$status" -eq 1 ]
   [[ "$output" == *"FAIL  cask image: protonvpn-6.5.1-021fecae1a9e-ProtonVPN_mac_v6.5.1.dmg is still attached"* ]] || false
@@ -186,7 +215,7 @@ with_logged_system_update() {
 
 @test "doctor reports no cask image attached when none from mise's cache is, and skips the check without hdiutil" {
   with_mise
-  select_envs "$CO" personal - studio >/dev/null
+  select_envs "$CO" personal - personal-macbook >/dev/null
   PATH="$FIXTURES/bin/hdiutil-clean:$PATH" run "$CO/tasks/doctor"
   [[ "$output" == *"OK    cask images: none left attached"* ]] || false
   [[ "$output" != *"FAIL  cask image"* ]] || false

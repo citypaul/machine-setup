@@ -52,6 +52,22 @@ dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin",
 "brew-cask:waves-central" = { os = "macos" }
 "brew-cask:zed" = { os = "macos" }
 "brew-cask:zoom" = { os = "macos" }
+# Added 2026-11-22 (D-43): apps Paul installed by hand and uses for work, recording gear included.
+# tailscale-app is here as well as in the conquer role: every desktop Mac has it.
+"brew-cask:camo-studio" = { os = "macos" }
+"brew-cask:elgato-control-center" = { os = "macos" }
+"brew-cask:focusrite-control-2" = { os = "macos" }
+"brew-cask:gather" = { os = "macos" }
+"brew-cask:grammarly-desktop" = { os = "macos" }
+"brew-cask:little-snitch" = { os = "macos" }
+"brew-cask:logi-options+" = { os = "macos" }
+"brew-cask:obs" = { os = "macos" }
+"brew-cask:ollama-app" = { os = "macos" }
+"brew-cask:raindropio" = { os = "macos" }
+"brew-cask:stirling-pdf" = { os = "macos" }
+"brew-cask:syncthing-app" = { os = "macos" }
+"brew-cask:tailscale-app" = { os = "macos" }
+"brew-cask:xcodes-app" = { os = "macos" }
 # Fonts (mac-dev-machine-setup/ansible/tasks/fonts.yaml); mise pours font casks on Linux too.
 "brew-cask:font-fira-code" = "latest"
 "brew-cask:font-geist" = "latest"
@@ -61,4 +77,7 @@ dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin",
 "brew-cask:font-jetbrains-mono" = "latest"
 "brew-cask:font-monaspace" = "latest"
 "brew-cask:font-monaspice-nerd-font" = "latest"   # Nerd Fonts ships Monaspace as Monaspice
+"brew-cask:font-meslo-for-powerline" = "latest"
+"brew-cask:font-meslo-lg-nerd-font" = "latest"
 "brew-cask:font-monocraft" = "latest"
+"brew-cask:font-pt-mono" = "latest"
