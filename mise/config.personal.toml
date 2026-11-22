@@ -11,7 +11,6 @@
 "brew-cask:protonvpn" = { os = "macos", env = ["desktop"] }
 "brew-cask:shottr" = { os = "macos", env = ["desktop"] }
 "brew-cask:silentknight" = { os = "macos", env = ["desktop"] }
-"brew-cask:battle-net" = { os = "macos", env = ["desktop"] }
 "brew-cask:calibre" = { os = "macos", env = ["desktop"] }
 "brew-cask:steam" = { os = "macos", env = ["desktop"] }
 "brew-cask:whatsapp" = { os = "macos", env = ["desktop"] }
