@@ -36,7 +36,7 @@ apps = [
 mode = "0755"
 
 [bootstrap.files."~/Library/Application Support/iTerm2/DynamicProfiles/machine-setup.json"]
-source = "files/iterm-dynamic-profile.json"
+source = "../files/iterm-dynamic-profile.json"
 mode = "0644"
 
 # Alacritty's font size on macOS; ~/.alacritty.toml imports it (ADR 0001 F-58).

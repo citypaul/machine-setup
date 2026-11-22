@@ -196,3 +196,15 @@ dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/
   grep -q 'cursor/add-cursor-repo boolean false' "$CO/tasks/cursor-repo"
   grep -q 'signed-by=/etc/apt/keyrings/cursor.asc' "$CO/mise/config.desktop-linux.toml"
 }
+
+@test "every file a layer installs by relative path exists: mise resolves the path from the layer file's own folder" {
+  # Found after the layers moved into mise/ (D-45): `source = "files/x"` then meant mise/files/x, which
+  # does not exist, and a desktop Mac's converge stopped on the iTerm2 profile. CI selects no such layer.
+  local f src bad=()
+  for f in "$CO"/mise.toml "$CO"/mise/config.*.toml; do
+    while IFS= read -r src; do
+      [ -e "$(dirname "$f")/$src" ] || bad+=("${f#"$CO"/}: $src")
+    done < <(sed -n -E 's/^source = "([^"~\/][^"]*)"$/\1/p' "$f")
+  done
+  [ ${#bad[@]} -eq 0 ] || { printf 'missing source: %s\n' "${bad[@]}"; return 1; }
+}
