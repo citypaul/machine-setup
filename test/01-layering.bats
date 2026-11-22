@@ -10,7 +10,7 @@ setup() {
   fresh_home
   CO="$BATS_TEST_TMPDIR/checkout"
   copy_checkout "$CO"
-  select_envs "$CO" personal desktop studio >/dev/null
+  select_envs "$CO" personal desktop personal-macbook >/dev/null
 }
 
 # Group roots deployed for an env selection, as space-separated basenames.
@@ -24,9 +24,9 @@ packages_for() {
 }
 
 @test "the machine file is loaded by its env name, also when mise is invoked from outside the checkout" {
-  run mise -C "$CO" -E personal,desktop,machine-studio config ls
+  run mise -C "$CO" -E personal,desktop,machine-personal-macbook config ls
   [ "$status" -eq 0 ]
-  [[ "$output" == *"mise.machine-studio.toml"* ]] || false
+  [[ "$output" == *"mise.machine-personal-macbook.toml"* ]] || false
 }
 
 @test "the saved selection is honoured from inside the checkout" {
@@ -34,11 +34,11 @@ packages_for() {
   [ "$status" -eq 0 ]
   [[ "$output" == *"mise.personal.toml"* ]] || false
   [[ "$output" == *"mise.desktop.toml"* ]] || false
-  [[ "$output" == *"mise.machine-studio.toml"* ]] || false
+  [[ "$output" == *"mise.machine-personal-macbook.toml"* ]] || false
 }
 
-@test "machine-studio deploys both the zsh and the ghostty groups" {
-  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
+@test "machine-personal-macbook deploys both the zsh and the ghostty groups" {
+  [ "$(groups_for personal,desktop,machine-personal-macbook)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
 }
 
 @test "the desktop role without a machine file still deploys zsh: group lists replace, so a role states the full list" {
@@ -66,11 +66,11 @@ packages_for() {
 }
 
 @test "the removal allowlist composes across the profile and machine layers" {
-  run bash -c "cd '$CO' && '$(mise_bin)' -E work,machine-studio run remove-packages --dry-run"
+  run bash -c "cd '$CO' && '$(mise_bin)' -E work,machine-personal-macbook run remove-packages --dry-run"
   [ "$status" -eq 0 ]
   [[ "$output" == *"spotify"* && "$output" == *"discord"* && "$output" == *"jellyfin"* ]] || false
   [[ "$output" == *"cmatrix"* ]] || false
-  run bash -c "cd '$CO' && '$(mise_bin)' -E personal,machine-studio run remove-packages --dry-run"
+  run bash -c "cd '$CO' && '$(mise_bin)' -E personal,machine-personal-macbook run remove-packages --dry-run"
   [ "$status" -eq 0 ]
   [[ "$output" != *"spotify"* ]] || false
 }
@@ -92,7 +92,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 
 @test "the work removal allowlist names every personal-only cask, so switching profile removes them" {
   local plan key name
-  plan=$(removal_plan_for work,machine-studio)
+  plan=$(removal_plan_for work,machine-personal-macbook)
   for key in $(declared_in mise.personal.toml | grep '^brew-cask:'); do
     name=$(name_of "$key")
     [[ "$plan" == *"$name"* ]] || { echo "$name is personal-only but not on the work removal allowlist"; return 1; }
@@ -102,7 +102,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 @test "the legacy unwanted packages stay on every profile's removal allowlist" {
   local env plan p
   for env in personal work; do
-    plan=$(removal_plan_for "$env,machine-studio")
+    plan=$(removal_plan_for "$env,machine-personal-macbook")
     for p in neofetch arc orbstack wezterm karabiner-elements; do
       [[ "$plan" == *"$p"* ]] || { echo "$p missing from the $env allowlist"; return 1; }
     done
@@ -110,7 +110,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 }
 
 @test "work-only removals do not apply to the personal profile" {
-  local plan; plan=$(removal_plan_for personal,machine-studio)
+  local plan; plan=$(removal_plan_for personal,machine-personal-macbook)
   [[ "$plan" != *"brave-browser"* ]] || false
   [[ "$plan" != *"protonvpn"* ]] || false
 }
@@ -135,8 +135,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   done
 }
 
-@test "the machine files: studio, personal-macbook and the test VMs state the full desktop group list, the CI runners the base list" {
-  [ "$(groups_for personal,desktop,machine-studio)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
+@test "the machine files: personal-macbook and the test VMs state the full desktop group list, the CI runners the base list" {
   [ "$(groups_for personal,desktop,machine-personal-macbook)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
   run mise -C "$CO" -E personal,desktop,machine-personal-macbook config ls
   [[ "$output" == *"mise.machine-personal-macbook.toml"* ]] || false
@@ -151,7 +150,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 1' >/dev/null
   grep -q 'Exec=env LIBGL_ALWAYS_SOFTWARE=1 ghostty' "$CO/mise.machine-vm-linux.toml"
-  run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-studio dot status --json"
+  run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-personal-macbook dot status --json"
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 0' >/dev/null
 }
@@ -164,11 +163,11 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 # The Dock list a file declares, as comma-separated app names.
 dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/\([^/]*\)\.app",.*|\1|p' | tr '\n' ','; }
 
-@test "the Dock leads with Slack and pins Talat after FluidVoice, on the desktop role and on studio (D-38)" {
+@test "the Dock leads with Slack and pins Talat after FluidVoice, on the desktop role and on personal-macbook (D-38)" {
   [[ "$(dock_of mise.desktop-macos.toml)" == "Slack,Fantastical,"* ]] || false
   [[ "$(dock_of mise.desktop-macos.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
-  [[ "$(dock_of mise.machine-studio.toml)" == "Slack,Spotify,Fantastical,"* ]] || false
-  [[ "$(dock_of mise.machine-studio.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+  [[ "$(dock_of mise.machine-personal-macbook.toml)" == "Slack,Spotify,Fantastical,"* ]] || false
+  [[ "$(dock_of mise.machine-personal-macbook.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
 }
 
 @test "on a desktop Mac, Talat is installed in the post-dotfiles hook, before the Dock phase, and the login shell is still set (D-38)" {

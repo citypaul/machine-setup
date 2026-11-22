@@ -147,6 +147,7 @@ if [ -n "$brew_bin" ] && [ -n "$profile" ] && [ -n "$machine" ]; then
     info "inventory: mise lists no declared Homebrew packages here; not checked"
   else
     extra=()
+    caskroom=$(bounded 30 "$brew_bin" --caskroom 2>/dev/null)
     while IFS= read -r n; do
       n=${n##*/}; [ -n "$n" ] || continue
       grep -qxF "brew:$n" <<<"$declared" && continue
@@ -156,6 +157,7 @@ if [ -n "$brew_bin" ] && [ -n "$profile" ] && [ -n "$machine" ]; then
     while IFS= read -r n; do
       [ -n "$n" ] || continue
       grep -qxF "brew-cask:$n" <<<"$declared" && continue
+      [ -L "$caskroom/$n" ] && continue   # a renamed cask's old name, a link to the new one
       case " $(var unmanaged_cask) " in *" $n "*) continue ;; esac
       extra+=("$n (cask)")
     done < <(bounded 60 "$brew_bin" list --cask -1 2>/dev/null)

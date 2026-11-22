@@ -9,7 +9,7 @@ setup() {
   fresh_home
   CO="$BATS_TEST_TMPDIR/checkout"
   copy_checkout "$CO"
-  select_envs "$CO" personal desktop studio >/dev/null
+  select_envs "$CO" personal desktop personal-macbook >/dev/null
   STOW="$HOME/.dotfiles"
   mkdir -p "$STOW/zsh"
   local f
@@ -125,7 +125,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   # group sources as ~/machine-setup/zsh, and the plan found 0 targets.
   local co="$HOME/machine-setup"
   copy_checkout "$co"
-  select_envs "$co" personal desktop studio >/dev/null
+  select_envs "$co" personal desktop personal-macbook >/dev/null
   run "$REPO_ROOT/tasks/migrate" --checkout "$co" --stow-dir "$STOW" --skip-prerequisites --yes --dry-run
   [ "$status" -eq 0 ]
   [[ "$output" != *"No such file"* ]] || false

@@ -910,6 +910,16 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   node, so it is an npm tool like `agent-browser`, and the formula is on
   the removal list.
 
+- **D-44 There is no `studio` machine; its Dock list belongs to
+  `personal-macbook`.** The machine adopted in F-64 as `studio` is Paul's
+  MacBook Pro: he does not own a Mac Studio (2026-11-22). The `studio`
+  file's Dock list was written from this Mac's Dock, so it moved into
+  `mise.machine-personal-macbook.toml` and `mise.machine-studio.toml` is
+  gone. Tests, the README and bootstrap's examples name `personal-macbook`
+  where they named `studio`. Earlier entries in this record keep the old
+  name. A machine selected as `studio` is re-selected with `bootstrap.sh
+  --machine personal-macbook`; nothing installed changes.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
