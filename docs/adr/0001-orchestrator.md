@@ -944,6 +944,15 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `tasks/check-machine`, and its output lines start `check-machine:`.
   Earlier entries in this record say `doctor`.
 
+- **F-65 `remove-packages` left old versions of a formula behind.** On
+  Paul's MacBook Pro the first converge after D-43 removed the current
+  version of `agent-browser`, `gemini-cli`, `nvm`, `prometheus`, `pyenv`,
+  `rustup` and `wireshark` and left an older one of each in the Cellar,
+  so the formulae still read as installed: Homebrew keeps old versions
+  until `brew cleanup`, and `brew uninstall` without `--force` removes
+  one. The task now passes `--force`. Checked by running it on that
+  machine; `40-removal` installs one version only and does not cover it.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

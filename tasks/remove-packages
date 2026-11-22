@@ -57,7 +57,9 @@ for f in $brew_list; do
   if [ -e "$prefix/opt/$f" ] || [ -d "$prefix/Cellar/$f" ]; then
     if [ -n "$brew_bin" ]; then
       plan formula "$f" "brew uninstall"
-      [ "$dry" = 1 ] || "$brew_bin" uninstall --quiet "$f" >/dev/null
+      # --force: every installed version. A long-lived machine keeps old versions beside the current
+      # one, and a plain uninstall removes one of them per run (ADR 0001 F-65).
+      [ "$dry" = 1 ] || "$brew_bin" uninstall --force --quiet "$f" >/dev/null
     else
       say "skipping formula $f: installed under $prefix but no brew binary to uninstall it (ADR 0001)"
     fi
