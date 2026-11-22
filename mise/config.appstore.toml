@@ -1,6 +1,6 @@
 # Role: Mac App Store apps (mac-dev-machine-setup/Brewfile.app-store). Opt in with --role appstore
 # once the Mac is signed in to the App Store: `mas install` blocks indefinitely otherwise (ADR 0001
-# F-30), so these never ride along with the desktop role. Needs `mas` (mise.macos.toml). Slack is not
+# F-30), so these never ride along with the desktop role. Needs `mas` (mise/config.macos.toml). Slack is not
 # here: it is a cask in the desktop role, so every desktop Mac gets it (ADR 0001 D-38).
 [bootstrap.packages]
 "mas:441258766" = { os = "macos" }   # Magnet

@@ -920,6 +920,23 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   name. A machine selected as `studio` is re-selected with `bootstrap.sh
   --machine personal-macbook`; nothing installed changes.
 
+- **D-45 The root holds the entry points; layers live in `mise/` and
+  dotfile groups in `dotfiles/`.** The root had 18 `mise*.toml` files and
+  13 group folders beside `tasks/`, `test/`, `files/` and `docs/`, and two
+  group folders, `mise/` and `bin/`, read as the tool's config and the
+  repo's scripts. Paul asked for the tree to be tidied (2026-11-22). Every
+  layer but the base is now `mise/config.<env>.toml`: mise 2026.11.12
+  loads that name and `.config/mise/config.<env>.toml`, and nothing from a
+  folder of another name (tried: `layers/mise.<env>.toml` is not read), so
+  `mise/` is the one visible place. The base stays `mise.toml` at the
+  root, with the saved selection (`mise.local.toml`, `.miserc.local.toml`)
+  beside it. Each group is `dotfiles/<group>/`, one `root =` line per
+  group. A new machine, role or OS is one file in `mise/`; a new app's
+  config is one folder in `dotfiles/`; nothing new at the root. Earlier
+  entries in this record keep the old names (`mise.macos.toml`, `zsh/`).
+  A converged machine's links point at the old group paths: after pulling
+  this change, run `mise dot apply` (or `bootstrap.sh`) once.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

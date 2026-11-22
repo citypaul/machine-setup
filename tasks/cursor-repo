@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Cursor's package asks (debconf) whether to add its apt repository, and on an unattended install the
 # answer is yes: it writes /etc/apt/sources.list.d/cursor.sources with its own key path and removes
-# cursor.list. This setup declares the source itself (mise.desktop-linux.toml), and apt refuses a
+# cursor.list. This setup declares the source itself (mise/config.desktop-linux.toml), and apt refuses a
 # repository configured twice with different Signed-By values. Answering no before the packages phase
 # keeps the declared source the only one (ADR 0001 D-39). Runs as a pre-packages hook of the Linux
 # desktop role; idempotent; Linux only.

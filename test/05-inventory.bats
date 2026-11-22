@@ -3,7 +3,7 @@
 # network for the Homebrew API and skips cleanly without it.
 load helpers
 
-all_package_keys() { cat "$REPO_ROOT"/mise*.toml | sed -n -E 's/^"([a-z-]+:[^"]+)".*/\1/p' | sort -u; }
+all_package_keys() { cat "$REPO_ROOT"/mise.toml "$REPO_ROOT"/mise/config.*.toml | sed -n -E 's/^"([a-z-]+:[^"]+)".*/\1/p' | sort -u; }
 
 @test "every declared package key names a manager this setup uses" {
   local key bad=()
@@ -33,9 +33,9 @@ all_package_keys() { cat "$REPO_ROOT"/mise*.toml | sed -n -E 's/^"([a-z-]+:[^"]+
   local line bad=()
   while IFS= read -r line; do
     [[ "$line" =~ ^\"mas:[0-9]+\" ]] && [[ "$line" == *'os = "macos"'* ]] || bad+=("$line")
-  done < <(grep -h '^"mas:' "$REPO_ROOT"/mise*.toml || true)
+  done < <(grep -h '^"mas:' "$REPO_ROOT"/mise.toml "$REPO_ROOT"/mise/config.*.toml || true)
   [ ${#bad[@]} -eq 0 ] || { printf 'bad mas entry: %s\n' "${bad[@]}"; return 1; }
-  [ -z "$(grep -l '^"mas:' "$REPO_ROOT"/mise*.toml | grep -v 'mise.appstore.toml')" ]
+  [ -z "$(grep -l '^"mas:' "$REPO_ROOT"/mise.toml "$REPO_ROOT"/mise/config.*.toml | grep -v 'mise/config.appstore.toml')" ]
 }
 
 @test "the skills installer is pinned to an exact release tag, never a moving ref" {

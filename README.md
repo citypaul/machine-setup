@@ -74,7 +74,7 @@ Flags:
 |------|---------|---------|
 | `--profile personal\|work` | which apps and configs load; personal-only apps never appear on a work machine | required the first time |
 | `--role <name>` | additive set; repeat the flag or separate with commas (`desktop`, `conquer`) | none |
-| `--machine <id>` | explicit machine id; loads `mise.machine-<id>.toml` if it exists | required the first time |
+| `--machine <id>` | explicit machine id; loads `mise/config.machine-<id>.toml` if it exists | required the first time |
 | `--os-family <family>` | Linux only: override the detected family for an odd derivative (supported: `debian`) | detected |
 | `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
@@ -136,11 +136,11 @@ and for the same key the later file wins:
 | File | Loaded when | Holds |
 |------|-------------|-------|
 | `mise.toml` | always | dotfile groups, base packages, runtimes, tasks |
-| `mise.macos.toml`, `mise.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
-| `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
-| `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
-| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile), `mise.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
-| `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `personal-macbook` (Paul's MacBook Pro, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
+| `mise/config.macos.toml`, `mise/config.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
+| `mise/config.personal.toml`, `mise/config.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
+| `mise/config.desktop.toml`, `mise/config.conquer.toml`, `mise/config.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
+| `mise/config.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise/config.conquer-linux.toml` (apt repo, service), `mise/config.desktop-macos.toml` (Dock, iTerm2 profile), `mise/config.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
+| `mise/config.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `personal-macbook` (Paul's MacBook Pro, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
 
 Two rules that are not obvious:
 
@@ -155,7 +155,7 @@ Two rules that are not obvious:
 ## Dotfiles
 
 A dotfile group is a folder laid out like your home directory, the same shape
-as a GNU Stow package: `zsh/.zshrc`, `ghostty/.config/ghostty/config`. mise
+as a GNU Stow package: `dotfiles/zsh/.zshrc`, `dotfiles/ghostty/.config/ghostty/config`. mise
 links every file in a selected group into `$HOME` (`symlink-each`), so editing
 `~/.zshrc` edits the file in the checkout and `git pull` updates every linked
 file at once.
@@ -165,7 +165,7 @@ file at once.
 | `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively; `claude-profile NAME` and `claude-personal` run Claude Code with a separate config directory per profile (opt-in; the machine default goes in `~/.zshrc.local`) |
 | `rex` | `desktop` role, `personal-macbook` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
 | `ghostty` | `desktop` role, `personal-macbook` machine | both the XDG and the Library config paths |
-| `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
+| `dotfiles/claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
 
 [Rex](https://www.superlogical.com/rex) is the primary terminal. Its `init.lua`
 binds nothing on purpose, so Rex's default key bindings always win; the tmux,
@@ -384,7 +384,7 @@ desktop set, machine files, `doctor` and `update`. Still to come:
 | Path | What |
 |------|------|
 | `bootstrap.sh` | the one command; POSIX sh |
-| `mise*.toml`, `.miserc.toml` | the declared state, one file per layer |
+| `mise.toml`, `mise/config.*.toml`, `.miserc.toml` | the declared state, one file per layer |
 | `zsh/`, `rex/`, `ghostty/`, `git/`, `gnupg/`, `ssh/`, `bin/`, `tmux/`, `zellij/`, `herdr/`, `alacritty/`, `claude/` | dotfile groups and the Claude settings source |
 | `tasks/` | the shell tasks mise runs: `remove-packages`, `merge-claude-settings`, `migrate`, `tailscale-join` |
 | `test/` | the bats suite and its fixtures |

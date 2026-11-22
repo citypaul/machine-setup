@@ -177,9 +177,9 @@ arrange_sshd() {
 }
 
 @test "tmux, zellij and herdr configs are linked from their groups" {
-  [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/tmux/.tmux.conf" ]
-  [ "$(readlink "$HOME/.config/zellij/config.kdl")" = "$REPO_ROOT/zellij/.config/zellij/config.kdl" ]
-  [ "$(readlink "$HOME/.config/herdr/config.toml")" = "$REPO_ROOT/herdr/.config/herdr/config.toml" ]
+  [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/dotfiles/tmux/.tmux.conf" ]
+  [ "$(readlink "$HOME/.config/zellij/config.kdl")" = "$REPO_ROOT/dotfiles/zellij/.config/zellij/config.kdl" ]
+  [ "$(readlink "$HOME/.config/herdr/config.toml")" = "$REPO_ROOT/dotfiles/herdr/.config/herdr/config.toml" ]
 }
 
 @test "the gh-extensions task installs gh-stack when gh is signed in and otherwise says what to run" {

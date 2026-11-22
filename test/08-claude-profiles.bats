@@ -15,7 +15,7 @@ setup() {
 
 # Run zsh code after sourcing the profile, with the stub first on PATH.
 profile_zsh() {
-  env -u CLAUDE_CONFIG_DIR STUB="$STUB" zsh -fc 'path=("$STUB" $path); source "$1" 2>/dev/null; eval "$2"' zsh "$REPO_ROOT/zsh/.zsh_profile" "$1"
+  env -u CLAUDE_CONFIG_DIR STUB="$STUB" zsh -fc 'path=("$STUB" $path); source "$1" 2>/dev/null; eval "$2"' zsh "$REPO_ROOT/dotfiles/zsh/.zsh_profile" "$1"
 }
 
 @test "claude-profile runs Claude with that profile's directory for one command, and plain claude is unchanged" {

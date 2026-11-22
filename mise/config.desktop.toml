@@ -2,7 +2,7 @@
 # On macOS this is the GUI inventory from mac-dev-machine-setup/Brewfile.gui and the fonts; App Store
 # apps are the separate `appstore` role (a Mac not signed in to the App Store would block here);
 # Linux desktop apps arrive in slice 8 (plan D7). Not selected in CI or on the test
-# VMs by default: the representative apps in mise.macos.toml cover the mechanism.
+# VMs by default: the representative apps in mise/config.macos.toml cover the mechanism.
 [bootstrap]
 dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr", "alacritty"]
 

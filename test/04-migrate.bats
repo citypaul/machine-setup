@@ -26,10 +26,10 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
 @test "replaces Stow links with links into the new checkout, applies the new groups, and writes a manifest" {
   run "${MIGRATE[@]}"
   [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.zshrc")" = "$CO/zsh/.zshrc" ]
-  [ "$(readlink "$HOME/.zsh_profile")" = "$CO/zsh/.zsh_profile" ]
-  [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/ghostty/.config/ghostty/config" ]
-  [ "$(readlink "$HOME/.config/mise/conf.d/machine-setup.toml")" = "$CO/mise/.config/mise/conf.d/machine-setup.toml" ]
+  [ "$(readlink "$HOME/.zshrc")" = "$CO/dotfiles/zsh/.zshrc" ]
+  [ "$(readlink "$HOME/.zsh_profile")" = "$CO/dotfiles/zsh/.zsh_profile" ]
+  [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/dotfiles/ghostty/.config/ghostty/config" ]
+  [ "$(readlink "$HOME/.config/mise/conf.d/machine-setup.toml")" = "$CO/dotfiles/mise/.config/mise/conf.d/machine-setup.toml" ]
   [ ! -e "$HOME/.nvm_setup" ]   # declared absent: the old Stow link is removed
   grep -q 'name = Paul Hammond' "$HOME/.gitconfig"   # rendered from the git group's template
   [ ! -e "$HOME/.local/share/mise/installs" ]   # hooks run tasks; they must not pull every declared tool into HOME (F-35)
@@ -69,7 +69,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   rm "$HOME/.zsh_profile"; printf 'edited locally\n' > "$HOME/.zsh_profile"
   run "${MIGRATE[@]}" --force
   [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.zsh_profile")" = "$CO/zsh/.zsh_profile" ]
+  [ "$(readlink "$HOME/.zsh_profile")" = "$CO/dotfiles/zsh/.zsh_profile" ]
   grep -rq 'edited locally' "$(latest_journal)/saved"
 }
 
@@ -132,7 +132,7 @@ latest_journal() { ls -d "$HOME/.local/state/machine-setup/migration/"*/ | tail 
   [[ "$output" =~ \ ([1-9][0-9]*)\ targets\ from ]] || false
   run "$REPO_ROOT/tasks/migrate" --checkout "$co" --stow-dir "$STOW" --skip-prerequisites --yes
   [ "$status" -eq 0 ]
-  [ "$(readlink "$HOME/.zshrc")" = "$co/zsh/.zshrc" ]
+  [ "$(readlink "$HOME/.zshrc")" = "$co/dotfiles/zsh/.zshrc" ]
 }
 
 # GNU Stow "folds" a directory that did not exist yet into one link to the package directory. Found in
@@ -154,7 +154,7 @@ fold_ghostty() {
   run "${MIGRATE[@]}"
   [ "$status" -eq 0 ]
   [ -d "$HOME/.config/ghostty" ] && [ ! -L "$HOME/.config/ghostty" ]
-  [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/ghostty/.config/ghostty/config" ]
+  [ "$(readlink "$HOME/.config/ghostty/config")" = "$CO/dotfiles/ghostty/.config/ghostty/config" ]
   grep -q 'a theme machine-setup does not manage' "$HOME/.config/ghostty/extra-theme"
   [[ "$output" == *"still linked into the old Stow dir"*"extra-theme"* ]] || false
 }

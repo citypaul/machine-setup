@@ -15,7 +15,7 @@ converge() { "$REPO_ROOT/bootstrap.sh" --dir "$REPO_ROOT" --yes >/dev/null; }
   rm "$HOME/.zshrc"
   ! converged || false
   converge
-  [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/zsh/.zshrc" ]
+  [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/dotfiles/zsh/.zshrc" ]
   converged
 }
 
