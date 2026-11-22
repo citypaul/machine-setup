@@ -26,15 +26,15 @@ packages_for() {
 @test "the machine file is loaded by its env name, also when mise is invoked from outside the checkout" {
   run mise -C "$CO" -E personal,desktop,machine-personal-macbook config ls
   [ "$status" -eq 0 ]
-  [[ "$output" == *"mise.machine-personal-macbook.toml"* ]] || false
+  [[ "$output" == *"mise/config.machine-personal-macbook.toml"* ]] || false
 }
 
 @test "the saved selection is honoured from inside the checkout" {
   run bash -c "cd '$CO' && '$(mise_bin)' config ls"
   [ "$status" -eq 0 ]
-  [[ "$output" == *"mise.personal.toml"* ]] || false
-  [[ "$output" == *"mise.desktop.toml"* ]] || false
-  [[ "$output" == *"mise.machine-personal-macbook.toml"* ]] || false
+  [[ "$output" == *"mise/config.personal.toml"* ]] || false
+  [[ "$output" == *"mise/config.desktop.toml"* ]] || false
+  [[ "$output" == *"mise/config.machine-personal-macbook.toml"* ]] || false
 }
 
 @test "machine-personal-macbook deploys both the zsh and the ghostty groups" {
@@ -51,7 +51,7 @@ packages_for() {
 
 @test "every machine file yields a non-empty group list containing zsh" {
   local f env groups
-  for f in "$CO"/mise.machine-*.toml; do
+  for f in "$CO"/mise/config.machine-*.toml; do
     env=$(basename "$f" .toml); env=${env#mise.}
     groups=$(groups_for "personal,$env")
     [[ " $groups " == *" zsh "* ]] || { echo "$env -> '$groups'"; return 1; }
@@ -83,8 +83,8 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 @test "every package declared in the personal layer is absent from the work selection" {
   local work key name
   work=$(packages_for work)
-  [ -n "$(declared_in mise.personal.toml)" ]
-  for key in $(declared_in mise.personal.toml); do
+  [ -n "$(declared_in mise/config.personal.toml)" ]
+  for key in $(declared_in mise/config.personal.toml); do
     name=$(name_of "$key")
     if grep -qx "$name" <<<"$work"; then echo "$name is declared for personal but present in work"; return 1; fi
   done
@@ -93,7 +93,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 @test "the work removal allowlist names every personal-only cask, so switching profile removes them" {
   local plan key name
   plan=$(removal_plan_for work,machine-personal-macbook)
-  for key in $(declared_in mise.personal.toml | grep '^brew-cask:'); do
+  for key in $(declared_in mise/config.personal.toml | grep '^brew-cask:'); do
     name=$(name_of "$key")
     [[ "$plan" == *"$name"* ]] || { echo "$name is personal-only but not on the work removal allowlist"; return 1; }
   done
@@ -138,7 +138,7 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
 @test "the machine files: personal-macbook and the test VMs state the full desktop group list, the CI runners the base list" {
   [ "$(groups_for personal,desktop,machine-personal-macbook)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
   run mise -C "$CO" -E personal,desktop,machine-personal-macbook config ls
-  [[ "$output" == *"mise.machine-personal-macbook.toml"* ]] || false
+  [[ "$output" == *"mise/config.machine-personal-macbook.toml"* ]] || false
   [ "$(groups_for personal,desktop,machine-vm)" = "alacritty bin ghostty git gnupg herdr mise rex ssh tmux zellij zsh" ]
   [ "$(groups_for personal,machine-ci)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
 }
@@ -149,50 +149,50 @@ removal_plan_for() { (cd "$CO" && mise -E "$1" run remove-packages --dry-run 2>/
   run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-vm,machine-vm-linux dot status --json"
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 1' >/dev/null
-  grep -q 'Exec=env LIBGL_ALWAYS_SOFTWARE=1 ghostty' "$CO/mise.machine-vm-linux.toml"
+  grep -q 'Exec=env LIBGL_ALWAYS_SOFTWARE=1 ghostty' "$CO/mise/config.machine-vm-linux.toml"
   run bash -c "cd '$CO' && '$(mise_bin)' -E personal,desktop,desktop-linux,machine-personal-macbook dot status --json"
   [ "$status" -eq 0 ]
   printf '%s' "$output" | jq -e --arg t "$entry" '[.files[] | select(.target == $t)] | length == 0' >/dev/null
 }
 
 @test "Slack is a desktop-role cask, not an App Store app, so a Mac that is not signed in still gets it (D-38)" {
-  grep -q '^"brew-cask:slack" = { os = "macos" }' "$CO/mise.desktop.toml"
-  ! grep -q '^"mas:803453959"' "$CO/mise.appstore.toml" || false   # Slack's App Store id
+  grep -q '^"brew-cask:slack" = { os = "macos" }' "$CO/mise/config.desktop.toml"
+  ! grep -q '^"mas:803453959"' "$CO/mise/config.appstore.toml" || false   # Slack's App Store id
 }
 
 # The Dock list a file declares, as comma-separated app names.
 dock_of() { sed -n '/^\[bootstrap.macos.dock\]/,/^\]/p' "$CO/$1" | sed -n 's|.*/\([^/]*\)\.app",.*|\1|p' | tr '\n' ','; }
 
 @test "the Dock leads with Slack and pins Talat after FluidVoice, on the desktop role and on personal-macbook (D-38)" {
-  [[ "$(dock_of mise.desktop-macos.toml)" == "Slack,Fantastical,"* ]] || false
-  [[ "$(dock_of mise.desktop-macos.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
-  [[ "$(dock_of mise.machine-personal-macbook.toml)" == "Slack,Spotify,Fantastical,"* ]] || false
-  [[ "$(dock_of mise.machine-personal-macbook.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+  [[ "$(dock_of mise/config.desktop-macos.toml)" == "Slack,Fantastical,"* ]] || false
+  [[ "$(dock_of mise/config.desktop-macos.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
+  [[ "$(dock_of mise/config.machine-personal-macbook.toml)" == "Slack,Spotify,Fantastical,"* ]] || false
+  [[ "$(dock_of mise/config.machine-personal-macbook.toml)" == *",FluidVoice,Talat,Obsidian," ]] || false
 }
 
 @test "on a desktop Mac, Talat is installed in the post-dotfiles hook, before the Dock phase, and the login shell is still set (D-38)" {
   # Hooks replace per key across files (F-37), so the overlay must restate the base's login-shell hook.
-  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-macos.toml" | grep '^post-dotfiles')
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise/config.desktop-macos.toml" | grep '^post-dotfiles')
   [[ "$hook" == *'"mise run login-shell"'*'"mise run talat"'* ]] || false
   grep -q '^post-dotfiles = "mise run login-shell"' "$CO/mise.toml"   # the base hook the overlay restates
 }
 
 @test "after macOS preferences and the Dock list are written, the Dock is restarted so it shows them, as Finder is (F-63)" {
   # The Dock reads its pinned apps only when it starts; without a restart a fresh install keeps showing Apple's set.
-  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.macos.toml" | grep '^post-defaults')
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise/config.macos.toml" | grep '^post-defaults')
   [[ "$hook" == *'"chflags nohidden ~/Library"'* ]] || false
   [[ "$hook" == *'"killall Finder || true"'* ]] || false
   [[ "$hook" == *'"killall Dock || true"'* ]] || false
   # Hooks replace per key across files (F-37): a second post-defaults elsewhere would drop these commands.
-  [ "$(grep -l '^post-defaults' "$CO"/mise*.toml)" = "$CO/mise.macos.toml" ]
+  [ "$(grep -l '^post-defaults' "$CO"/mise.toml "$CO"/mise/config.*.toml)" = "$CO/mise/config.macos.toml" ]
 }
 
 @test "Cursor's own package never adds a second apt source: the pre-packages hook answers its question first (D-39)" {
   # Cursor's package would write cursor.sources with another key path beside the declared cursor.list,
   # and apt refuses a repository configured twice with different Signed-By values.
-  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise.desktop-linux.toml" | grep '^pre-packages')
+  local hook; hook=$(sed -n '/^\[bootstrap.hooks\]/,/^$/p' "$CO/mise/config.desktop-linux.toml" | grep '^pre-packages')
   [[ "$hook" == *'"mise run flathub"'* ]] || false
   [[ "$hook" == *'"mise run cursor-repo"'* ]] || false
   grep -q 'cursor/add-cursor-repo boolean false' "$CO/tasks/cursor-repo"
-  grep -q 'signed-by=/etc/apt/keyrings/cursor.asc' "$CO/mise.desktop-linux.toml"
+  grep -q 'signed-by=/etc/apt/keyrings/cursor.asc' "$CO/mise/config.desktop-linux.toml"
 }

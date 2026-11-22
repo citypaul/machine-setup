@@ -74,7 +74,7 @@ Flags:
 |------|---------|---------|
 | `--profile personal\|work` | which apps and configs load; personal-only apps never appear on a work machine | required the first time |
 | `--role <name>` | additive set; repeat the flag or separate with commas (`desktop`, `conquer`) | none |
-| `--machine <id>` | explicit machine id; loads `mise.machine-<id>.toml` if it exists | required the first time |
+| `--machine <id>` | explicit machine id; loads `mise/config.machine-<id>.toml` if it exists | required the first time |
 | `--os-family <family>` | Linux only: override the detected family for an odd derivative (supported: `debian`) | detected |
 | `--git-email <addr>` | git `user.email` on this machine; saved, so later runs keep it; `--git-email ''` goes back to the default | `paul.hammond@gmail.com` |
 | `--dir <checkout>` | use this checkout instead of cloning | `~/.local/share/machine-setup` |
@@ -117,7 +117,7 @@ cd ~/.local/share/machine-setup
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
 | Install the Herdr desktop app by hand (desktop role; the `herdr` CLI comes with every profile) | `~/.local/bin/mise run herdr-app` |
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
-| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run doctor` (exit `1` when something needs running) |
+| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run check-machine` (exit `1` when something needs running) |
 | See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
 | Upgrade on purpose: the system's own packages, then declared packages and tools | `~/.local/bin/mise run update -- --yes` |
 | Update only the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart) | `~/.local/bin/mise run system-update` |
@@ -136,11 +136,11 @@ and for the same key the later file wins:
 | File | Loaded when | Holds |
 |------|-------------|-------|
 | `mise.toml` | always | dotfile groups, base packages, runtimes, tasks |
-| `mise.macos.toml`, `mise.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
-| `mise.personal.toml`, `mise.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
-| `mise.desktop.toml`, `mise.conquer.toml`, `mise.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
-| `mise.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise.conquer-linux.toml` (apt repo, service), `mise.desktop-macos.toml` (Dock, iTerm2 profile), `mise.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
-| `mise.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `personal-macbook` (Paul's MacBook Pro, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
+| `mise/config.macos.toml`, `mise/config.linux.toml` | automatically for the OS | casks and formulae, or apt packages |
+| `mise/config.personal.toml`, `mise/config.work.toml` | `--profile` | personal-only apps; the work removal allowlist |
+| `mise/config.desktop.toml`, `mise/config.conquer.toml`, `mise/config.appstore.toml` | each `--role` | the full dotfile-group list for that role; the Conquer join; App Store apps (opt in once signed in) |
+| `mise/config.<role>-<os>.toml` | automatically with the role | OS-specific parts of a role: `mise/config.conquer-linux.toml` (apt repo, service), `mise/config.desktop-macos.toml` (Dock, iTerm2 profile), `mise/config.desktop-linux.toml` (the GUI set from the vendors' apt repositories, Ghostty, Obsidian, Docker) |
+| `mise/config.machine-<id>.toml` | `--machine <id>` | this machine's full group list and exceptions: `personal-macbook` (Paul's MacBook Pro, its own Dock), `vm` (the two test VMs), `ci` (the runners) |
 
 Two rules that are not obvious:
 
@@ -155,7 +155,7 @@ Two rules that are not obvious:
 ## Dotfiles
 
 A dotfile group is a folder laid out like your home directory, the same shape
-as a GNU Stow package: `zsh/.zshrc`, `ghostty/.config/ghostty/config`. mise
+as a GNU Stow package: `dotfiles/zsh/.zshrc`, `dotfiles/ghostty/.config/ghostty/config`. mise
 links every file in a selected group into `$HOME` (`symlink-each`), so editing
 `~/.zshrc` edits the file in the checkout and `git pull` updates every linked
 file at once.
@@ -165,7 +165,7 @@ file at once.
 | `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively; `claude-profile NAME` and `claude-personal` run Claude Code with a separate config directory per profile (opt-in; the machine default goes in `~/.zshrc.local`) |
 | `rex` | `desktop` role, `personal-macbook` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
 | `ghostty` | `desktop` role, `personal-macbook` machine | both the XDG and the Library config paths |
-| `claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
+| `dotfiles/claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
 
 [Rex](https://www.superlogical.com/rex) is the primary terminal. Its `init.lua`
 binds nothing on purpose, so Rex's default key bindings always win; the tmux,
@@ -198,7 +198,7 @@ bootstrap, before it converges:
 3. Asks once at a terminal (`--yes` skips the question), then migrates. Every
    write is journaled under `~/.local/state/machine-setup/migration/`, and any
    failure part-way rolls the home directory back exactly.
-4. Converges as usual, then runs `doctor`.
+4. Converges as usual, then runs `check-machine`.
 
 On macOS, allow the terminal to read the Desktop folder if asked: the
 migration waits for that answer (ADR 0001 F-47). It runs once; later runs only
@@ -248,7 +248,7 @@ eight Stow packages that are live there, not everything `./install.sh` stows.
    curl -fsSL https://mise.run | MISE_VERSION=v2026.11.12 MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
    ```
 
-4. Dry run, then the migration, then a converge and `doctor`:
+4. Dry run, then the migration, then a converge and `check-machine`:
 
    ```bash
    cd ~/machine-setup && tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles --dry-run
@@ -259,7 +259,7 @@ eight Stow packages that are live there, not everything `./install.sh` stows.
    ```
 
    ```bash
-   cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes && ~/.local/bin/mise run doctor
+   cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes && ~/.local/bin/mise run check-machine
    ```
 
 5. Restore the snapshot and rehearse a failure: the run must roll back and
@@ -294,7 +294,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `02-secrets` | a locked 1Password drops the Conquer role; the key is read at run time and never printed or stored |
 | `03-merge-claude-settings` | the settings merge keeps foreign hooks, is idempotent and atomic |
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
-| `06-doctor-update` | doctor fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
+| `06-check-machine-update` | check-machine fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
 | `08-claude-profiles` | `claude-profile` and `claude-personal` give Claude Code the right config directory for one command, and change nothing otherwise |
 | `09-system-update` | the system update: apt and snaps on Linux, Homebrew and Apple's updates on macOS, a restart-needing update only downloaded, failures and `--dry-run` |
@@ -306,7 +306,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 | `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Rex's config, Talat |
-| `95-doctor-update` | doctor passes on a converged machine; update --dry-run leaves it converged |
+| `95-check-machine-update` | check-machine passes on a converged machine; update --dry-run leaves it converged |
 | `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code, Cursor and Brave from their vendors' repositories, Firefox, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
 ```bash
@@ -353,7 +353,7 @@ Slices 0 to 9 of [the plan](docs/planning/plan.md#5-slices) are on `main`,
 with CI green on both runners and the full suite green on both test VMs:
 the package inventory and the personal/work split, the runtime contract,
 the Conquer client, the AI tooling, identity, the macOS extras, the Linux
-desktop set, machine files, `doctor` and `update`. Still to come:
+desktop set, machine files, `check-machine` and `update`. Still to come:
 
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the
@@ -384,7 +384,7 @@ desktop set, machine files, `doctor` and `update`. Still to come:
 | Path | What |
 |------|------|
 | `bootstrap.sh` | the one command; POSIX sh |
-| `mise*.toml`, `.miserc.toml` | the declared state, one file per layer |
+| `mise.toml`, `mise/config.*.toml`, `.miserc.toml` | the declared state, one file per layer |
 | `zsh/`, `rex/`, `ghostty/`, `git/`, `gnupg/`, `ssh/`, `bin/`, `tmux/`, `zellij/`, `herdr/`, `alacritty/`, `claude/` | dotfile groups and the Claude settings source |
 | `tasks/` | the shell tasks mise runs: `remove-packages`, `merge-claude-settings`, `migrate`, `tailscale-join` |
 | `test/` | the bats suite and its fixtures |

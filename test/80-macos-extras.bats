@@ -42,12 +42,12 @@ has_desktop_role() { grep -q '^roles = ".*desktop' "$REPO_ROOT/mise.local.toml";
   [ "$status" -eq 0 ]
   [ "$(file_mode "$HOME/Library/Application Support/iTerm2/DynamicProfiles/machine-setup.json")" = "644" ]
   [ -f "$HOME/.config/alacritty/themes/themes/night_owl.toml" ]
-  [ "$(readlink "$HOME/.alacritty.toml")" = "$REPO_ROOT/alacritty/.alacritty.toml" ]
+  [ "$(readlink "$HOME/.alacritty.toml")" = "$REPO_ROOT/dotfiles/alacritty/.alacritty.toml" ]
 }
 
 @test "the desktop role links Rex's config, which leaves Rex on its default key bindings" {
   has_desktop_role || skip "desktop role not selected on this machine"
-  [ "$(readlink "$HOME/.config/rex/init.lua")" = "$REPO_ROOT/rex/.config/rex/init.lua" ]
+  [ "$(readlink "$HOME/.config/rex/init.lua")" = "$REPO_ROOT/dotfiles/rex/.config/rex/init.lua" ]
   [ -d "$HOME/.config/rex" ] && [ ! -L "$HOME/.config/rex" ]
   ! grep -q -E '^[[:space:]]*rex\.(bind|unbind|mode|action)' "$HOME/.config/rex/init.lua" || false
 }

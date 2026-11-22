@@ -1,56 +1,56 @@
 # Base layer, loaded on every machine. Load order, later wins per key (plan.md §4.9):
-#   mise.toml < mise.<os>.toml < mise.<profile>.toml < mise.<role>.toml … < mise.machine-<id>.toml
+#   mise.toml < mise/config.<os>.toml < mise/config.<profile>.toml < mise/config.<role>.toml … < mise/config.machine-<id>.toml
 # Group lists replace rather than union, so every role and machine file states its complete list.
 # The per-machine selection lives in .miserc.local.toml and mise.local.toml, written by bootstrap.sh.
 
 [dotfile_groups.zsh]
-root = "zsh"
+root = "dotfiles/zsh"
 
 # Rex, the primary terminal (ADR 0001 D-37). Its init.lua binds nothing, so Rex keeps its own
 # default key bindings. Selected by the desktop role and the machines that take it.
 [dotfile_groups.rex]
-root = "rex"
+root = "dotfiles/rex"
 
 [dotfile_groups.ghostty]
-root = "ghostty"
+root = "dotfiles/ghostty"
 
 [dotfile_groups.alacritty]
-root = "alacritty"
+root = "dotfiles/alacritty"
 
 # Global mise config fragment (runtimes, settings), default npm packages, environment.d for GUI apps.
 [dotfile_groups.mise]
-root = "mise"
+root = "dotfiles/mise"
 
 # Identity (plan §4.6): git config rendered per profile, GPG files as private copies with this OS's
 # pinentry, ssh config with the 1Password agent where it exists, the YubiKey-aware signing wrapper.
 [dotfile_groups.git]
-root = "git"
+root = "dotfiles/git"
 [dotfile_groups.git.entries]
 "~/.gitconfig" = { source = "gitconfig.tera", mode = "template", permissions = "0644" }
 
 [dotfile_groups.gnupg]
-root = "gnupg"
+root = "dotfiles/gnupg"
 [dotfile_groups.gnupg.entries]
 "~/.gnupg/gpg.conf" = { mode = "copy", permissions = "0600" }
 "~/.gnupg/gpg-agent.conf" = { source = ".gnupg/gpg-agent.conf.tera", mode = "template", permissions = "0600" }
 
 [dotfile_groups.ssh]
-root = "ssh"
+root = "dotfiles/ssh"
 [dotfile_groups.ssh.entries]
 "~/.ssh/config" = { source = ".ssh/config.tera", mode = "template", permissions = "0600" }
 
 [dotfile_groups.bin]
-root = "bin"
+root = "dotfiles/bin"
 
 # Terminal multiplexers and the herdr workspace manager (citypaul/.dotfiles tmux/, zellij/, herdr/).
 [dotfile_groups.tmux]
-root = "tmux"
+root = "dotfiles/tmux"
 
 [dotfile_groups.zellij]
-root = "zellij"
+root = "dotfiles/zellij"
 
 [dotfile_groups.herdr]
-root = "herdr"
+root = "dotfiles/herdr"
 
 [bootstrap]
 dotfile_groups = ["zsh", "mise", "git", "gnupg", "ssh", "bin", "tmux", "zellij", "herdr"]
@@ -170,8 +170,7 @@ mode = "0700"
 # Removal is an explicit allowlist, composed from one var per layer (plan §4.4, ADR 0001 F-11).
 # Added 2026-11-22 (D-43): the Homebrew copies of what mise now installs as tools (agent-browser,
 # gemini-cli, omp, quint, terraform, rustup, claude-code), nvm and pyenv (mise manages runtimes), stow, and
-# apps Paul no longer uses, and font-monaspace-nerd-font, which Homebrew no longer publishes
-# (font-monaspice-nerd-font replaced it).
+# apps Paul no longer uses.
 # The base lists are the legacy "remove if installed" lists from mac-dev-machine-setup/defaults.yaml.
 [vars]
 # Git identity. One address for every profile; `bootstrap.sh --git-email` overrides it per machine
@@ -184,10 +183,10 @@ claude_skills_version = "v4.18.0"
 # when `op whoami` fails and says so. None today: Conquer joins by OIDC (D6).
 secret_envs = ""
 remove_brew_base = "neofetch exa tldr agent-browser ansible-lint claude-squad gemini-cli nvm omp prometheus pyenv quint rustup stow terraform wireshark"
-remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero camtasia claude-code@latest cloudflare-warp dockutil font-monaspace-nerd-font jordanbaird-ice openvpn-connect protopie thaw"
+remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero camtasia claude-code@latest cloudflare-warp dockutil jordanbaird-ice openvpn-connect protopie thaw"
 remove_cask_zap_base = "karabiner-elements"
 remove_mas_base = "457622435"   # Yoink
-# Installed by hand on purpose and left alone: `doctor` warns about any other top-level Homebrew
+# Installed by hand on purpose and left alone: `check-machine` warns about any other top-level Homebrew
 # formula or cask that no layer declares (ADR 0001 D-43).
 # python@3.12: pipx environments made by hand are built on it. lazyworktree: a cask in its author's
 # tap, whose metadata mise 2026.11.12 cannot fetch. spotify-tui: Homebrew no longer publishes it,
@@ -206,7 +205,7 @@ run = '''tasks/remove-packages \
   --apt "{{ vars.remove_apt_base | default(value='') }} {{ vars.remove_apt_profile | default(value='') }} {{ vars.remove_apt_machine | default(value='') }}"'''
 
 [tasks.merge-claude-settings]
-description = "Merge claude/settings.json into ~/.claude/settings.json, keeping other hooks (plan §4.7)"
+description = "Merge dotfiles/claude/settings.json into ~/.claude/settings.json, keeping other hooks (plan §4.7)"
 # After the skills installer: its `claude plugin install` writes settings.json too, and the merge must
 # land last so the repo's settings win; it keeps the keys it does not define (ADR 0001 F-57).
 depends = ["claude-skills"]
@@ -237,9 +236,9 @@ run = "tasks/talat '{{ vars.roles | default(value='') }}'"
 description = "Install the Herdr desktop app from its release feed, once (desktop role); the herdr CLI stays a package"
 run = "tasks/herdr-app '{{ vars.roles | default(value='') }}'"
 
-[tasks.doctor]
+[tasks.check-machine]
 description = "The checks mise does not make: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin"
-run = "tasks/doctor"
+run = "tasks/check-machine"
 
 [tasks.system-update]
 description = "Update the system's own packages: apt and snaps on Linux, Homebrew and Apple's updates on macOS (never a restart)"

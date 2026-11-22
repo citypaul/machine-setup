@@ -25,10 +25,10 @@ as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
   [ "$status" -eq 0 ]
   [[ "$output" == *"envs=personal,"*"machine-${MACHINE_SETUP_TEST_MACHINE:-vm}"* ]] || false   # roles may be carried over from an earlier selection
   [ -x "$HOME/.local/bin/mise" ]
-  [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/zsh/.zshrc" ]
-  [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/tmux/.tmux.conf" ]   # a group every machine list has
+  [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/dotfiles/zsh/.zshrc" ]
+  [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/dotfiles/tmux/.tmux.conf" ]   # a group every machine list has
   if [ "${MACHINE_SETUP_TEST_MACHINE:-vm}" != ci ]; then   # the ci machine has no desktop groups (D-33)
-    [ "$(readlink "$HOME/.config/ghostty/config")" = "$REPO_ROOT/ghostty/.config/ghostty/config" ]
+    [ "$(readlink "$HOME/.config/ghostty/config")" = "$REPO_ROOT/dotfiles/ghostty/.config/ghostty/config" ]
   fi
   run mise_in_checkout bootstrap status --missing
   [ "$status" -eq 0 ]

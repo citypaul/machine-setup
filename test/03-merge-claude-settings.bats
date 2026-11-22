@@ -8,7 +8,7 @@ setup() {
   fresh_home
   mkdir -p "$HOME/.claude"
   TARGET="$HOME/.claude/settings.json"
-  MERGE=("$REPO_ROOT/tasks/merge-claude-settings" --source "$REPO_ROOT/claude/settings.json" --target "$TARGET")
+  MERGE=("$REPO_ROOT/tasks/merge-claude-settings" --source "$REPO_ROOT/dotfiles/claude/settings.json" --target "$TARGET")
 }
 
 hook_commands() { jq -r ".hooks.$1[].hooks[].command" "$TARGET"; }

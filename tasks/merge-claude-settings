@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Produce ~/.claude/settings.json by merging claude/settings.json into whatever is already there
+# Produce ~/.claude/settings.json by merging dotfiles/claude/settings.json into whatever is already there
 # (plan.md §4.7):
 #   - keys the repo file defines take the repo value; keys it does not define are kept as they are
 #   - hooks merge per event and matcher: existing hook commands (herdr's included) are kept and ours
@@ -10,7 +10,7 @@
 set -euo pipefail
 
 here=$(cd "$(dirname "$0")/.." && pwd)
-source="$here/claude/settings.json"
+source="$here/dotfiles/claude/settings.json"
 target="$HOME/.claude/settings.json"
 while [ $# -gt 0 ]; do
   case "$1" in

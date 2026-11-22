@@ -36,7 +36,7 @@ usage: bootstrap.sh [--profile personal|work] [--role <role>]... [--machine <id>
 
   --profile      personal or work; decides which apps and configs load
   --role         additive role, e.g. desktop, conquer (repeat the flag or separate with commas)
-  --machine      explicit machine id; loads mise.machine-<id>.toml
+  --machine      explicit machine id; loads mise/config.machine-<id>.toml
   --os-family    Linux only: override the family read from /etc/os-release (supported: debian)
   --git-email    git user.email on this machine (saved; later runs keep it; '' resets to the default)
   --dir          use this existing checkout instead of cloning
@@ -304,12 +304,12 @@ compute_envs() {
     esac
   done
   envs="$envs,machine-$machine"
-  # Role and profile overlays per OS: mise.<env>-<os>.toml is selected right after <env> when the
+  # Role and profile overlays per OS: mise/config.<env>-<os>.toml is selected right after <env> when the
   # checkout has it (OS-specific files, services and packages that belong to a role).
   expanded=''
   for e in $(printf '%s' "$envs" | tr ',' ' '); do
     expanded="$expanded,$e"
-    [ -f "$checkout/mise.$e-$os.toml" ] && expanded="$expanded,$e-$os"
+    [ -f "$checkout/mise/config.$e-$os.toml" ] && expanded="$expanded,$e-$os"
   done
   envs=${expanded#,}
   if [ -n "$skipped" ]; then
@@ -424,6 +424,6 @@ else
   set --
 fi
 stdio_only "$MISE" bootstrap --update --yes "$@"
-[ "$migrated" = 0 ] || stdio_only "$MISE" run doctor || log "doctor reports something to fix (above)"
+[ "$migrated" = 0 ] || stdio_only "$MISE" run check-machine || log "check-machine reports something to fix (above)"
 log "done. Log out and back in (or reboot) so every terminal and app starts with zsh, the new PATH and"
 log "the new launchers; until then, run exec zsh in a terminal that is already open."
