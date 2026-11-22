@@ -27,6 +27,11 @@ as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
   [ -x "$HOME/.local/bin/mise" ]
   [ "$(readlink "$HOME/.zshrc")" = "$REPO_ROOT/dotfiles/zsh/.zshrc" ]
   [ "$(readlink "$HOME/.tmux.conf")" = "$REPO_ROOT/dotfiles/tmux/.tmux.conf" ]   # a group every machine list has
+  # The machine-setup command arrives with the first install and runs from another directory (D-48).
+  [ "$(readlink "$HOME/.local/bin/machine-setup")" = "$REPO_ROOT/dotfiles/bin/.local/bin/machine-setup" ]
+  run bash -c 'cd / && "$HOME/.local/bin/machine-setup" --version'
+  [ "$status" -eq 0 ]
+  [[ "$output" == "machine-setup "* ]] || false
   if [ "${MACHINE_SETUP_TEST_MACHINE:-vm}" != ci ]; then   # the ci machine has no desktop groups (D-33)
     [ "$(readlink "$HOME/.config/ghostty/config")" = "$REPO_ROOT/dotfiles/ghostty/.config/ghostty/config" ]
   fi

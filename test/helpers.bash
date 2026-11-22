@@ -35,18 +35,22 @@ require_mutation() {
 }
 require_mise() { mise_bin >/dev/null 2>&1 || skip "mise not installed; bootstrap installs it (set MISE_BIN for local runs)"; }
 # jq is a dependency of the assertions themselves (and of two tasks); the CI harness installs it.
+# A clean Linux machine has no git until bootstrap installs it.
+require_git() { command -v git >/dev/null 2>&1 || skip "git not installed yet; bootstrap installs it"; }
 require_jq() { command -v jq >/dev/null 2>&1 || skip "jq not installed (test harness dependency)"; }
 
 # A private copy of the checkout (tracked + untracked, minus ignored files) so a test can write
 # the per-machine selection files without dirtying the real checkout.
 copy_checkout() {
   local dest="$1"
+  # --no-same-owner: the copy belongs to whoever runs the tests. As root (the CI container) tar keeps
+  # the checkout's owner, and git then refuses a repository made in the copy ("dubious ownership").
   mkdir -p "$dest"
   # On a Mac without the Command Line Tools, `git` is a shim that only requests their install.
   if { [ "$(uname -s)" != Darwin ] || xcode-select -p >/dev/null 2>&1; } && git -C "$REPO_ROOT" rev-parse --git-dir >/dev/null 2>&1; then
-    (cd "$REPO_ROOT" && git ls-files -co --exclude-standard -z | tar cf - --null -T -) | tar xf - -C "$dest"
+    (cd "$REPO_ROOT" && git ls-files -co --exclude-standard -z | tar cf - --null -T -) | tar xf - --no-same-owner -C "$dest"
   else
-    (cd "$REPO_ROOT" && tar cf - --exclude=.git --exclude=.cache --exclude=.miserc.local.toml --exclude=mise.local.toml .) | tar xf - -C "$dest"
+    (cd "$REPO_ROOT" && tar cf - --exclude=.git --exclude=.cache --exclude=.miserc.local.toml --exclude=mise.local.toml .) | tar xf - --no-same-owner -C "$dest"
   fi
 }
 
