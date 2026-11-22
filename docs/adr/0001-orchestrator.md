@@ -1017,6 +1017,17 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   (the F-69 warning), a second converge exit 0, no drift, the suite 191 of
   191 (14 skipped). Not shown: an uninterrupted macOS install from the
   snapshot with the fixes, and F-67's single prompt on a real run.
+- **F-67 A first install on a clean Apple Silicon Mac asked for the
+  password twice, and showed it.** In the same rehearsal, on the macOS VM
+  with no passwordless sudo, bootstrap asked once as it says. Then the
+  first-install system update (D-40) ran `softwareupdate --download` for
+  macOS 27.2.1, an update that needs a restart, and softwareupdate asked
+  `Password:` itself: fetching a macOS update needs the volume owner's
+  password, whatever sudo holds. What Paul typed there was printed on the
+  terminal. D-40's "downloaded and announced" is now "announced": the task
+  names the update and where to install it, and fetches nothing. Updates
+  that need no restart are still installed. `09-system-update` asserts no
+  `--download`. Not yet re-run on the VM.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
