@@ -997,6 +997,27 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   them. Lesson: a package declared because a machine already has it has
   not been shown to install; a clean VM is the check.
 
+- **F-69 On a fresh Mac `check-machine` called `ghostscript` installed by
+  hand.** The `mactex` cask depends on the formula, mise pours it, and no
+  installed formula depends on it, so `brew leaves` lists it and D-43's
+  inventory check warned. It is declared beside `mactex`. The check cannot
+  see a cask's formula dependencies; another such cask needs the same line.
+
+- **E-28 Both clean VMs pass with the fixes above (2026-11-22).** Branch
+  `rehearsal/2026-11-22`: main at F-66 plus F-67 and F-68. Ubuntu 26.04.1
+  arm64, reverted to its clean snapshot and started in the first minute
+  after boot: the one-line install exit 0 in one run (one retry on the
+  lists lock), `check-machine` 0 failed, a second converge exit 0, no
+  drift, and the whole suite with mutation allowed 191 of 191 (16
+  skipped), 22 minutes in all. macOS 27.0.1 arm64, reverted to its clean
+  snapshot, no passwordless sudo at first: the one-line install from main
+  asked for the password twice (F-67) and stopped on `battle-net`, then
+  on `steam` (F-68); continued on the same VM from the rehearsal branch
+  with passwordless sudo, the converge exit 0, `check-machine` 0 failed
+  (the F-69 warning), a second converge exit 0, no drift, the suite 191 of
+  191 (14 skipped). Not shown: an uninterrupted macOS install from the
+  snapshot with the fixes, and F-67's single prompt on a real run.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
