@@ -62,11 +62,13 @@ LIST
   ! grep -q '^apt-get' "$CALLS" || false
 }
 
-@test "on macOS an Apple update that needs a restart is downloaded and announced, and the Mac is never restarted" {
+@test "on macOS an Apple update that needs a restart is announced and left alone: fetching it asks for the password again" {
+  # Found in the 2026-11-22 rehearsal on a clean Apple Silicon Mac: `softwareupdate --download` of a macOS
+  # update asked "Password:" itself, a second prompt in a run that says it asks once, and showed what was typed.
   apple_updates
   FAKE_OS=Darwin run "$REPO_ROOT/tasks/system-update"
   [ "$status" -eq 0 ]
-  grep -q -x 'softwareupdate --download macOS 27.2.1-26B131' "$CALLS"
+  ! grep -q -e '--download' "$CALLS" || false
   ! grep -q -x 'softwareupdate --install macOS 27.2.1-26B131' "$CALLS" || false
   ! grep -q -e '--restart' -e '--all' "$CALLS" || false
   [[ "$output" == *"macOS 27.2.1"*"restart"* ]] || false

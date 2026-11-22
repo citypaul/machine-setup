@@ -4,7 +4,7 @@
 # normal converge never does (D-35).
 #   Debian-family Linux: apt-get update and full-upgrade, then snap refresh where there are snaps.
 #   macOS: Homebrew update and upgrade, then Apple's softwareupdate. An Apple update that needs a
-#   restart is only downloaded and announced: this never restarts the Mac.
+#   restart is only announced, never fetched or installed: this never restarts the Mac.
 # Needs root for apt, snap and softwareupdate: run it as root, or with sudo already unlocked.
 # Usage: tasks/system-update [--dry-run]
 set -uo pipefail
@@ -65,11 +65,12 @@ update_macos() {
   while IFS=$'\t' read -r kind label; do
     [ -n "$label" ] || continue
     if [ "$dry_run" = 1 ]; then
-      if [ "$kind" = restart ]; then say "dry run: would download '$label' (it needs a restart to install)"
+      if [ "$kind" = restart ]; then say "dry run: would leave '$label' for you (it needs a restart to install)"
       else say "dry run: would install '$label'"; fi
     elif [ "$kind" = restart ]; then
-      say "downloading '$label': it needs a restart, so install it from System Settings > General > Software Update when that suits you"
-      as_root softwareupdate --download "$label" </dev/null || say "warning: could not download '$label'; install it from System Settings later"
+      # Not downloaded: on Apple Silicon softwareupdate asks for the owner's password itself to fetch a
+      # macOS update, a second prompt in the middle of the run (ADR 0001 F-67).
+      say "'$label' needs a restart: install it from System Settings > General > Software Update when that suits you"
     else
       say "installing '$label'"
       as_root softwareupdate --install "$label" </dev/null || say "warning: could not install '$label'; install it from System Settings later"
