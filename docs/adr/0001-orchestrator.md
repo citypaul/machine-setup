@@ -905,7 +905,10 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   Homebrew renamed leaves its old name in the Caskroom (`docker`,
   `tailscale`, `xcodes`), and uninstalling that name would delete the app
   the new name owns, so those are cleared by hand. `06-doctor-update`
-  tests the check with a stand-in `brew`.
+  tests the check with a stand-in `brew`. `quint` was first declared as a
+  formula and CI failed `20-runtime-env`: the formula pulls Homebrew's
+  node, so it is an npm tool like `agent-browser`, and the formula is on
+  the removal list.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
