@@ -12,7 +12,6 @@
 "brew-cask:shottr" = { os = "macos", env = ["desktop"] }
 "brew-cask:silentknight" = { os = "macos", env = ["desktop"] }
 "brew-cask:calibre" = { os = "macos", env = ["desktop"] }
-"brew-cask:steam" = { os = "macos", env = ["desktop"] }
 "brew-cask:whatsapp" = { os = "macos", env = ["desktop"] }
 "brew:epubcheck" = { os = "macos" }
 # Spike stand-in for the personal Linux desktop set (plan D7, slice 8).

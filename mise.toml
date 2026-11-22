@@ -196,7 +196,8 @@ unmanaged_brew = "python@3.12 spotify-tui"
 # stopped on it (ADR 0001 F-68).
 # battle-net: its cask runs an installer app, which mise does not support ("only script installers
 # are supported"), so a fresh Mac stopped on it (F-68).
-unmanaged_cask = "lazyworktree font-pt-mono battle-net"
+# steam: mise installs its cask and then cannot find Steam.app (F-68).
+unmanaged_cask = "lazyworktree font-pt-mono battle-net steam"
 
 # Extra arguments to `mise run remove-packages` (for example --dry-run) are appended by mise.
 [tasks.remove-packages]
