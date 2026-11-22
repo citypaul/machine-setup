@@ -60,7 +60,7 @@ What happens, in order:
 7. On a first install only, updates the system's own packages before
    installing anything: `apt full-upgrade` and `snap refresh` on Ubuntu;
    Homebrew and Apple's `softwareupdate` on macOS. An Apple update that
-   needs a restart is downloaded and announced, never installed for you.
+   needs a restart is announced, never downloaded or installed for you.
    Later runs never upgrade; `mise run update` does it on purpose.
 8. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
    dotfile links, the removal allowlist, runtimes, the Claude settings merge.
@@ -297,7 +297,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `06-check-machine-update` | check-machine fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
 | `08-claude-profiles` | `claude-profile` and `claude-personal` give Claude Code the right config directory for one command, and change nothing otherwise |
-| `09-system-update` | the system update: apt and snaps on Linux, Homebrew and Apple's updates on macOS, a restart-needing update only downloaded, failures and `--dry-run` |
+| `09-system-update` | the system update: apt and snaps on Linux, Homebrew and Apple's updates on macOS, a restart-needing update only announced, failures and `--dry-run` |
 | `10-bootstrap` | a real bootstrap: mise, packages, casks, pre-existing Homebrew apps left alone |
 | `20-runtime-env` | node resolves in interactive, login and empty-environment shells |
 | `30-drift` | a deleted dotfile or package is reported and repaired |
