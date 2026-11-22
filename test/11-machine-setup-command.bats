@@ -2,11 +2,14 @@
 # `machine-setup`: this checkout's everyday commands from any directory (ADR 0001 D-48). The bin
 # dotfile group links it into ~/.local/bin on every machine, so it finds the checkout through its own
 # link. Safe: the checkout is a private clone of a private "origin", and bootstrap.sh and mise are
-# stand-ins that log how they were called and from where.
+# stand-ins that log how they were called and from where. Numbered after 10-bootstrap although it
+# changes nothing on the machine: it needs git, which a clean Linux machine has only once bootstrap
+# has run, and there /bin/sh is dash, the shell this command most needs testing under.
 load helpers
 bats_require_minimum_version 1.5.0   # run --separate-stderr
 
 setup() {
+  require_git
   fresh_home
   export CALL_LOG="$BATS_TEST_TMPDIR/calls"
   ORIGIN="$BATS_TEST_TMPDIR/origin"

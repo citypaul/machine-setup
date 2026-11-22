@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Run the bats suite. Usage: test/run.sh [bats args…]   (default: every test/*.bats, in name order)
-# Mutating tests (10- to 95-) only run with MACHINE_SETUP_ALLOW_MUTATION=1 on a disposable machine.
+# Mutating tests (10- to 95-, except 11-) only run with MACHINE_SETUP_ALLOW_MUTATION=1 on a disposable machine.
 set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 BATS_BIN=${BATS_BIN:-$(command -v bats || true)}

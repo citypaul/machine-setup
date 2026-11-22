@@ -35,6 +35,8 @@ require_mutation() {
 }
 require_mise() { mise_bin >/dev/null 2>&1 || skip "mise not installed; bootstrap installs it (set MISE_BIN for local runs)"; }
 # jq is a dependency of the assertions themselves (and of two tasks); the CI harness installs it.
+# A clean Linux machine has no git until bootstrap installs it.
+require_git() { command -v git >/dev/null 2>&1 || skip "git not installed yet; bootstrap installs it"; }
 require_jq() { command -v jq >/dev/null 2>&1 || skip "jq not installed (test harness dependency)"; }
 
 # A private copy of the checkout (tracked + untracked, minus ignored files) so a test can write

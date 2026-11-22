@@ -1093,7 +1093,7 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   stdout, exit 0, 1 and 2 documented in help. Not built: `--json` and
   `--plain`; the commands print what the tasks they run print, which has
   no structured form. The other tasks keep their `mise run` form.
-  `06-machine-setup-command` tests it against a private origin with
+  `11-machine-setup-command` tests it against a private origin with
   stand-ins for mise and bootstrap; `01-layering` checks every list has
   `bin`; `10-bootstrap` checks a fresh install links it and it runs.
 
