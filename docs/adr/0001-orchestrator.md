@@ -1045,6 +1045,33 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   exit: it failed 2 runs in 3 before the change, 5 in 8 with the trap and
   wait alone, and 0 in 10 after. The original test is unchanged.
 
+- **D-48 `machine-setup` is the command for everyday use, on every
+  machine from the first install, and it updates itself.** Paul asked
+  whether upgrading needs a `cd` into the checkout (2026-11-22). It did:
+  mise finds the repo's tasks only from inside it, and `mise -C <checkout>`
+  ran `check-machine` but loaded none of the machine's five layer files
+  (F-07). He then asked for a CLI that is part of the installation, with
+  one command to update the computer and one to update the CLI.
+  `dotfiles/bin/.local/bin/machine-setup`, POSIX sh, is in the `bin`
+  group, which every role and machine list has, so the first converge
+  links it into `~/.local/bin`. It finds the checkout through its own
+  link: no path is configured. `update` runs `mise run update` (the
+  computer), `self-update` fast-forwards the checkout to its branch's
+  upstream (the command itself, since the command is a file in the
+  checkout), `check` runs `check-machine`, `converge` runs `bootstrap.sh
+  --yes`. `self-update` changes nothing else on the machine and says to
+  converge afterwards; it lists the commits that arrive, takes
+  `--dry-run`, and stops with exit 1 when the checkout cannot
+  fast-forward. The script's body is one function, read whole before it
+  runs, because `self-update` rewrites the file being run. Following
+  clig.dev: messages of its own on stderr, `--version` and help on
+  stdout, exit 0, 1 and 2 documented in help. Not built: `--json` and
+  `--plain`; the commands print what the tasks they run print, which has
+  no structured form. The other tasks keep their `mise run` form.
+  `06-machine-setup-command` tests it against a private origin with
+  stand-ins for mise and bootstrap; `01-layering` checks every list has
+  `bin`; `10-bootstrap` checks a fresh install links it and it runs.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

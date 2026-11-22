@@ -1,0 +1,107 @@
+#!/bin/sh
+# machine-setup: this checkout's everyday commands, from any directory (ADR 0001 D-48).
+#
+# mise finds the repo's tasks only from inside the checkout, and `mise -C` does not load this
+# machine's layers (F-07), so each command runs from the checkout itself. The bin dotfile group links
+# this file into ~/.local/bin on every machine, so its real path is inside the checkout: nothing is
+# configured, and updating the checkout updates this command.
+#
+# What a command prints is the output of the task it runs. Messages of this command's own go to
+# stderr; only --version, help and self-update's list of commits are written to stdout.
+set -eu
+
+usage() {
+  cat <<'USAGE'
+usage: machine-setup <command> [flags]
+
+Examples:
+  machine-setup update --dry-run     see what an upgrade of this computer would change
+  machine-setup update --yes         upgrade it without being asked
+  machine-setup self-update          get the newest machine-setup, then: machine-setup converge
+  machine-setup check                is this machine what the repo declares?
+
+Commands:
+  update       Upgrade this computer on purpose: its own packages, then the declared packages and
+               tools.  --dry-run shows the plan; --yes applies it without asking.
+  self-update  Update machine-setup itself: fast-forward its checkout to the newest commit of its
+               branch. Changes nothing else on this computer.  --dry-run lists what would arrive.
+  check        Check this machine against the repo (mise run check-machine).
+  converge     Apply the repo to this machine (bootstrap.sh --yes).  --dry-run previews.
+  help         Show this text.
+
+Flags:
+  -h, --help   Show this text.
+  --version    Print the commit and the checkout this command runs from.
+
+Exit codes:
+  0  done
+  1  the command ran and failed, or check found something to fix
+  2  unknown command or flag
+USAGE
+}
+fail() { echo "machine-setup: error: $1" >&2; [ -z "${2:-}" ] || echo "machine-setup: $2" >&2; exit "${3:-1}"; }
+say() { echo "machine-setup: $*" >&2; }
+
+# The whole command is one function, read to its end before anything runs: self-update rewrites this
+# file, and a shell reads a script as it goes.
+main() {
+  self=$0
+  while [ -L "$self" ]; do
+    link=$(readlink "$self")
+    case "$link" in /*) self=$link ;; *) self=$(dirname "$self")/$link ;; esac
+  done
+  checkout=$(cd "$(dirname "$self")/../../../.." && pwd -P)   # dotfiles/bin/.local/bin -> the checkout
+  mise=${MISE_BIN:-$HOME/.local/bin/mise}
+
+  cmd=${1:-help}
+  [ $# -eq 0 ] || shift
+  case "$cmd" in
+    help|-h|--help) usage; exit 0 ;;
+    --version)
+      echo "machine-setup $(git -C "$checkout" log -1 --format='%h %cs' 2>/dev/null || echo unknown) $checkout"
+      exit 0 ;;
+    update|self-update|check|converge) ;;
+    *) fail "unknown command: $cmd" "run 'machine-setup help' for the commands" 2 ;;
+  esac
+  for arg in "$@"; do
+    case "$arg" in -h|--help) usage; exit 0 ;; esac
+  done
+  cd "$checkout"
+  case "$cmd" in
+    update) exec "$mise" run update -- "$@" ;;
+    check) exec "$mise" run check-machine "$@" ;;
+    converge) exec ./bootstrap.sh --dir "$checkout" --yes "$@" ;;
+    self-update) self_update "$@" ;;
+  esac
+}
+
+self_update() {
+  dry_run=0
+  for arg in "$@"; do
+    case "$arg" in
+      -n|--dry-run) dry_run=1 ;;
+      *) fail "unknown flag for self-update: $arg" "self-update takes --dry-run only" 2 ;;
+    esac
+  done
+  branch=$(git symbolic-ref --quiet --short HEAD) \
+    || fail "the checkout at $checkout is not on a branch" "switch to one first: git -C $checkout switch main"
+  upstream=$(git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null) \
+    || fail "branch $branch has no upstream to update from" "set one: git -C $checkout branch --set-upstream-to=origin/$branch"
+  say "fetching $upstream"
+  git fetch --quiet || fail "could not fetch from the remote" "check the network, then run it again"
+  if [ -z "$(git rev-list "HEAD..$upstream")" ]; then
+    say "already up to date ($branch at $(git rev-parse --short HEAD))"
+    exit 0
+  fi
+  git log --oneline "HEAD..$upstream"
+  if [ "$dry_run" = 1 ]; then
+    say "dry run: nothing changed"
+    exit 0
+  fi
+  git merge --quiet --ff-only "$upstream" >&2 \
+    || fail "cannot fast-forward $branch to $upstream: the checkout has changes of its own" "see them with: git -C $checkout status"
+  say "now at $(git rev-parse --short HEAD). Apply it to this machine with: machine-setup converge"
+  exit 0
+}
+
+main "$@"; exit

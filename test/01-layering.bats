@@ -49,13 +49,17 @@ packages_for() {
   [ "$(groups_for work)" = "bin git gnupg herdr mise ssh tmux zellij zsh" ]
 }
 
-@test "every machine file yields a non-empty group list containing zsh" {
+@test "every machine file yields a group list containing zsh, and bin, which carries the machine-setup command (D-48)" {
   local f env groups
   for f in "$CO"/mise/config.machine-*.toml; do
     env=$(basename "$f" .toml); env=${env#mise.}
     groups=$(groups_for "personal,$env")
     [[ " $groups " == *" zsh "* ]] || { echo "$env -> '$groups'"; return 1; }
+    [[ " $groups " == *" bin "* ]] || { echo "$env has no bin group: '$groups'"; return 1; }
   done
+  # A role states the full list too (lists replace), so the desktop role without a machine file has it.
+  [[ " $(groups_for personal,desktop) " == *" bin "* ]] || false
+  [[ " $(groups_for work) " == *" bin "* ]] || false
 }
 
 @test "a personal-only app is declared for personal and absent from work" {

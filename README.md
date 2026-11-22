@@ -101,6 +101,9 @@ cd ~/.local/share/machine-setup
 |-------------|-----|
 | Converge: repair anything that drifted, upgrade nothing | `./bootstrap.sh --yes` |
 | See whether anything drifted (exit `0` means no) | `~/.local/bin/mise bootstrap status --missing` |
+| Upgrade this computer, from any directory | `machine-setup update` (`--dry-run` shows the plan, `--yes` applies without asking) |
+| Update `machine-setup` itself (the checkout it runs from) | `machine-setup self-update` (`--dry-run` lists what would arrive), then `machine-setup converge` |
+| Check this machine, or converge it, from any directory | `machine-setup check`, `machine-setup converge` (`--dry-run` previews) |
 | See the whole declared state | `~/.local/bin/mise bootstrap status` |
 | Preview what a converge would change | `./bootstrap.sh --dry-run` |
 | Switch this machine to the work profile (personal apps are removed) | `./bootstrap.sh --profile work --yes` |
@@ -294,6 +297,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `02-secrets` | a locked 1Password drops the Conquer role; the key is read at run time and never printed or stored |
 | `03-merge-claude-settings` | the settings merge keeps foreign hooks, is idempotent and atomic |
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
+| `06-machine-setup-command` | `machine-setup` from another directory: `update`, `check` and `converge` run in the checkout with their flags and exit status; `self-update` fast-forwards the checkout, lists what arrived, and stops when it cannot; `--version`, help, and exit 2 for an unknown command or flag |
 | `06-check-machine-update` | check-machine fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
 | `08-claude-profiles` | `claude-profile` and `claude-personal` give Claude Code the right config directory for one command, and change nothing otherwise |
