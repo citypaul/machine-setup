@@ -248,7 +248,7 @@ eight Stow packages that are live there, not everything `./install.sh` stows.
    ```
 
    ```bash
-   curl -fsSL https://mise.run | MISE_VERSION=v2026.11.12 MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
+   curl -fsSL https://mise.run | MISE_VERSION=$(sed -n 's/^MISE_PIN="\(.*\)"$/\1/p' ~/machine-setup/bootstrap.sh) MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
    ```
 
 4. Dry run, then the migration, then a converge and `check-machine`:

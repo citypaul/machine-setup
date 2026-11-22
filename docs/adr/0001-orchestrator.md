@@ -1045,6 +1045,31 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   exit: it failed 2 runs in 3 before the change, 5 in 8 with the trap and
   wait alone, and 0 in 10 after. The original test is unchanged.
 
+- **D-47 Every machine runs the mise version the repo pins, as one binary
+  at `~/.local/bin/mise`.** Paul stated it as a rule on 2026-11-22. It
+  already held on his MacBook Pro and both VMs: bootstrap installs that
+  binary, installs it again when the version differs, and nothing installs
+  mise through Homebrew or apt. Three things let a machine differ and are
+  closed. The pin read `MISE_VERSION` from the environment first; it is
+  now a fixed line in `bootstrap.sh`, the one place the version is
+  written. `check-machine` warned about another version; it fails. The
+  README's rehearsal command repeated the version; it reads it from
+  `bootstrap.sh`. To try a newer mise, change the pin on a branch.
+  `00-bootstrap-cli` and `06-check-machine-update` test the first two.
+- **E-29 Both clean VMs pass from main in one uninterrupted run each
+  (2026-11-22).** Main at `68775dd`, which has F-66 to F-69; F-70 merged
+  afterwards and was not in these runs. Both VMs reverted to their clean
+  snapshots first. Ubuntu 26.04.1 arm64: the one-line install exit 0,
+  `check-machine` exit 0, a second converge exit 0, no drift, the whole
+  suite with mutation allowed 191 of 191 (15 skipped), 31 minutes. macOS
+  27.0.1 arm64, no passwordless sudo during the install: the one-line
+  install exit 0 with one password prompt (F-67 held: the macOS update
+  was named and not fetched), `check-machine` 0 failed with no inventory
+  warning (F-69 held); then, with passwordless sudo added for the tests,
+  a converge exit 0, `check-machine` exit 0, a second converge exit 0, no
+  drift, the suite 191 of 191 (14 skipped). This closes E-28's "not
+  shown".
+
 - **D-48 `machine-setup` is the command for everyday use, on every
   machine from the first install, and it updates itself.** Paul asked
   whether upgrading needs a `cd` into the checkout (2026-11-22). It did:
@@ -1071,19 +1096,6 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   `06-machine-setup-command` tests it against a private origin with
   stand-ins for mise and bootstrap; `01-layering` checks every list has
   `bin`; `10-bootstrap` checks a fresh install links it and it runs.
-- **E-29 Both clean VMs pass from main in one uninterrupted run each
-  (2026-11-22).** Main at `68775dd`, which has F-66 to F-69; F-70 merged
-  afterwards and was not in these runs. Both VMs reverted to their clean
-  snapshots first. Ubuntu 26.04.1 arm64: the one-line install exit 0,
-  `check-machine` exit 0, a second converge exit 0, no drift, the whole
-  suite with mutation allowed 191 of 191 (15 skipped), 31 minutes. macOS
-  27.0.1 arm64, no passwordless sudo during the install: the one-line
-  install exit 0 with one password prompt (F-67 held: the macOS update
-  was named and not fetched), `check-machine` 0 failed with no inventory
-  warning (F-69 held); then, with passwordless sudo added for the tests,
-  a converge exit 0, `check-machine` exit 0, a second converge exit 0, no
-  drift, the suite 191 of 191 (14 skipped). This closes E-28's "not
-  shown".
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
