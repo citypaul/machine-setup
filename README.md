@@ -117,7 +117,7 @@ cd ~/.local/share/machine-setup
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
 | Install the Herdr desktop app by hand (desktop role; the `herdr` CLI comes with every profile) | `~/.local/bin/mise run herdr-app` |
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
-| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run check-machine` (exit `1` when something needs running) |
+| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached, Homebrew packages installed by hand that no layer declares | `~/.local/bin/mise run check-machine` (exit `1` when something needs running) |
 | See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
 | Upgrade on purpose: the system's own packages, then declared packages and tools | `~/.local/bin/mise run update -- --yes` |
 | Update only the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart) | `~/.local/bin/mise run system-update` |
