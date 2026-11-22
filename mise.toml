@@ -187,7 +187,7 @@ remove_brew_base = "neofetch exa tldr agent-browser ansible-lint claude-squad ge
 remove_cask_base = "adguard arc bartender devtoys granola handy hiddenbar ngrok orbstack pgadmin4 rewind snagit spokenly unclack utm visual-studio-code@insiders wezterm whisky zotero camtasia claude-code@latest cloudflare-warp dockutil font-monaspace-nerd-font jordanbaird-ice openvpn-connect protopie thaw"
 remove_cask_zap_base = "karabiner-elements"
 remove_mas_base = "457622435"   # Yoink
-# Installed by hand on purpose and left alone: `doctor` warns about any other top-level Homebrew
+# Installed by hand on purpose and left alone: `check-machine` warns about any other top-level Homebrew
 # formula or cask that no layer declares (ADR 0001 D-43).
 # python@3.12: pipx environments made by hand are built on it. lazyworktree: a cask in its author's
 # tap, whose metadata mise 2026.11.12 cannot fetch. spotify-tui: Homebrew no longer publishes it,
@@ -237,9 +237,9 @@ run = "tasks/talat '{{ vars.roles | default(value='') }}'"
 description = "Install the Herdr desktop app from its release feed, once (desktop role); the herdr CLI stays a package"
 run = "tasks/herdr-app '{{ vars.roles | default(value='') }}'"
 
-[tasks.doctor]
+[tasks.check-machine]
 description = "The checks mise does not make: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin"
-run = "tasks/doctor"
+run = "tasks/check-machine"
 
 [tasks.system-update]
 description = "Update the system's own packages: apt and snaps on Linux, Homebrew and Apple's updates on macOS (never a restart)"

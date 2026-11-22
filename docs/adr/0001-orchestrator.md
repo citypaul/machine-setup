@@ -937,6 +937,13 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   A converged machine's links point at the old group paths: after pulling
   this change, run `mise dot apply` (or `bootstrap.sh`) once.
 
+- **D-46 `doctor` is renamed `check-machine`.** mise has its own `mise
+  doctor`, which checks mise itself; this repo's task checks the machine
+  against the repo, and two commands called doctor read as one. Paul asked
+  for a clearer name (2026-11-22): `mise run check-machine`,
+  `tasks/check-machine`, and its output lines start `check-machine:`.
+  Earlier entries in this record say `doctor`.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

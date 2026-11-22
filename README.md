@@ -117,7 +117,7 @@ cd ~/.local/share/machine-setup
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
 | Install the Herdr desktop app by hand (desktop role; the `herdr` CLI comes with every profile) | `~/.local/bin/mise run herdr-app` |
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
-| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run doctor` (exit `1` when something needs running) |
+| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached | `~/.local/bin/mise run check-machine` (exit `1` when something needs running) |
 | See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
 | Upgrade on purpose: the system's own packages, then declared packages and tools | `~/.local/bin/mise run update -- --yes` |
 | Update only the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart) | `~/.local/bin/mise run system-update` |
@@ -198,7 +198,7 @@ bootstrap, before it converges:
 3. Asks once at a terminal (`--yes` skips the question), then migrates. Every
    write is journaled under `~/.local/state/machine-setup/migration/`, and any
    failure part-way rolls the home directory back exactly.
-4. Converges as usual, then runs `doctor`.
+4. Converges as usual, then runs `check-machine`.
 
 On macOS, allow the terminal to read the Desktop folder if asked: the
 migration waits for that answer (ADR 0001 F-47). It runs once; later runs only
@@ -248,7 +248,7 @@ eight Stow packages that are live there, not everything `./install.sh` stows.
    curl -fsSL https://mise.run | MISE_VERSION=v2026.11.12 MISE_INSTALL_PATH="$HOME/.local/bin/mise" sh
    ```
 
-4. Dry run, then the migration, then a converge and `doctor`:
+4. Dry run, then the migration, then a converge and `check-machine`:
 
    ```bash
    cd ~/machine-setup && tasks/migrate --checkout "$PWD" --stow-dir ~/.dotfiles --dry-run
@@ -259,7 +259,7 @@ eight Stow packages that are live there, not everything `./install.sh` stows.
    ```
 
    ```bash
-   cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes && ~/.local/bin/mise run doctor
+   cd ~/machine-setup && ./bootstrap.sh --dir "$PWD" --yes && ~/.local/bin/mise run check-machine
    ```
 
 5. Restore the snapshot and rehearse a failure: the run must roll back and
@@ -294,7 +294,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `02-secrets` | a locked 1Password drops the Conquer role; the key is read at run time and never printed or stored |
 | `03-merge-claude-settings` | the settings merge keeps foreign hooks, is idempotent and atomic |
 | `04-migrate` | the Stow migration rolls back exactly after a failure mid-swap or during verification |
-| `06-doctor-update` | doctor fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
+| `06-check-machine-update` | check-machine fails without a selection or mise, warns on a locked 1Password, reads the Conquer state, fails on drift; update shows its plan and applies nothing without --yes |
 | `05-inventory` | every declared package names a manager this setup uses and exists in the Homebrew API; App Store ids live only in the opt-in role; the skills pin is an exact tag |
 | `08-claude-profiles` | `claude-profile` and `claude-personal` give Claude Code the right config directory for one command, and change nothing otherwise |
 | `09-system-update` | the system update: apt and snaps on Linux, Homebrew and Apple's updates on macOS, a restart-needing update only downloaded, failures and `--dry-run` |
@@ -306,7 +306,7 @@ they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 | `60-conquer` | the role installs the Tailscale client and daemon; the join is a no-op when connected and prints the OIDC login URL when not |
 | `70-identity` | git identity with the configurable email, private GPG files with this OS's pinentry and the public keys imported, the YubiKey-aware signing task, ssh config with the 1Password agent |
 | `80-macos-extras` | Finder and keyboard preferences applied and current; with the desktop role the Dock order, the iTerm2 profile, the Alacritty theme, Rex's config, Talat |
-| `95-doctor-update` | doctor passes on a converged machine; update --dry-run leaves it converged |
+| `95-check-machine-update` | check-machine passes on a converged machine; update --dry-run leaves it converged |
 | `90-linux-desktop` | with the desktop role on Linux: 1Password, VS Code, Cursor and Brave from their vendors' repositories, Firefox, Alacritty, Ghostty, Docker with the user in its group, Obsidian as a Flatpak, no drift |
 
 ```bash
@@ -353,7 +353,7 @@ Slices 0 to 9 of [the plan](docs/planning/plan.md#5-slices) are on `main`,
 with CI green on both runners and the full suite green on both test VMs:
 the package inventory and the personal/work split, the runtime contract,
 the Conquer client, the AI tooling, identity, the macOS extras, the Linux
-desktop set, machine files, `doctor` and `update`. Still to come:
+desktop set, machine files, `check-machine` and `update`. Still to come:
 
 - the Conquer join against the real network: the role installs Tailscale and
   runs the OIDC login, but the Headscale URL is a placeholder until the

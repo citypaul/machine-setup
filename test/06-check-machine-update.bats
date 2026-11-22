@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Slice 9: `doctor` (the checks mise does not make: selection, drift, login shell, 1Password, Conquer,
+# Slice 9: `check-machine` (the checks mise does not make: selection, drift, login shell, 1Password, Conquer,
 # the GPG card, the skills pin) and `update` (upgrade on purpose, with the plan shown first). Safe:
 # a private copy of the checkout, a fresh HOME and the fake op and tailscale binaries.
 load helpers
@@ -16,34 +16,34 @@ setup() {
   export MACHINE_SETUP_SKIP_SYSTEM_UPDATE=1
 }
 
-# doctor and update need mise for every check after the first; CI installs it in 10-bootstrap.
+# check-machine and update need mise for every check after the first; CI installs it in 10-bootstrap.
 with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
 
-@test "doctor fails on a checkout with no saved selection and says to run bootstrap" {
+@test "check-machine fails on a checkout with no saved selection and says to run bootstrap" {
   with_mise
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   [ "$status" -eq 1 ]
   [[ "$output" == *"FAIL"*"selection"* ]] || false
   [[ "$output" == *"bootstrap.sh"* ]] || false
 }
 
-@test "doctor fails when mise itself is missing, before anything else" {
+@test "check-machine fails when mise itself is missing, before anything else" {
   [ ! -x "$HOME/.local/bin/mise" ] || skip "this HOME has mise"
   select_envs "$CO" personal - personal-macbook >/dev/null
-  MISE_BIN= PATH="$FIXTURES/bin/op-locked:/usr/bin:/bin" run "$CO/tasks/doctor"
+  MISE_BIN= PATH="$FIXTURES/bin/op-locked:/usr/bin:/bin" run "$CO/tasks/check-machine"
   [ "$status" -eq 1 ]
   [[ "${lines[0]}" == *"FAIL"*"mise"* ]] || false
 }
 
-@test "doctor reports a locked 1Password as a warning, never a failure" {
+@test "check-machine reports a locked 1Password as a warning, never a failure" {
   with_mise
   select_envs "$CO" personal - personal-macbook >/dev/null
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   [[ "$output" == *"WARN"*"1Password"*"not signed in"* ]] || false
   ! grep -q "FAIL.*1Password" <<<"$output" || false
 }
 
-@test "doctor finds the signing key gpg-setup writes to ~/.gitconfig.local, which ~/.gitconfig includes" {
+@test "check-machine finds the signing key gpg-setup writes to ~/.gitconfig.local, which ~/.gitconfig includes" {
   # Found adopting the Mac Studio: the key was only read from ~/.gitconfig itself, so a signing
   # setup warned "git has no signing key".
   with_mise
@@ -51,11 +51,11 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   export PATH="$FIXTURES/bin/gpg-card:$PATH"
   printf '[include]\n\tpath = ~/.gitconfig.local\n' > "$HOME/.gitconfig"
   printf '[user]\n\tsigningkey = 0xTESTKEY\n' > "$HOME/.gitconfig.local"
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   [[ "$output" == *"OK"*"GPG: a card is present and git signs with 0xTESTKEY"* ]] || false
 }
 
-@test "doctor warns about installed Homebrew packages that are neither declared nor listed as unmanaged" {
+@test "check-machine warns about installed Homebrew packages that are neither declared nor listed as unmanaged" {
   # A package installed by hand is on this machine and on no other: the next machine built from the
   # repo would miss it. Declared packages (jq) and the unmanaged list stay quiet.
   with_mise
@@ -66,7 +66,7 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   # the same app, listed twice, so the old name is not a package of its own.
   export FAKE_CASKROOM="$BATS_TEST_TMPDIR/caskroom"
   mkdir -p "$FAKE_CASKROOM/zzz-new-name" && ln -s zzz-new-name "$FAKE_CASKROOM/zzz-renamed"
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   local line; line=$(grep 'inventory' <<<"$output")
   [[ "$line" != *"zzz-renamed"* ]] || false
   [[ "$line" == *"WARN"*"zzz-undeclared"* ]] || false
@@ -75,44 +75,44 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [[ "$line" != *"zzz-unmanaged"* ]] || false
 }
 
-@test "doctor reports the inventory as OK when every installed Homebrew package is accounted for" {
+@test "check-machine reports the inventory as OK when every installed Homebrew package is accounted for" {
   with_mise
   select_envs "$CO" personal - personal-macbook >/dev/null
   export PATH="$FIXTURES/bin/brew-inventory:$PATH"
   sed -i.bak -e 's/^unmanaged_brew = .*/unmanaged_brew = "zzz-unmanaged zzz-undeclared"/' -e 's/^unmanaged_cask = .*/unmanaged_cask = "zzz-cask zzz-renamed"/' "$CO/mise.toml"
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   [[ "$output" == *"OK"*"inventory"* ]] || false
 }
 
-@test "doctor reports the Conquer state from tailscale only when the role is selected" {
+@test "check-machine reports the Conquer state from tailscale only when the role is selected" {
   with_mise
   # Without the role first: a re-run without --role keeps the saved roles, so the order matters.
   select_envs "$CO" personal - personal-macbook >/dev/null
-  PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/doctor"
+  PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/check-machine"
   [[ "$output" != *"Tailscale"* ]] || false
   select_envs "$CO" personal conquer personal-macbook >/dev/null
-  PATH="$FIXTURES/bin/tailscale-needs-login:$PATH" run "$CO/tasks/doctor"
+  PATH="$FIXTURES/bin/tailscale-needs-login:$PATH" run "$CO/tasks/check-machine"
   [[ "$output" == *"WARN"*"Tailscale"*"login"* ]] || false
-  PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/doctor"
+  PATH="$FIXTURES/bin/tailscale-connected:$PATH" run "$CO/tasks/check-machine"
   [[ "$output" == *"OK"*"Tailscale"*"connected"* ]] || false
 }
 
-@test "doctor ends with a summary line and exits 1 while the checkout has never been converged" {
+@test "check-machine ends with a summary line and exits 1 while the checkout has never been converged" {
   with_mise
   select_envs "$CO" personal - personal-macbook >/dev/null
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   [ "$status" -eq 1 ]
-  [[ "${lines[${#lines[@]}-1]}" == doctor:*checks*failed* ]] || false   # bash 3.2: no negative index
+  [[ "${lines[${#lines[@]}-1]}" == check-machine:*checks*failed* ]] || false   # bash 3.2: no negative index
   [[ "$output" == *"FAIL"*"drift"* ]] || false
 }
 
-@test "doctor gives up on a Tailscale that never answers, and says so, instead of waiting for it (F-62)" {
-  # On the macOS VM the app's CLI outlived doctor's alarm and held its pipe: the suite sat for forty minutes.
+@test "check-machine gives up on a Tailscale that never answers, and says so, instead of waiting for it (F-62)" {
+  # On the macOS VM the app's CLI outlived check-machine's alarm and held its pipe: the suite sat for forty minutes.
   with_mise
   select_envs "$CO" personal conquer personal-macbook >/dev/null
   export PATH="$FIXTURES/bin/tailscale-hangs:$PATH"
   local started=$SECONDS
-  run "$CO/tasks/doctor"
+  run "$CO/tasks/check-machine"
   [ $((SECONDS - started)) -lt 40 ]
   [[ "$output" == *"Tailscale: the daemon did not answer"* ]] || false
 }
@@ -184,7 +184,7 @@ with_logged_system_update() {
   [[ "$output" == *"--yes"* ]] || false
 }
 
-@test "doctor warns when this session's SHELL is not the login shell, so terminals that read SHELL get the wrong one" {
+@test "check-machine warns when this session's SHELL is not the login shell, so terminals that read SHELL get the wrong one" {
   # Found on the fresh Ubuntu VM: the install made zsh the login shell, but the desktop session kept
   # SHELL=/bin/bash, so Ghostty and Alacritty opened bash without the aliases or fzf (ADR 0001 F-51).
   with_mise
@@ -192,18 +192,18 @@ with_logged_system_update() {
   if is_macos; then login=$(dscl . -read "/Users/$(id -un)" UserShell | awk '{print $2}'); else login=$(getent passwd "$(id -un)" | cut -d: -f7); fi
   [[ "$login" == */zsh ]] || skip "the login shell here is $login, not zsh"
   select_envs "$CO" personal - personal-macbook >/dev/null
-  SHELL=/bin/sh run "$CO/tasks/doctor"
+  SHELL=/bin/sh run "$CO/tasks/check-machine"
   [[ "$output" == *"WARN"*"SHELL is /bin/sh"*"log out and back in"* ]] || false
-  SHELL="$login" run "$CO/tasks/doctor"
+  SHELL="$login" run "$CO/tasks/check-machine"
   [[ "$output" != *"SHELL is"* ]] || false
 }
 
-@test "doctor fails on a cask image an interrupted install left attached, and gives the detach command" {
+@test "check-machine fails on a cask image an interrupted install left attached, and gives the detach command" {
   # Found on the macOS VM: a converge stopped mid-install left ProtonVPN's image attached, and every
   # later converge failed with a bare "hdiutil … exited with code 1" (ADR 0001 F-54).
   with_mise
   select_envs "$CO" personal - personal-macbook >/dev/null
-  PATH="$FIXTURES/bin/hdiutil-cask-attached:$PATH" run "$CO/tasks/doctor"
+  PATH="$FIXTURES/bin/hdiutil-cask-attached:$PATH" run "$CO/tasks/check-machine"
   [ "$status" -eq 1 ]
   [[ "$output" == *"FAIL  cask image: protonvpn-6.5.1-021fecae1a9e-ProtonVPN_mac_v6.5.1.dmg is still attached"* ]] || false
   [[ "$output" == *"hdiutil detach /dev/disk7"* ]] || false
@@ -213,14 +213,14 @@ with_logged_system_update() {
   [[ "$output" != *"disk5"* && "$output" != *"disk6"* && "$output" != *"disk8"* ]] || false
 }
 
-@test "doctor reports no cask image attached when none from mise's cache is, and skips the check without hdiutil" {
+@test "check-machine reports no cask image attached when none from mise's cache is, and skips the check without hdiutil" {
   with_mise
   select_envs "$CO" personal - personal-macbook >/dev/null
-  PATH="$FIXTURES/bin/hdiutil-clean:$PATH" run "$CO/tasks/doctor"
+  PATH="$FIXTURES/bin/hdiutil-clean:$PATH" run "$CO/tasks/check-machine"
   [[ "$output" == *"OK    cask images: none left attached"* ]] || false
   [[ "$output" != *"FAIL  cask image"* ]] || false
   if ! command -v hdiutil >/dev/null; then
-    run "$CO/tasks/doctor"
+    run "$CO/tasks/check-machine"
     [[ "$output" != *"cask image"* ]] || false
   fi
 }

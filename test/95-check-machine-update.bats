@@ -1,5 +1,5 @@
 #!/usr/bin/env bats
-# Slice 9 on a converged machine: doctor passes (warnings allowed), update --dry-run changes nothing.
+# Slice 9 on a converged machine: check-machine passes (warnings allowed), update --dry-run changes nothing.
 load helpers
 
 setup() {
@@ -8,8 +8,8 @@ setup() {
   cd "$HOME"
 }
 
-@test "doctor passes on a converged machine (warnings allowed)" {
-  run "$REPO_ROOT/tasks/doctor"
+@test "check-machine passes on a converged machine (warnings allowed)" {
+  run "$REPO_ROOT/tasks/check-machine"
   [ "$status" -eq 0 ]
   [[ "$output" == *"OK"*"drift"* ]] || false
   [[ "$output" == *"OK"*"login shell"* ]] || false
@@ -18,7 +18,7 @@ setup() {
 @test "update --dry-run on a converged machine leaves it converged" {
   run "$REPO_ROOT/tasks/update" --dry-run
   [ "$status" -eq 0 ]
-  run "$REPO_ROOT/tasks/doctor"   # doctor's drift check knows which services a machine can manage
+  run "$REPO_ROOT/tasks/check-machine"   # check-machine's drift check knows which services a machine can manage
   [ "$status" -eq 0 ]
   [[ "$output" == *"OK"*"drift"* ]] || false
 }

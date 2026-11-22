@@ -3,23 +3,23 @@
 # saved selection, drift, the login shell, 1Password, the Conquer join, the GPG card, the skills pin, the Homebrew inventory,
 # cask images an interrupted install left attached.
 # One line per check: OK, WARN (works, something to do by hand) or FAIL (run something first); a
-# summary line last; exit 1 when anything failed. Usage: tasks/doctor [--checkout <dir>]
+# summary line last; exit 1 when anything failed. Usage: tasks/check-machine [--checkout <dir>]
 set -uo pipefail
 checkout=$(cd "$(dirname "$0")/.." && pwd)
 while [ $# -gt 0 ]; do
   case "$1" in
     --checkout) checkout=$2; shift 2 ;;
-    -h|--help) echo "usage: doctor [--checkout <dir>]"; exit 0 ;;
-    *) echo "doctor: unknown argument: $1" >&2; exit 2 ;;
+    -h|--help) echo "usage: check-machine [--checkout <dir>]"; exit 0 ;;
+    *) echo "check-machine: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
 fails=0 warns=0 checks=0
-ok()   { checks=$((checks+1)); printf 'doctor: OK    %s\n' "$*"; }
-warn() { checks=$((checks+1)); warns=$((warns+1)); printf 'doctor: WARN  %s\n' "$*"; }
-fail() { checks=$((checks+1)); fails=$((fails+1)); printf 'doctor: FAIL  %s\n' "$*"; }
-info() { printf 'doctor: info  %s\n' "$*"; }
+ok()   { checks=$((checks+1)); printf 'check-machine: OK    %s\n' "$*"; }
+warn() { checks=$((checks+1)); warns=$((warns+1)); printf 'check-machine: WARN  %s\n' "$*"; }
+fail() { checks=$((checks+1)); fails=$((fails+1)); printf 'check-machine: FAIL  %s\n' "$*"; }
+info() { printf 'check-machine: info  %s\n' "$*"; }
 finish() {
-  printf 'doctor: %d checks, %d failed, %d warnings\n' "$checks" "$fails" "$warns"
+  printf 'check-machine: %d checks, %d failed, %d warnings\n' "$checks" "$fails" "$warns"
   [ "$fails" -eq 0 ]
 }
 # Calls that can start a daemon (op, gpg-agent, the Tailscale app) run with stdin, stdout and stderr
@@ -27,7 +27,7 @@ finish() {
 stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
 # bounded <seconds> <command...>: the command runs in its own process group with stdio only, and the
 # whole group is stopped when the time is up, first asked (TERM), then killed. An alarm set before
-# exec is not enough: the macOS Tailscale CLI outlived it and kept doctor's pipe open (ADR 0001 F-62).
+# exec is not enough: the macOS Tailscale CLI outlived it and kept check-machine's pipe open (ADR 0001 F-62).
 bounded() {
   perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; my $t = shift; setpgrp(0, 0);
     my $pid = fork; if (!$pid) { exec { $ARGV[0] } @ARGV or exit 127 }

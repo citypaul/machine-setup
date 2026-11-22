@@ -52,7 +52,7 @@ line_of() { grep -n -m1 -e "$1" "$CALL_LOG" | cut -d: -f1; }
   [ "$(line_of '^mise run remove-packages --dry-run')" -lt "$(line_of '^migrate .*--dry-run')" ]
   [ "$(line_of '^migrate .*--dry-run')" -lt "$(line_of "^migrate --checkout $CO --stow-dir $HOME/.dotfiles --yes\$")" ]
   [ "$(line_of "^migrate --checkout $CO --stow-dir $HOME/.dotfiles --yes\$")" -lt "$(line_of '^mise bootstrap ')" ]
-  [ -n "$(line_of '^mise run doctor')" ]
+  [ -n "$(line_of '^mise run check-machine')" ]
   [[ "$output" == *"migrated from $HOME/.dotfiles"* ]] || false
 }
 

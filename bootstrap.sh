@@ -424,6 +424,6 @@ else
   set --
 fi
 stdio_only "$MISE" bootstrap --update --yes "$@"
-[ "$migrated" = 0 ] || stdio_only "$MISE" run doctor || log "doctor reports something to fix (above)"
+[ "$migrated" = 0 ] || stdio_only "$MISE" run check-machine || log "check-machine reports something to fix (above)"
 log "done. Log out and back in (or reboot) so every terminal and app starts with zsh, the new PATH and"
 log "the new launchers; until then, run exec zsh in a terminal that is already open."
