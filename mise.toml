@@ -242,7 +242,7 @@ description = "Install the Herdr desktop app from its release feed, once (deskto
 run = "tasks/herdr-app '{{ vars.roles | default(value='') }}'"
 
 [tasks.check-machine]
-description = "The checks mise does not make: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin"
+description = "Check this machine against the repo: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, attached cask images, undeclared Homebrew packages"
 run = "tasks/check-machine"
 
 [tasks.system-update]
