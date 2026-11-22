@@ -112,7 +112,7 @@ prerequisites_present() {
   { true >&3; } 2>/dev/null || skip "no descriptor 3 to leak in this harness"
   mkdir -p "$HOME/.local/bin"
   cp "$FIXTURES/bin/fd-probe/mise" "$HOME/.local/bin/mise"
-  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-v\([^}]*\)}"$/\1/p' "$REPO_ROOT/bootstrap.sh")
+  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="v\([^"]*\)"$/\1/p' "$REPO_ROOT/bootstrap.sh")
   export FD_PROBE="$BATS_TEST_TMPDIR/fd-probe"
   run "$REPO_ROOT/bootstrap.sh" --dir "$CO" --profile personal --machine personal-macbook --yes 13>"$BATS_TEST_TMPDIR/held"
   [ "$status" -eq 0 ]
@@ -127,7 +127,7 @@ with_fake_mise() {
   prerequisites_present || skip "prerequisites missing here; this test must not install them"
   mkdir -p "$HOME/.local/bin"
   cp "$FIXTURES/bin/fd-probe/mise" "$HOME/.local/bin/mise"
-  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-v\([^}]*\)}"$/\1/p' "$REPO_ROOT/bootstrap.sh")
+  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="v\([^"]*\)"$/\1/p' "$REPO_ROOT/bootstrap.sh")
   export NOFILE_PROBE="$BATS_TEST_TMPDIR/nofile"
 }
 limits() {
@@ -186,6 +186,15 @@ not_root() { [ "$(id -u)" != 0 ] || skip "as root, bootstrap never needs sudo"; 
   refreshes=$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)
   sleep 2
   [ "$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)" -eq "$refreshes" ]
+}
+
+@test "the repo's pin decides which mise is installed: MISE_VERSION in the environment does not" {
+  # Every machine runs the version this checkout pins. The pin used to read MISE_VERSION first, so a
+  # shell with that variable set installed another version.
+  with_fake_mise
+  MISE_VERSION=v0.0.1 run full_run
+  [ "$status" -eq 0 ]
+  [[ "$output" != *"installing mise"* ]] || false
 }
 
 @test "when sudo cannot ask for the password, the run stops before mise and says how to unlock it" {

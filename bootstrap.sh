@@ -16,7 +16,9 @@
 # POSIX sh on purpose: the one-liner runs under whatever /bin/sh the machine has.
 set -eu
 
-MISE_PIN="${MISE_VERSION:-v2026.11.12}"
+# The one mise version every machine runs. Not read from the environment: a shell with MISE_VERSION
+# set must not install another (ADR 0001 D-47). check-machine, update and the tests read this line.
+MISE_PIN="v2026.11.12"
 REPO_URL_DEFAULT="https://github.com/citypaul/machine-setup.git"
 CHECKOUT_DEFAULT="${XDG_DATA_HOME:-$HOME/.local/share}/machine-setup"
 # Envs whose tasks read 1Password during bootstrap are listed in mise.toml as `secret_envs`; they are

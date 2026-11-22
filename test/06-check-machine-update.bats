@@ -35,6 +35,13 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [[ "${lines[0]}" == *"FAIL"*"mise"* ]] || false
 }
 
+@test "check-machine fails when the installed mise is not the version the repo pins" {
+  select_envs "$CO" personal - personal-macbook >/dev/null
+  FAKE_MISE_VERSION=0.0.1 MISE_BIN="$FIXTURES/bin/fd-probe/mise" run "$CO/tasks/check-machine"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"FAIL"*"mise: 0.0.1 installed"*"pins v"* ]] || false
+}
+
 @test "check-machine reports a locked 1Password as a warning, never a failure" {
   with_mise
   select_envs "$CO" personal - personal-macbook >/dev/null
