@@ -173,6 +173,21 @@ not_root() { [ "$(id -u)" != 0 ] || skip "as root, bootstrap never needs sudo"; 
   [ "$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)" -eq "$refreshes" ]
 }
 
+@test "no sudo refresh is still on its way when the run ends: a slow one would land after it (the F-70 flake)" {
+  # The refresher runs `sudo -n -v` as a child. Killing the refresher at exit left a child already
+  # started to finish on its own, after bootstrap had returned: on a busy CI runner one more refresh
+  # was logged after the run. Here every refresh takes 0.7 s to get going, so one is always in flight.
+  not_root; with_fake_mise
+  mkdir -p "$BATS_TEST_TMPDIR/slow"
+  printf '#!/bin/sh\ncase "$*" in "-n -v") sleep 0.7 ;; esac\nexec "%s" "$@"\n' "$FIXTURES/bin/sudo-fake/sudo" > "$BATS_TEST_TMPDIR/slow/sudo"
+  chmod +x "$BATS_TEST_TMPDIR/slow/sudo"
+  PATH="$BATS_TEST_TMPDIR/slow:$PATH" FAKE_SUDO=locked MACHINE_SETUP_SUDO_REFRESH=0 FAKE_MISE_SLEEP=2 run full_run
+  [ "$status" -eq 0 ]
+  refreshes=$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)
+  sleep 2
+  [ "$(grep -c -x 'sudo -n -v' "$CALL_LOG" || true)" -eq "$refreshes" ]
+}
+
 @test "when sudo cannot ask for the password, the run stops before mise and says how to unlock it" {
   not_root; with_fake_mise
   FAKE_SUDO=noprompt run full_run

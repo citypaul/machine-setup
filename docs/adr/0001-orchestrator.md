@@ -1029,6 +1029,22 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   that need no restart are still installed. `09-system-update` asserts no
   `--download`. Not yet re-run on the VM.
 
+- **F-70 bootstrap never stopped its sudo refresher; the refresher stopped
+  itself, a moment late.** A CI run failed "sudo stays unlocked for the
+  whole run, and nothing keeps it unlocked after the run ends" once in
+  twelve: one more `sudo -n -v` was logged after the run. F-56 started the
+  refresher as `stdio_only sh -c … &`. A shell function in the background
+  runs in a subshell, so `$!` was that subshell and the kill at exit hit
+  it, not the refresher (shown with a `sleep` in its place: it survived).
+  The refresher ended only when it saw bootstrap's process gone, and a
+  refresh already started ran to its end after bootstrap had returned.
+  Now perl is started directly, so `$!` is the refresher; it traps TERM,
+  which lets a refresh in progress finish and cuts the sleep short; and
+  the exit trap waits for it. A new `00-bootstrap-cli` test makes every
+  refresh take 0.7 seconds to start, so one is always in progress at
+  exit: it failed 2 runs in 3 before the change, 5 in 8 with the trap and
+  wait alone, and 0 in 10 after. The original test is unchanged.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

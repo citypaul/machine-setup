@@ -260,7 +260,9 @@ complete_selection() {
 # `op whoami`, and when its cask generates completions during `mise bootstrap`) that keeps every
 # descriptor it inherited, so a caller waiting for EOF on one never finishes: bats keeps its output
 # pipe on 3 and on copies above 9 (ADR 0001 F-41). Perl closes them all; dash cannot name fds above 9.
-stdio_only() { perl -e 'use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"' "$@"; }
+# shellcheck disable=SC2016  # perl's own variables
+STDIO_ONLY='use POSIX (); POSIX::close($_) for 3 .. 1023; exec { $ARGV[0] } @ARGV or die "stdio_only: cannot run $ARGV[0]: $!\n"'
+stdio_only() { perl -e "$STDIO_ONLY" "$@"; }
 # launchd starts macOS processes, Terminal's shells among them, with a soft limit of 256 open files;
 # mise's npm installs open more and fail with "Too many open files" (ADR 0001 F-55). Raise the soft
 # limit for this run to 10240, or to the hard limit when that is lower. Never lower it.
@@ -281,11 +283,17 @@ unlock_sudo() {
   sudo -n true 2>/dev/null && return 0
   log "some steps need root: sudo asks for your password once, and it stays unlocked until this run ends"
   sudo -v || die "sudo needs your password and cannot ask for it here; run 'sudo -v' in this terminal, then re-run"
+  # The refresher is started with perl directly, not through the stdio_only function: a function in
+  # the background runs in a subshell, `$!` named that subshell, and the kill at exit never reached
+  # the refresher, which ran on until it noticed this process had gone (ADR 0001 F-70). It ends
+  # between commands, never in the middle of one: on TERM its shell lets a `sudo -n -v` already
+  # started finish, and the sleep is waited on so TERM cuts it short. The run waits for it at exit,
+  # so no refresh is still on its way when the run returns.
   # shellcheck disable=SC2016  # $1 and $2 are the inner sh's arguments
-  stdio_only sh -c 'while kill -0 "$1" 2>/dev/null && sudo -n -v 2>/dev/null; do sleep "$2"; done' \
+  perl -e "$STDIO_ONLY" sh -c 'trap "exit 0" TERM; while kill -0 "$1" 2>/dev/null && sudo -n -v 2>/dev/null; do sleep "$2" & wait $!; done' \
     sh "$$" "${MACHINE_SETUP_SUDO_REFRESH:-60}" </dev/null >/dev/null 2>&1 &
   sudo_refresher=$!
-  trap 'kill "$sudo_refresher" 2>/dev/null || true' EXIT
+  trap 'kill "$sudo_refresher" 2>/dev/null && wait "$sudo_refresher" 2>/dev/null || true' EXIT
 }
 # A first install updates the whole system's own packages once, before mise installs anything: apt
 # full-upgrade on Linux, Homebrew and Apple's softwareupdate (never a restart) on macOS. A marker
