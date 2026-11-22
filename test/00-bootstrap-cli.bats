@@ -277,6 +277,26 @@ bare_run() { PATH="$BARE" "$BARE/sh" "$REPO_ROOT/bootstrap.sh" --dir "$CO" --os-
   grep -q '^apt-get .*DPkg::Lock::Timeout=[0-9][0-9]* .*update' "$CALL_LOG"
 }
 
+@test "apt-get update is tried again while another apt holds the package lists' lock" {
+  # Found in the 2026-11-22 rehearsal: two minutes after boot Ubuntu's own daily apt-get update held
+  # /var/lib/apt/lists/lock, which DPkg::Lock::Timeout does not wait for, and the install stopped at once.
+  without_prerequisites
+  cat > "$BARE/apt-get" <<'STUB'
+#!/bin/sh
+echo "apt-get $*" >> "$CALL_LOG"
+case " $* " in *" update "*)
+  if [ "$(grep -c '^apt-get .* update ' "$CALL_LOG")" -le 2 ]; then
+    echo "E: Could not get lock /var/lib/apt/lists/lock. It is held by process 1555 (apt-get)" >&2; exit 100
+  fi ;;
+esac
+exit 0
+STUB
+  MACHINE_SETUP_APT_RETRY=0 run bare_run
+  [ "$(grep -c '^apt-get .* update ' "$CALL_LOG")" -eq 3 ]
+  grep -q '^apt-get .* install .*git curl ca-certificates' "$CALL_LOG"
+  [[ "$output" != *"apt-get update failed"* ]] || false
+}
+
 @test "when apt fails, bootstrap says apt failed and does not blame sudo's password" {
   not_root; without_prerequisites
   FAKE_APT_EXIT=1 run bare_run
