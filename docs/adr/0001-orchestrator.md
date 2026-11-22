@@ -977,6 +977,15 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   update` minutes later and is not changed. A `00-bootstrap-cli` test
   fails the first two updates with that message.
 
+- **F-68 `font-pt-mono` cannot be downloaded, and stopped a fresh install.**
+  D-43 declared it in the desktop role because Paul's MacBook Pro had it.
+  On the clean Ubuntu VM the converge stopped in the packages phase:
+  `401 Unauthorized` from `api.paratype.com`, the cask's own download
+  address, and the same from the host. A machine that already has the font
+  never downloads it, so the MacBook and CI did not show it; `05-inventory`
+  checks that a cask exists in Homebrew's index, not that it downloads. It
+  is off the desktop list and named in `unmanaged_cask`.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that
