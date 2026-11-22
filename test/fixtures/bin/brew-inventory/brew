@@ -1,0 +1,7 @@
+#!/bin/sh
+# Fake brew for doctor's inventory check: a fixed set of installed top-level formulae and casks.
+case "$*" in
+  leaves*) printf '%s\n' jq some-tap/tap/zzz-undeclared zzz-unmanaged ;;
+  "list --cask"*) printf '%s\n' zzz-cask ;;
+  *) exit 0 ;;
+esac

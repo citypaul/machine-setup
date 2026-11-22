@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # The checks `mise bootstrap status` does not make (plan.md §4.4, ADR 0001 D-34): mise and its pin, the
-# saved selection, drift, the login shell, 1Password, the Conquer join, the GPG card, the skills pin,
+# saved selection, drift, the login shell, 1Password, the Conquer join, the GPG card, the skills pin, the Homebrew inventory,
 # cask images an interrupted install left attached.
 # One line per check: OK, WARN (works, something to do by hand) or FAIL (run something first); a
 # summary line last; exit 1 when anything failed. Usage: tasks/doctor [--checkout <dir>]
@@ -136,7 +136,39 @@ if command -v hdiutil >/dev/null 2>&1; then
   fi
 fi
 
-# 10. where services cannot be managed
+# 10. the Homebrew inventory: a top-level formula or cask that no selected layer declares exists on
+# this machine only, so the next machine built from the repo would miss it (ADR 0001 D-43). Each
+# one is declared, put on a removal list, or named in unmanaged_brew / unmanaged_cask in mise.toml.
+brew_bin=$(command -v brew 2>/dev/null || true)
+if [ -n "$brew_bin" ] && [ -n "$profile" ] && [ -n "$machine" ]; then
+  var() { sed -n "s/^$1 = \"\(.*\)\"\$/\1/p" "$checkout/mise.toml" 2>/dev/null | head -1; }
+  declared=$(cd "$checkout" && "$mise_bin" bootstrap packages status 2>/dev/null | awk '$1=="brew" || $1=="brew-cask" { n=$2; sub(/.*\//, "", n); print $1 ":" n }')
+  if [ -z "$declared" ]; then
+    info "inventory: mise lists no declared Homebrew packages here; not checked"
+  else
+    extra=()
+    while IFS= read -r n; do
+      n=${n##*/}; [ -n "$n" ] || continue
+      grep -qxF "brew:$n" <<<"$declared" && continue
+      case " $(var unmanaged_brew) " in *" $n "*) continue ;; esac
+      extra+=("$n")
+    done < <(bounded 60 "$brew_bin" leaves 2>/dev/null)
+    while IFS= read -r n; do
+      [ -n "$n" ] || continue
+      grep -qxF "brew-cask:$n" <<<"$declared" && continue
+      case " $(var unmanaged_cask) " in *" $n "*) continue ;; esac
+      extra+=("$n (cask)")
+    done < <(bounded 60 "$brew_bin" list --cask -1 2>/dev/null)
+    if [ ${#extra[@]} -eq 0 ]; then
+      ok "inventory: every installed Homebrew formula and cask is declared or listed as unmanaged"
+    else
+      list=$(printf '%s, ' "${extra[@]}")
+      warn "inventory: ${#extra[@]} installed by hand, in no layer: ${list%, }. Declare each, put it on a removal list, or name it in unmanaged_brew / unmanaged_cask (mise.toml)"
+    fi
+  fi
+fi
+
+# 11. where services cannot be managed
 if [ "$(uname -s)" = Linux ] && [ ! -d /run/systemd/system ]; then info "services: no systemd here, declared services are installed but not started (F-36)"; fi
 
 finish

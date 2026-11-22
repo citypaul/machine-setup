@@ -55,6 +55,30 @@ with_mise() { require_mise; export MISE_BIN; MISE_BIN=$(mise_bin); }
   [[ "$output" == *"OK"*"GPG: a card is present and git signs with 0xTESTKEY"* ]] || false
 }
 
+@test "doctor warns about installed Homebrew packages that are neither declared nor listed as unmanaged" {
+  # A package installed by hand is on this machine and on no other: the next machine built from the
+  # repo would miss it. Declared packages (jq) and the unmanaged list stay quiet.
+  with_mise
+  select_envs "$CO" personal - studio >/dev/null
+  export PATH="$FIXTURES/bin/brew-inventory:$PATH"
+  sed -i.bak 's/^unmanaged_brew = .*/unmanaged_brew = "zzz-unmanaged"/' "$CO/mise.toml"
+  run "$CO/tasks/doctor"
+  local line; line=$(grep 'inventory' <<<"$output")
+  [[ "$line" == *"WARN"*"zzz-undeclared"* ]] || false
+  [[ "$line" == *"zzz-cask"* ]] || false
+  [[ "$line" != *"jq"* ]] || false
+  [[ "$line" != *"zzz-unmanaged"* ]] || false
+}
+
+@test "doctor reports the inventory as OK when every installed Homebrew package is accounted for" {
+  with_mise
+  select_envs "$CO" personal - studio >/dev/null
+  export PATH="$FIXTURES/bin/brew-inventory:$PATH"
+  sed -i.bak -e 's/^unmanaged_brew = .*/unmanaged_brew = "zzz-unmanaged zzz-undeclared"/' -e 's/^unmanaged_cask = .*/unmanaged_cask = "zzz-cask"/' "$CO/mise.toml"
+  run "$CO/tasks/doctor"
+  [[ "$output" == *"OK"*"inventory"* ]] || false
+}
+
 @test "doctor reports the Conquer state from tailscale only when the role is selected" {
   with_mise
   # Without the role first: a re-run without --role keeps the saved roles, so the order matters.
