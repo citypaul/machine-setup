@@ -964,6 +964,19 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   declared font went with it. The name is off the list and the task now
   skips a cask whose Caskroom entry is a link.
 
+### 2026-11-22 — a rehearsal on freshly reverted VMs, after D-45
+
+- **F-66 `apt-get update` does not wait for the package lists' lock.** Run
+  two minutes after booting the clean Ubuntu VM, the one-line install
+  stopped at once: `E: Could not get lock /var/lib/apt/lists/lock. It is
+  held by process 1555 (apt-get)`, Ubuntu's own daily update. F-60 gave
+  apt `DPkg::Lock::Timeout`, which waits for the dpkg lock only. bootstrap
+  now tries `apt-get update` again, every ten seconds for up to
+  `APT_LOCK_WAIT`, while that lock is the failure; any other failure still
+  stops the run at once. `tasks/system-update` runs its own `apt-get
+  update` minutes later and is not changed. A `00-bootstrap-cli` test
+  fails the first two updates with that message.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

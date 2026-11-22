@@ -156,14 +156,27 @@ as_root() {
 
 # ---------------------------------------------------------------- prerequisites (git, curl, CLT, Homebrew, mise)
 APT_LOCK_WAIT=900   # seconds apt waits for another package manager's lock
+# `apt-get update` takes /var/lib/apt/lists/lock, which DPkg::Lock::Timeout does not wait for: Ubuntu's
+# own daily update holds it soon after boot. Try again while that lock is the failure (ADR 0001 F-66).
+APT_RETRY="${MACHINE_SETUP_APT_RETRY:-10}"   # seconds between tries
+apt_update() {
+  apt_waited=0
+  while :; do
+    apt_err=$(DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" update -qq 2>&1) && return 0
+    printf '%s\n' "$apt_err" >&2
+    case "$apt_err" in *"/var/lib/apt/lists/lock"*) ;; *) return 1 ;; esac
+    [ "$apt_waited" -lt "$APT_LOCK_WAIT" ] || return 1
+    log "another apt holds the package lists' lock; trying again in $APT_RETRY seconds"
+    sleep "$APT_RETRY"; apt_waited=$((apt_waited + APT_RETRY + 1))
+  done
+}
 install_prerequisites() {
   if [ "$os" = linux ]; then
     if ! have git || ! have curl || [ ! -e /etc/ssl/certs/ca-certificates.crt ]; then
       log "installing git, curl and CA certificates with apt"
       # A freshly booted Ubuntu runs unattended-upgrades, which holds the dpkg lock for minutes: wait
       # for it (up to APT_LOCK_WAIT seconds) instead of failing at once (ADR 0001 F-60).
-      DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" update -qq \
-        || die "apt-get update failed (its own message is above); fix that and re-run"
+      apt_update || die "apt-get update failed (its own message is above); fix that and re-run"
       DEBIAN_FRONTEND=noninteractive as_root apt-get -o "DPkg::Lock::Timeout=$APT_LOCK_WAIT" install -y -qq --no-install-recommends git curl ca-certificates \
         || die "apt-get could not install git, curl and ca-certificates (its own message is above); fix that and re-run"
     fi
