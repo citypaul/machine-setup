@@ -6,7 +6,7 @@ mode = "0755"
 phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/tailscale.asc"]
-source = "files/tailscale.asc"
+source = "../files/tailscale.asc"
 owner = "root"
 group = "root"
 mode = "0644"

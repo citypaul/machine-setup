@@ -10,35 +10,35 @@ mode = "0755"
 phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/1password.asc"]
-source = "files/1password.asc"
+source = "../files/1password.asc"
 owner = "root"
 group = "root"
 mode = "0644"
 phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/microsoft.asc"]
-source = "files/microsoft.asc"
+source = "../files/microsoft.asc"
 owner = "root"
 group = "root"
 mode = "0644"
 phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/brave.asc"]
-source = "files/brave.asc"
+source = "../files/brave.asc"
 owner = "root"
 group = "root"
 mode = "0644"
 phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/cursor.asc"]
-source = "files/cursor.asc"
+source = "../files/cursor.asc"
 owner = "root"
 group = "root"
 mode = "0644"
 phase = "pre-packages"
 
 [bootstrap.files."/etc/apt/keyrings/docker.asc"]
-source = "files/docker.asc"
+source = "../files/docker.asc"
 owner = "root"
 group = "root"
 mode = "0644"

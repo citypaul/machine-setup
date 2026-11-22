@@ -936,6 +936,12 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   entries in this record keep the old names (`mise.macos.toml`, `zsh/`).
   A converged machine's links point at the old group paths: after pulling
   this change, run `mise dot apply` (or `bootstrap.sh`) once.
+  One thing the move broke, found on the MacBook Pro after merging: mise
+  resolves a `[bootstrap.files]` `source` from the layer file's own
+  folder, so `source = "files/x"` in a layer meant `mise/files/x`. The
+  seven such sources are `../files/x` now. CI had passed: it selects no
+  layer that installs a file this way. `01-layering` checks that every
+  relative source in a layer file exists.
 
 - **D-46 `doctor` is renamed `check-machine`.** mise has its own `mise
   doctor`, which checks mise itself; this repo's task checks the machine
