@@ -1001,6 +1001,12 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   installer app and mise answers "only script installers are supported".
   It is unmanaged too. mise's dry run on the clean VM names no other
   declared package it cannot plan; downloads are only proved by a run.
+  The run then stopped on `steam` ("app artifact 'Steam.app' was not
+  found"), unmanaged as well. To find the rest in one pass, a loop on the
+  VM converged the packages phase, dropped whichever cask failed and ran
+  again: after `steam` the phase was clean, so these three are all of
+  them. Lesson: a package declared because a machine already has it has
+  not been shown to install; a clean VM is the check.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
