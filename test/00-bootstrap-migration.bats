@@ -15,7 +15,7 @@ setup() {
   else command -v git >/dev/null && command -v curl >/dev/null && [ -e /etc/ssl/certs/ca-certificates.crt ] || skip "prerequisites missing here; this test must not install them"; fi
   mkdir -p "$HOME/.local/bin"
   cp "$FIXTURES/bin/mise-log/mise" "$HOME/.local/bin/mise"
-  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-v\([^}]*\)}"$/\1/p' "$REPO_ROOT/bootstrap.sh")
+  export FAKE_MISE_VERSION; FAKE_MISE_VERSION=$(sed -n 's/^MISE_PIN="v\([^"]*\)"$/\1/p' "$REPO_ROOT/bootstrap.sh")
   # The stub migration logs its arguments; FAKE_MIGRATE_DRY_EXIT makes its dry run report a conflict.
   cat > "$CO/tasks/migrate" <<'STUB'
 #!/bin/sh

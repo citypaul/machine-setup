@@ -1045,6 +1045,18 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   exit: it failed 2 runs in 3 before the change, 5 in 8 with the trap and
   wait alone, and 0 in 10 after. The original test is unchanged.
 
+- **D-47 Every machine runs the mise version the repo pins, as one binary
+  at `~/.local/bin/mise`.** Paul stated it as a rule on 2026-11-22. It
+  already held on his MacBook Pro and both VMs: bootstrap installs that
+  binary, installs it again when the version differs, and nothing installs
+  mise through Homebrew or apt. Three things let a machine differ and are
+  closed. The pin read `MISE_VERSION` from the environment first; it is
+  now a fixed line in `bootstrap.sh`, the one place the version is
+  written. `check-machine` warned about another version; it fails. The
+  README's rehearsal command repeated the version; it reads it from
+  `bootstrap.sh`. To try a newer mise, change the pin on a branch.
+  `00-bootstrap-cli` and `06-check-machine-update` test the first two.
+
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
 - On a Mac without the Command Line Tools, `/usr/bin/git` is a shim that

@@ -40,15 +40,14 @@ export PATH="$PATH:$HOME/.local/bin:/opt/homebrew/bin:/home/linuxbrew/.linuxbrew
 mise_bin=${MISE_BIN:-}
 [ -n "$mise_bin" ] && [ -x "$mise_bin" ] || mise_bin=$(command -v mise 2>/dev/null || true)
 [ -n "$mise_bin" ] || { [ -x "$HOME/.local/bin/mise" ] && mise_bin="$HOME/.local/bin/mise"; }
-# shellcheck disable=SC2016  # a literal ${ in the pattern
-pin=$(sed -n 's/^MISE_PIN="\${MISE_VERSION:-\(v[^}]*\)}"$/\1/p' "$checkout/bootstrap.sh" 2>/dev/null)
+pin=$(sed -n 's/^MISE_PIN="\(v[^"]*\)"$/\1/p' "$checkout/bootstrap.sh" 2>/dev/null)
 if [ -z "$mise_bin" ]; then
   fail "mise: not installed; run $checkout/bootstrap.sh"
   finish; exit 1
 fi
 mise_version=$("$mise_bin" --version 2>/dev/null | awk '{print $1}')
 if [ -n "$pin" ] && [ "v$mise_version" != "$pin" ]; then
-  warn "mise: $mise_version installed, bootstrap pins $pin (re-run bootstrap.sh to re-pin)"
+  fail "mise: $mise_version installed, the repo pins $pin; run $checkout/bootstrap.sh to install the pinned version"
 else
   ok "mise: $mise_version at $mise_bin"
 fi
