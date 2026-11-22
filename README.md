@@ -7,6 +7,10 @@ personal or a work machine, `--role` flags add optional sets (a desktop, a
 Conquer network member), and `--machine` names the machine so it can carry its
 own exceptions.
 
+After that first run, use the `machine-setup` command it installs: `machine-setup
+update` upgrades the computer, `machine-setup self-update` updates machine-setup
+itself, and both work from any directory. See [Day to day](#day-to-day).
+
 Under the hood it is one tool, [mise](https://mise.jdx.dev) and its
 `bootstrap` command, plus a handful of small shell tasks for the things mise
 does not do (package removal, a JSON merge, a journaled migration). That choice
@@ -61,12 +65,15 @@ What happens, in order:
    installing anything: `apt full-upgrade` and `snap refresh` on Ubuntu;
    Homebrew and Apple's `softwareupdate` on macOS. An Apple update that
    needs a restart is announced, never downloaded or installed for you.
-   Later runs never upgrade; `mise run update` does it on purpose.
+   Later runs never upgrade; `machine-setup update` does it on purpose.
 8. Runs `mise bootstrap`: system packages, Homebrew formulae and casks,
    dotfile links, the removal allowlist, runtimes, the Claude settings merge.
 9. Asks you to log out and back in: a desktop session keeps the shell and
    PATH it started with, so terminals such as Ghostty and Alacritty, and
    launchers for new per-user apps, only pick up the change at the next login.
+
+From then on the machine has the `machine-setup` command on its PATH; see
+[Day to day](#day-to-day).
 
 Flags:
 
@@ -90,8 +97,43 @@ changed), `1` a step failed (earlier steps stay applied; fix and re-run).
 
 ## Day to day
 
-All of these run from inside the checkout. After the one-liner that is
+Use `machine-setup`. The first install links it into `~/.local/bin` on every
+machine, and it works from any directory: it finds the checkout by itself.
+
+```bash
+machine-setup update --dry-run    # what would an upgrade of this computer change?
+machine-setup update --yes        # upgrade it
+machine-setup self-update         # get the newest machine-setup ...
+machine-setup converge            # ... and apply it to this machine
+machine-setup check               # is this machine what the repo declares?
+```
+
+| Command | What it does | Flags |
+|---------|--------------|-------|
+| `machine-setup update` | Upgrades this computer on purpose: the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart), then the declared packages and tools. Nothing else ever upgrades. | `--dry-run` shows the plan and changes nothing; `--yes` applies it without asking. With neither, it shows the plan and asks. |
+| `machine-setup self-update` | Updates machine-setup itself: fast-forwards the checkout to the newest commit of its branch, and lists what arrived. The command is a file in that checkout, so this updates the command too. It changes nothing else on the computer. | `--dry-run` lists what would arrive. |
+| `machine-setup converge` | Applies the repo to this machine: installs what is declared and missing, repairs what drifted, runs the removal allowlist. Upgrades nothing. Asks for your sudo password once, when it needs it. | `--dry-run` previews; other flags are passed to `bootstrap.sh`. |
+| `machine-setup check` | Checks this machine against the repo: selection, drift, the pinned mise, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached, Homebrew packages installed by hand that no layer declares. | none |
+| `machine-setup help`, `--version` | The commands and exit codes; the commit and the checkout the command runs from. | |
+
+Exit codes: `0` done; `1` the command ran and failed, or `check` found
+something to fix; `2` an unknown command or flag.
+
+Two things to know:
+
+- **`update` and `self-update` are different.** `update` changes the computer's
+  packages and leaves the repo alone. `self-update` changes the repo checkout
+  and leaves the computer alone; run `machine-setup converge` afterwards to
+  apply what arrived.
+- **`self-update` only fast-forwards.** If the checkout has commits or edits
+  of its own it stops, changes nothing, and prints the `git status` command to
+  look at them.
+
+### Less common commands
+
+These run from inside the checkout. After the one-liner that is
 `~/.local/share/machine-setup`; on the test VMs it is `~/machine-setup`.
+`machine-setup --version` prints the path.
 
 ```bash
 cd ~/.local/share/machine-setup
@@ -99,17 +141,11 @@ cd ~/.local/share/machine-setup
 
 | You want to | Run |
 |-------------|-----|
-| Converge: repair anything that drifted, upgrade nothing | `./bootstrap.sh --yes` |
 | See whether anything drifted (exit `0` means no) | `~/.local/bin/mise bootstrap status --missing` |
-| Upgrade this computer, from any directory | `machine-setup update` (`--dry-run` shows the plan, `--yes` applies without asking) |
-| Update `machine-setup` itself (the checkout it runs from) | `machine-setup self-update` (`--dry-run` lists what would arrive), then `machine-setup converge` |
-| Check this machine, or converge it, from any directory | `machine-setup check`, `machine-setup converge` (`--dry-run` previews) |
 | See the whole declared state | `~/.local/bin/mise bootstrap status` |
-| Preview what a converge would change | `./bootstrap.sh --dry-run` |
 | Switch this machine to the work profile (personal apps are removed) | `./bootstrap.sh --profile work --yes` |
 | Switch back | `./bootstrap.sh --profile personal --yes` |
 | Add a role (for example after signing in to 1Password) | `./bootstrap.sh --role conquer --yes` |
-| Pick up new config from the repo, then converge | `git pull && ./bootstrap.sh --yes` |
 | See what the removal allowlist would remove, without removing | `~/.local/bin/mise run remove-packages --dry-run` |
 | Join the Conquer network by hand | `~/.local/bin/mise run tailscale-join` |
 | See the git identity this machine renders | `git config --global user.email` |
@@ -120,9 +156,6 @@ cd ~/.local/share/machine-setup
 | Install Talat by hand (Apple Silicon, desktop role) | `~/.local/bin/mise run talat` |
 | Install the Herdr desktop app by hand (desktop role; the `herdr` CLI comes with every profile) | `~/.local/bin/mise run herdr-app` |
 | Install Ghostty on Ubuntu by hand (desktop role) | `~/.local/bin/mise run ghostty-linux` |
-| Check what mise cannot: selection, drift, login shell, 1Password, Conquer, GPG card, skills pin, a cask image an interrupted converge left attached, Homebrew packages installed by hand that no layer declares | `~/.local/bin/mise run check-machine` (exit `1` when something needs running) |
-| See what an upgrade would do | `~/.local/bin/mise run update -- --dry-run` |
-| Upgrade on purpose: the system's own packages, then declared packages and tools | `~/.local/bin/mise run update -- --yes` |
 | Update only the system's own packages (apt and snaps; Homebrew and Apple's updates, never a restart) | `~/.local/bin/mise run system-update` |
 
 The saved selection lives in two untracked files in the checkout:
@@ -387,9 +420,10 @@ desktop set, machine files, `check-machine` and `update`. Still to come:
 
 | Path | What |
 |------|------|
-| `bootstrap.sh` | the one command; POSIX sh |
+| `bootstrap.sh` | the first install and every converge; POSIX sh |
 | `mise.toml`, `mise/config.*.toml`, `.miserc.toml` | the declared state, one file per layer |
-| `zsh/`, `rex/`, `ghostty/`, `git/`, `gnupg/`, `ssh/`, `bin/`, `tmux/`, `zellij/`, `herdr/`, `alacritty/`, `claude/` | dotfile groups and the Claude settings source |
+| `dotfiles/<group>/` (`zsh`, `rex`, `ghostty`, `git`, `gnupg`, `ssh`, `bin`, `tmux`, `zellij`, `herdr`, `alacritty`, `mise`, `claude`) | dotfile groups and the Claude settings source |
+| `dotfiles/bin/.local/bin/machine-setup` | the `machine-setup` command, linked into `~/.local/bin` on every machine |
 | `tasks/` | the shell tasks mise runs: `remove-packages`, `merge-claude-settings`, `migrate`, `tailscale-join` |
 | `test/` | the bats suite and its fixtures |
 | `docs/adr/0001-orchestrator.md` | the orchestrator decision, every finding, every executed result |
