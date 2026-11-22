@@ -32,6 +32,7 @@ dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin",
 "brew-cask:knockknock" = { os = "macos" }
 "brew-cask:loopback" = { os = "macos" }
 "brew-cask:maccy" = { os = "macos" }
+"brew:ghostscript" = { os = "macos" }   # the mactex cask depends on it; declared so check-machine does not call it installed by hand
 "brew-cask:mactex" = { os = "macos" }
 "brew-cask:meetingbar" = { os = "macos" }
 "brew-cask:obsidian" = { os = "macos" }
