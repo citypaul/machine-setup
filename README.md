@@ -17,10 +17,16 @@ does not do (package removal, a JSON merge, a journaled migration). That choice
 was made by an executed spike against the risks a two-round review raised;
 the evidence is in [ADR 0001](docs/adr/0001-orchestrator.md).
 
-**Status:** slice 0 of 10 is done (the orchestrator decision and a walking
-skeleton proven on a clean Ubuntu VM, a clean macOS VM and GitHub Actions).
-It is not yet safe to run on a machine you care about: see
-[What it does not do yet](#what-it-does-not-do-yet).
+**Status:** in use. Slices 0 to 9 of [the plan](docs/planning/plan.md#5-slices)
+are on `main`. Paul's MacBook Pro, a long-lived Mac that GNU Stow and Ansible
+used to manage, was taken over on 2026-11-21 and runs from `main`. On
+2026-11-22 the one-line install passed on a clean Ubuntu VM and a clean macOS
+VM, each in one run from a clean snapshot, with the whole test suite green
+afterwards (ADR 0001 E-29). CI runs the suite on a clean Ubuntu container and
+a macOS runner for every pull request. What it does not cover is listed in
+[What it does not do yet](#what-it-does-not-do-yet); read
+[Taking over a machine that Stow manages](#taking-over-a-machine-that-stow-manages)
+before running it on a Mac you already use.
 
 ## Contents
 
@@ -200,6 +206,7 @@ file at once.
 |-------|---------------|-------|
 | `zsh` | always | `.zshenv` puts mise's shims first for non-interactive shells, `.zprofile` keeps them first after macOS `path_helper`, `.zshrc` activates mise interactively; `claude-profile NAME` and `claude-personal` run Claude Code with a separate config directory per profile (opt-in; the machine default goes in `~/.zshrc.local`) |
 | `rex` | `desktop` role, `personal-macbook` and `vm` machines | the primary terminal's `~/.config/rex/init.lua`; it binds nothing, so Rex keeps its default key bindings |
+| `bin` | always | commands linked into `~/.local/bin`: `machine-setup` (see [Day to day](#day-to-day)) and `gpg-auto-sign`, the YubiKey-aware signing wrapper |
 | `ghostty` | `desktop` role, `personal-macbook` machine | both the XDG and the Library config paths |
 | `dotfiles/claude/settings.json` | always, but not linked | merged into `~/.claude/settings.json` by `tasks/merge-claude-settings`, keeping hooks you or herdr added |
 
@@ -235,6 +242,26 @@ bootstrap, before it converges:
    write is journaled under `~/.local/state/machine-setup/migration/`, and any
    failure part-way rolls the home directory back exactly.
 4. Converges as usual, then runs `check-machine`.
+
+Before you start on a Mac you already use (learned taking over the MacBook
+Pro, ADR 0001 F-64):
+
+- **Back up.** The dotfile migration rolls back; the converge after it
+  (packages, the Dock, the Claude settings merge) does not.
+- **Carry over what the repo's files replace.** Move your own hosts from
+  `~/.ssh/config` into `~/.ssh/config.d/` (any file name), your machine's git
+  settings (signing key, `git-lfs` filters, extra aliases) into
+  `~/.gitconfig.local`, and your own shell lines into `~/.zshrc.local`. The
+  repo's files include all three and never write to them.
+- **Delete an App Store copy of Slack**: the desktop role installs the cask.
+- **Decide about the system update.** A first install upgrades every Homebrew
+  package and runs Apple's updates. To skip that on a Mac that is already in
+  use, pass `--skip-system-update`, and afterwards write the marker by hand so
+  a later converge does not run it either:
+  `date -u +%FT%TZ > ~/.local/state/machine-setup/system-updated`.
+- **Run the `--dry-run` first.** It lists every real file that sits where the
+  repo wants a link or a rendered file. `tasks/migrate --force` saves those in
+  the journal and replaces them; run bootstrap again afterwards.
 
 On macOS, allow the terminal to read the Desktop folder if asked: the
 migration waits for that answer (ADR 0001 F-47). It runs once; later runs only
@@ -316,10 +343,11 @@ from the current run and tells you; run `op signin` and re-run to add them.
 ## Tests
 
 The suite is [bats](https://github.com/bats-core/bats-core) files under
-`test/`, one per gate or slice, run in name order. Files `00` to `05` are
-safe anywhere: they use a fresh `HOME`, a private copy of the checkout and
-fake `op` and `tailscale` binaries. Files `10` to `95` change the machine
-they run on and refuse to run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
+`test/`, one per gate or slice, run in name order. Files `00` to `09`, and
+`11`, are safe anywhere: they use a fresh `HOME`, a private copy of the
+checkout and stand-ins for `op`, `tailscale`, `sudo` and the package managers.
+The other files from `10` to `95` change the machine they run on and refuse to
+run unless `MACHINE_SETUP_ALLOW_MUTATION=1` is set.
 
 | File | Proves |
 |------|--------|
@@ -360,7 +388,7 @@ runner (Homebrew already present) on every push and pull request.
 
 ## Trying it on a VM
 
-The two VMPal VMs ("Ubuntu VM 2", "macOS VM 1") both mount the host's
+The two VMPal VMs ("Ubuntu VM 1", "macOS VM 2") both mount the host's
 `~/Downloads`. The working tree is mirrored to `~/Downloads/machine-setup`;
 inside a VM, refresh the copy and work from it:
 
@@ -383,6 +411,16 @@ cd ~/machine-setup && MACHINE_SETUP_ALLOW_MUTATION=1 test/run.sh                
 
 Long runs started by the agent are logged under `~/machine-setup/.cache/runs/`
 in the VM; `tail -f` the newest file to watch one.
+
+To rehearse a fresh machine, as ADR 0001 E-29 did: revert the VM to its clean
+snapshot ("Clean + passwordless sudo 2026-11-04"), start it, and run the
+one-line install from [Set up a machine](#set-up-a-machine) with `--machine
+vm`. Then run the suite from `~/.local/share/machine-setup`, where the
+one-liner puts the checkout. Two things about the snapshots: on the macOS one
+sudo asks for a password, despite its name, and the full suite needs
+passwordless sudo, so add it before running the tests; and the macOS VM may
+need a second start after a revert, because the snapshot holds a suspended
+session that a newer macOS cannot resume.
 
 ## What it does not do yet
 
@@ -412,9 +450,21 @@ desktop set, machine files, `check-machine` and `update`. Still to come:
   gets the CLI), and its SSH agent is switched on in the app's settings by
   hand; Google Chrome is not declared (Google publishes no Linux arm64
   build);
-- the rehearsed migration of the existing Macs, moving an existing
-  `~/.ssh/config` into `~/.ssh/config.d/`, and the rename of the public
-  skills repo (slice 10).
+- moving an existing `~/.ssh/config` into `~/.ssh/config.d/` for you, and
+  carrying over a machine's own git settings: both are done by hand before a
+  takeover (see [Taking over a machine that Stow manages](#taking-over-a-machine-that-stow-manages));
+- `--skip-system-update` leaves no marker, so the next converge without it
+  runs the first-install update (ADR 0001 D-40); write the marker by hand on
+  a machine you adopt;
+- four apps on Paul's MacBook Pro that a rebuilt machine will not get, named
+  in `unmanaged_cask` in `mise.toml`: `font-pt-mono` (its download answers
+  401), `battle-net` and `steam` (mise cannot install them), `lazyworktree`
+  (mise cannot read its tap) (F-68, D-43);
+- `check-machine` cannot see that a cask needs a formula, so such a formula
+  must be declared beside the cask, as `ghostscript` is for `mactex` (F-69);
+- `mise run update` runs its own `apt-get update` without the retry
+  bootstrap has for a lock held just after boot (F-66);
+- the remaining Macs, and the rename of the public skills repo (slice 10).
 
 ## Where things live
 
