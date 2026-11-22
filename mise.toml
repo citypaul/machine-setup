@@ -194,7 +194,9 @@ remove_mas_base = "457622435"   # Yoink
 unmanaged_brew = "python@3.12 spotify-tui"
 # font-pt-mono: its cask downloads from the vendor's API, which answers 401, so a fresh install
 # stopped on it (ADR 0001 F-68).
-unmanaged_cask = "lazyworktree font-pt-mono"
+# battle-net: its cask runs an installer app, which mise does not support ("only script installers
+# are supported"), so a fresh Mac stopped on it (F-68).
+unmanaged_cask = "lazyworktree font-pt-mono battle-net"
 
 # Extra arguments to `mise run remove-packages` (for example --dry-run) are appended by mise.
 [tasks.remove-packages]

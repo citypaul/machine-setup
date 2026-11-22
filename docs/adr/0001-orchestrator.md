@@ -996,6 +996,11 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   never downloads it, so the MacBook and CI did not show it; `05-inventory`
   checks that a cask exists in Homebrew's index, not that it downloads. It
   is off the desktop list and named in `unmanaged_cask`.
+  `battle-net`, declared for the personal profile at the same time, stopped
+  the clean macOS VM before anything was installed: its cask runs an
+  installer app and mise answers "only script installers are supported".
+  It is unmanaged too. mise's dry run on the clean VM names no other
+  declared package it cannot plan; downloads are only proved by a run.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 
