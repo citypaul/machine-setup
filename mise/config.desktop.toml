@@ -80,4 +80,3 @@ dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin",
 "brew-cask:font-meslo-for-powerline" = "latest"
 "brew-cask:font-meslo-lg-nerd-font" = "latest"
 "brew-cask:font-monocraft" = "latest"
-"brew-cask:font-pt-mono" = "latest"
