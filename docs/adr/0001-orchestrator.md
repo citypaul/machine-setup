@@ -952,6 +952,11 @@ in the design. `mise 2026.10.3 macos-arm64 (2026-10-05)` unless stated.
   until `brew cleanup`, and `brew uninstall` without `--force` removes
   one. The task now passes `--force`. Checked by running it on that
   machine; `40-removal` installs one version only and does not cover it.
+  The same run uninstalled `font-monaspace-nerd-font`, which D-43 had put
+  on the removal list as a cask Homebrew no longer publishes. It was the
+  old name of `font-monaspice-nerd-font`, a link in the Caskroom, and the
+  declared font went with it. The name is off the list and the task now
+  skips a cask whose Caskroom entry is a link.
 
 ### 2026-10-06 — test-harness lessons (not mise findings)
 

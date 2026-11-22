@@ -73,6 +73,13 @@ remove_cask() { # remove_cask <name> <zap:0|1>
   # Ownership comes from the Caskroom metadata, not from `brew list --cask`: Homebrew lists every
   # Caskroom directory, mise-poured ones included, but can only uninstall casks it has `.metadata`
   # for (ADR 0001 F-04, F-17). mise records its pour in <version>/.mise-cask.toml.
+  # A cask Homebrew renamed keeps its old name as a link to the new one. Uninstalling the old name
+  # uninstalls the cask the new name owns: font-monaspace-nerd-font took font-monaspice-nerd-font
+  # with it (ADR 0001 F-65).
+  if [ -L "$caskroom" ]; then
+    say "skipping cask $c: it is Homebrew's old name for $(readlink "$caskroom"); remove that name instead"
+    return 0
+  fi
   if [ -d "$caskroom/.metadata" ] && [ -n "$brew_bin" ]; then
     plan cask "$c" "Homebrew-owned, $how"
     if [ "$dry" = 0 ]; then
