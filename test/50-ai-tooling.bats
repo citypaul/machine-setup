@@ -72,3 +72,15 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
   run perl -e 'alarm shift; exec @ARGV' 30 zsh -lc 'omp --version'
   [ "$status" -eq 0 ]
 }
+
+@test "agy runs outside the checkout from mise with self-updates disabled" {
+  run zsh -lc 'command -v agy'
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"/.local/share/mise/"* ]] || false
+  run perl -e 'alarm shift; exec @ARGV' 30 zsh -lc 'agy --version'
+  [ "$status" -eq 0 ]
+  [[ "$output" =~ [0-9]+\.[0-9]+\.[0-9]+ ]] || false
+  run "$HOME/.local/bin/mise" exec -- printenv AGY_CLI_DISABLE_AUTO_UPDATE
+  [ "$status" -eq 0 ]
+  [ "$output" = true ]
+}

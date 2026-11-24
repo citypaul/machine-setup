@@ -12,6 +12,7 @@ dotfile_groups = ["zsh", "rex", "ghostty", "mise", "git", "gnupg", "ssh", "bin",
 
 [bootstrap.packages]
 "brew-cask:alacritty" = { os = "macos" }
+"brew-cask:antigravity" = { os = "macos" }
 "brew-cask:audio-hijack" = { os = "macos" }
 "brew-cask:balsamiq-wireframes" = { os = "macos" }
 "brew-cask:bruno" = { os = "macos" }

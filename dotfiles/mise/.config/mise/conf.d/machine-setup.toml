@@ -21,6 +21,20 @@ rust = "stable"
 # downloaded it, so the github backend replaces a tap that mise would otherwise build (ADR 0001 D-22).
 "github:can1357/oh-my-pi" = "latest"
 
+# shortcut: mise 2026.11.12 drops the CLI cask's executable; use Google's release feed until that is fixed.
+[tools."http:antigravity-cli"]
+version = "latest"
+version_list_url = "https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/darwin_arm64.json"
+version_regex = '/antigravity-cli/([^/]+)/'
+prerelease = true   # Google's release directory includes a numeric build suffix after a hyphen
+url = 'https://storage.googleapis.com/antigravity-public/antigravity-cli/{{ version }}/{{ os(macos="darwin") }}-{{ arch(arm64="arm") }}/cli_{{ os(macos="mac") }}_{{ arch() }}.tar.gz'
+checksum_url = 'https://antigravity-cli-auto-updater-974169037036.us-central1.run.app/manifests/{{ os(macos="darwin") }}_{{ arch(x64="amd64") }}.json'
+checksum_expr = 'fromJSON(body).url == url ? "sha512:" + fromJSON(body).sha512 : ""'
+rename_exe = "agy"
+
+[env]
+AGY_CLI_DISABLE_AUTO_UPDATE = "true"   # mise owns CLI versions and upgrades
+
 [settings]
 # .nvmrc and .node-version switch node per directory, as nvm did; a missing version is installed
 # on first use by mise's command-not-found handler (not_found_auto_install is on by default).
