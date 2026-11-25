@@ -42,7 +42,7 @@ as_root() { if [ "$(id -u)" = 0 ]; then "$@"; else sudo -n "$@"; fi; }
 @test "the base CLI tools are installed in the Homebrew prefix" {
   local prefix tool
   if is_macos; then prefix=/opt/homebrew; else prefix=/home/linuxbrew/.linuxbrew; fi
-  for tool in rg fzf eza bat jq fd gh lazygit starship zoxide tmux; do
+  for tool in rg fzf eza bat jq fd gh lazygit starship zoxide tmux tailcat; do
     [ -x "$prefix/bin/$tool" ] || { echo "missing $prefix/bin/$tool"; return 1; }
   done
 }
