@@ -84,3 +84,15 @@ pinned_version() { sed -n -E 's/^claude_skills_version = "([^"]+)"$/\1/p' "$REPO
   [ "$status" -eq 0 ]
   [ "$output" = true ]
 }
+
+# Claude Code's own updater runs `npm install -g`, which puts a second copy in node's bin directory,
+# ahead of mise's on PATH; with npm's ignore-scripts set, that copy has no native binary and
+# `claude` stops starting (seen on the MacBook Pro, 2026-11-25).
+@test "claude runs from mise with self-updates disabled" {
+  run "$HOME/.local/bin/mise" which claude
+  [ "$status" -eq 0 ]
+  [[ "$output" == *"/installs/npm-anthropic-ai-claude-code/"* ]] || false
+  run "$HOME/.local/bin/mise" exec -- printenv DISABLE_AUTOUPDATER
+  [ "$status" -eq 0 ]
+  [ "$output" = 1 ]
+}
