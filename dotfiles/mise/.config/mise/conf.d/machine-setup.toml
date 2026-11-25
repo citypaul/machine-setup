@@ -34,6 +34,9 @@ rename_exe = "agy"
 
 [env]
 AGY_CLI_DISABLE_AUTO_UPDATE = "true"   # mise owns CLI versions and upgrades
+# Claude Code's updater runs `npm install -g`: a second copy in node's bin directory, ahead of mise's
+# on PATH, and without its native binary when npm's ignore-scripts is set. `machine-setup update` upgrades it.
+DISABLE_AUTOUPDATER = "1"
 
 [settings]
 # .nvmrc and .node-version switch node per directory, as nvm did; a missing version is installed
